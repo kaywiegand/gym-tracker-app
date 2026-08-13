@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Exercise DB — Bild-Vorschau</title>
+<style>
+  :root{--bg:#0a0a0a;--card:#141413;--border:#272725;--ink:#fafafa;--ink2:#a8a7a0;--muted:#6f6e69;--accent:#3987e5;
+    --font:system-ui,-apple-system,"Segoe UI",sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font)}
+  .wrap{max-width:960px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:22px;font-weight:750;margin:0 0 4px}
+  .lede{color:var(--ink2);font-size:13.5px;line-height:1.5;max-width:640px;margin-bottom:22px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:13px;overflow:hidden}
+  .imgs{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:#fff}
+  .imgs img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#eee}
+  .meta{padding:12px 14px}
+  .nm{font-size:14px;font-weight:700}
+  .tags{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+  .pill{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:6px;background:#1e1e1c;color:var(--ink2);border:1px solid var(--border)}
+  .pill.pd{background:rgba(57,135,229,.15);color:#9ec5f4;border-color:transparent}
+  .note{margin-top:22px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px;font-size:13px;color:var(--ink2);line-height:1.55}
+  .note b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Free Exercise DB — Original-Bilder</h1>
+  <div class="lede">Je Übung zwei Fotos (Start- und Endposition), Public Domain. Das sind echte Live-URLs von GitHub — genau das Material, das wir als Seed nutzen würden. ~870 Übungen haben solche Paare.</div>
+  <div class="grid" id="g"></div>
+  <div class="note"><b>Brauchen wir eigene Bilder?</b> Für <b>Übungs-Demos</b>: nein — die FEDB-Fotos reichen und sind rechtlich sauber (deine „modux"-Bilder kannst du privat in <code>/uploads</code> ergänzen). Wo eigene, „coole" Grafiken sich lohnen: <b>Muskelgruppen-Icons / Anatomie</b> für die UI (Filter, Heatmap-Legende, Übungs-Badges). Da würde ich einen kleinen, konsistenten, selbst gestalteten Icon-Satz empfehlen — der macht die App on-brand und einheitlich. Das Muskel-Farbschema (Chest=Blau, Back=Orange …) bleibt dabei immer gleich.</div>
+</div>
+<script>
+const BASE='https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+const EX=[
+  ['Barbell Bench Press','Barbell_Bench_Press_-_Medium_Grip','Chest','Compound'],
+  ['Barbell Full Squat','Barbell_Full_Squat','Quadriceps','Compound'],
+  ['Barbell Deadlift','Barbell_Deadlift','Lower back','Compound'],
+  ['Band Assisted Pull-Up','Band_Assisted_Pull-Up','Lats','Compound'],
+  ['Barbell Shoulder Press','Barbell_Shoulder_Press','Shoulders','Compound'],
+  ['Bent Over Barbell Row','Bent_Over_Barbell_Row','Middle back','Compound'],
+  ['Barbell Curl','Barbell_Curl','Biceps','Isolation'],
+  ['Barbell Walking Lunge','Barbell_Walking_Lunge','Quadriceps','Compound'],
+];
+document.getElementById('g').innerHTML=EX.map(([n,id,m,mech])=>`<div class="card">
+  <div class="imgs"><img loading="lazy" src="${BASE}${id}/0.jpg" alt="${n}"><img loading="lazy" src="${BASE}${id}/1.jpg" alt="${n}"></div>
+  <div class="meta"><div class="nm">${n}</div><div class="tags"><span class="pill">${m}</span><span class="pill">${mech}</span><span class="pill pd">Public Domain</span></div></div>
+</div>`).join('');
+</script>
+</body>
+</html>
