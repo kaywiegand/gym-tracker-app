@@ -43,6 +43,14 @@ try {
         handlePutTrainingMode($segments[1]);
     } elseif ($method === 'GET' && $path === '/muscles') {
         handleGetMuscles();
+    } elseif ($method === 'GET' && $path === '/exercises') {
+        handleListExercises();
+    } elseif ($method === 'POST' && $path === '/exercises') {
+        handleCreateExercise();
+    } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'exercises') {
+        handleGetExercise($segments[1]);
+    } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'exercises') {
+        handleUpdateExercise($segments[1]);
     } else {
         Http::error('Not found', 404);
     }
