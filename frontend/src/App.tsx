@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { api } from '@/lib/api'
+import { initSyncListeners, pushPending } from '@/lib/syncService'
 import type { Settings } from '@/types'
 import { RequireAuth } from '@/components/RequireAuth'
 import { AppShell } from '@/components/AppShell'
@@ -21,6 +22,16 @@ export default function App() {
   useEffect(() => {
     checkStatus()
   }, [checkStatus])
+
+  useEffect(() => {
+    initSyncListeners()
+  }, [])
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      pushPending()
+    }
+  }, [status])
 
   useEffect(() => {
     // Settings.theme in the DB is the source of truth across devices; sync
