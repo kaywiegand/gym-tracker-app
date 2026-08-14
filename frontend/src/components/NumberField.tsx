@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 interface NumberFieldProps {
   value: number
   onChange: (value: number) => void
+  onBlur?: () => void
   unit?: string
   step?: number
   min?: number
@@ -16,6 +17,7 @@ interface NumberFieldProps {
 export function NumberField({
   value,
   onChange,
+  onBlur,
   unit,
   step = 1,
   min,
@@ -38,6 +40,7 @@ export function NumberField({
           const parsed = parseFloat(e.target.value.replace(',', '.'))
           onChange(Number.isNaN(parsed) ? 0 : parsed)
         }}
+        onBlur={onBlur}
         className="w-full bg-transparent px-2 py-2 text-center text-[15px] font-bold tabular-nums outline-none focus:bg-brand-accent/15 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         {...rest}
       />
