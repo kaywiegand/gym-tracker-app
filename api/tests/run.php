@@ -87,6 +87,65 @@ check('soft delete returns false on repeat', $woRepo->softDelete($wo['id']) === 
 check('deleted workout missing from list', !in_array($wo['id'], array_column($woRepo->list(), 'id'), true), $failures);
 check('deleted workout not findable', $woRepo->find($wo['id']) === null, $failures);
 
+echo "SessionRepository / SetRepository / BodyweightRepository\n";
+$sessionRepo = new SessionRepository();
+$sess = $sessionRepo->upsert([
+    'id' => 'sess-1',
+    'workout_id' => $wo['id'],
+    'started_at' => '2026-01-01T10:00:00Z',
+    'updated_at' => '2026-01-01T10:00:00Z',
+]);
+check('session upsert inserts', $sess['id'] === 'sess-1', $failures);
+
+$staleSession = $sessionRepo->upsert([
+    'id' => 'sess-1',
+    'workout_id' => $wo['id'],
+    'started_at' => '2026-01-01T10:00:00Z',
+    'note' => 'STALE',
+    'updated_at' => '2025-01-01T00:00:00Z',
+]);
+check('session upsert ignores older updated_at (last-write-wins)', $staleSession['note'] === null, $failures);
+
+$freshSession = $sessionRepo->upsert([
+    'id' => 'sess-1',
+    'workout_id' => $wo['id'],
+    'started_at' => '2026-01-01T10:00:00Z',
+    'note' => 'FRESH',
+    'ended_at' => '2026-01-01T11:00:00Z',
+    'updated_at' => '2026-01-01T11:00:00Z',
+]);
+check('session upsert applies newer updated_at', $freshSession['note'] === 'FRESH', $failures);
+
+$setRepo = new SetRepository();
+$setRepo->upsert([
+    'id' => 'set-old', 'session_id' => 'sess-old', 'exercise_id' => $created['id'],
+    'set_index' => 0, 'weight_kg' => 55, 'reps' => 10,
+    'performed_at' => '2025-06-01T10:00:00Z', 'updated_at' => '2025-06-01T10:00:00Z',
+]);
+$setRepo->upsert([
+    'id' => 'set-1', 'session_id' => 'sess-1', 'exercise_id' => $created['id'],
+    'set_index' => 0, 'weight_kg' => 60, 'reps' => 10,
+    'performed_at' => '2026-01-01T10:05:00Z', 'updated_at' => '2026-01-01T10:05:00Z',
+]);
+$setRepo->upsert([
+    'id' => 'set-2', 'session_id' => 'sess-1', 'exercise_id' => $created['id'],
+    'set_index' => 1, 'weight_kg' => 62.5, 'reps' => 8,
+    'performed_at' => '2026-01-01T10:10:00Z', 'updated_at' => '2026-01-01T10:10:00Z',
+]);
+
+$lastSets = $setRepo->lastSetsForExercise($created['id']);
+check('lastSetsForExercise returns only the most recent session', count($lastSets) === 2, $failures);
+check('lastSetsForExercise excludes older session', !in_array('sess-old', array_column($lastSets, 'session_id'), true), $failures);
+check('lastSetsForExercise orders by set_index', $lastSets[0]['set_index'] === 0 && $lastSets[1]['set_index'] === 1, $failures);
+check('lastSetsForExercise for unknown exercise is empty', $setRepo->lastSetsForExercise('nope') === [], $failures);
+
+$bwRepo = new BodyweightRepository();
+$bwRepo->upsert(['id' => 'bw-1', 'measured_at' => '2026-01-01', 'weight_kg' => 80.0, 'updated_at' => '2026-01-01T08:00:00Z']);
+$bwRepo->upsert(['id' => 'bw-2', 'measured_at' => '2026-01-02', 'weight_kg' => 79.6, 'updated_at' => '2026-01-02T08:00:00Z']);
+$recent = $bwRepo->recent(30);
+check('bodyweight recent returns both entries', count($recent) === 2, $failures);
+check('bodyweight recent orders newest first', $recent[0]['measured_at'] === '2026-01-02', $failures);
+
 @unlink($dbPath);
 
 if ($failures) {
