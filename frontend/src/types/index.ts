@@ -105,3 +105,40 @@ export interface Workout {
   updated_at: string
   exercises: WorkoutExercise[]
 }
+
+export interface Session {
+  id: string
+  workout_id: string | null
+  started_at: string
+  ended_at: string | null
+  note: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface SetEntry {
+  id: string
+  session_id: string
+  exercise_id: string
+  workout_exercise_id: string | null
+  set_index: number
+  weight_kg: number
+  reps: number
+  is_warmup: number
+  rpe: number | null
+  performed_at: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface Bodyweight {
+  id: string
+  measured_at: string
+  weight_kg: number
+  note: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
