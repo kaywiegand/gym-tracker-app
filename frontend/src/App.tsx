@@ -10,6 +10,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ExerciseEditPage } from '@/pages/ExerciseEditPage'
 import { WorkoutsPage } from '@/pages/WorkoutsPage'
+import { WorkoutEditPage } from '@/pages/WorkoutEditPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
 export default function App() {
@@ -44,6 +45,8 @@ export default function App() {
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseEditPage />} />
           <Route path="/workouts" element={<WorkoutsPage />} />
+          <Route path="/workouts/new" element={<WorkoutEditPage />} />
+          <Route path="/workouts/:id/edit" element={<WorkoutEditPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>

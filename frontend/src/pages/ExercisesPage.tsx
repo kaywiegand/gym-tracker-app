@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { regionLabel } from '@/lib/muscleColors'
+import { groupByRegion } from '@/lib/exerciseGrouping'
 import type { Exercise, ExerciseListItem } from '@/types'
 import { PageHeader } from '@/components/PageHeader'
 import { FilterChips } from '@/components/FilterChips'
@@ -11,25 +12,6 @@ import { ExerciseDetailSheet } from '@/components/ExerciseDetailSheet'
 
 const REGION_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core']
 const MECHANIC_FILTERS = ['All', 'Compound', 'Isolation']
-
-interface Group {
-  region: string
-  items: ExerciseListItem[]
-}
-
-function groupByRegion(items: ExerciseListItem[]): Group[] {
-  const groups: Group[] = []
-  for (const item of items) {
-    const region = item.region ?? 'other'
-    const last = groups[groups.length - 1]
-    if (last && last.region === region) {
-      last.items.push(item)
-    } else {
-      groups.push({ region, items: [item] })
-    }
-  }
-  return groups
-}
 
 function cardSubtitle(item: ExerciseListItem): string {
   return [item.primary_muscle, item.equipment].filter(Boolean).join(' · ')
