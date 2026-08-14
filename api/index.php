@@ -1,0 +1,52 @@
+<?php
+declare(strict_types=1);
+
+// Front controller / mini router. Works both behind Apache (api/.htaccess
+// rewrites everything to this file) and the PHP built-in server (started
+// with this file as the router script) -- see README for the exact commands.
+
+require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/lib/Http.php';
+require __DIR__ . '/lib/Auth.php';
+foreach (glob(__DIR__ . '/endpoints/*.php') as $file) {
+    require_once $file;
+}
+
+Auth::start();
+
+$requestUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$path = $requestUri;
+if ($scriptDir !== '/' && $scriptDir !== '' && str_starts_with($path, $scriptDir)) {
+    $path = substr($path, strlen($scriptDir));
+}
+$path = '/' . trim($path, '/');
+$method = $_SERVER['REQUEST_METHOD'];
+$segments = array_values(array_filter(explode('/', $path), fn ($s) => $s !== ''));
+
+try {
+    if ($method === 'POST' && $path === '/auth/login') {
+        handleLogin();
+    } elseif ($method === 'POST' && $path === '/auth/logout') {
+        handleLogout();
+    } elseif ($method === 'GET' && $path === '/auth/status') {
+        handleAuthStatus();
+    } elseif ($method === 'POST' && $path === '/auth/change-password') {
+        handleChangePassword();
+    } elseif ($method === 'GET' && $path === '/settings') {
+        handleGetSettings();
+    } elseif ($method === 'PUT' && $path === '/settings') {
+        handlePutSettings();
+    } elseif ($method === 'GET' && $path === '/training-modes') {
+        handleGetTrainingModes();
+    } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'training-modes') {
+        handlePutTrainingMode($segments[1]);
+    } elseif ($method === 'GET' && $path === '/muscles') {
+        handleGetMuscles();
+    } else {
+        Http::error('Not found', 404);
+    }
+} catch (Throwable $e) {
+    error_log($e->getMessage());
+    Http::error('Server error', 500);
+}
