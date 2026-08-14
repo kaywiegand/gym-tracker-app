@@ -1,0 +1,51 @@
+<?php
+declare(strict_types=1);
+
+function handleListWorkouts(): void
+{
+    Auth::require();
+    Http::respond((new WorkoutRepository())->list());
+}
+
+function handleGetWorkout(string $id): void
+{
+    Auth::require();
+    $workout = (new WorkoutRepository())->find($id);
+    if ($workout === null) {
+        Http::error('Workout not found', 404);
+    }
+    Http::respond($workout);
+}
+
+function handleCreateWorkout(): void
+{
+    Auth::require();
+    $body = Http::jsonBody();
+    if (!isset($body['name']) || trim((string) $body['name']) === '' || !isset($body['mode_id'])) {
+        Http::error('name and mode_id are required');
+    }
+    Http::respond((new WorkoutRepository())->create($body), 201);
+}
+
+function handleUpdateWorkout(string $id): void
+{
+    Auth::require();
+    $body = Http::jsonBody();
+    if (!isset($body['name']) || trim((string) $body['name']) === '' || !isset($body['mode_id'])) {
+        Http::error('name and mode_id are required');
+    }
+    $workout = (new WorkoutRepository())->update($id, $body);
+    if ($workout === null) {
+        Http::error('Workout not found', 404);
+    }
+    Http::respond($workout);
+}
+
+function handleDeleteWorkout(string $id): void
+{
+    Auth::require();
+    if (!(new WorkoutRepository())->softDelete($id)) {
+        Http::error('Workout not found', 404);
+    }
+    Http::respond(['ok' => true]);
+}

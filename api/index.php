@@ -51,6 +51,16 @@ try {
         handleGetExercise($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'exercises') {
         handleUpdateExercise($segments[1]);
+    } elseif ($method === 'GET' && $path === '/workouts') {
+        handleListWorkouts();
+    } elseif ($method === 'POST' && $path === '/workouts') {
+        handleCreateWorkout();
+    } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'workouts') {
+        handleGetWorkout($segments[1]);
+    } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'workouts') {
+        handleUpdateWorkout($segments[1]);
+    } elseif ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'workouts') {
+        handleDeleteWorkout($segments[1]);
     } else {
         Http::error('Not found', 404);
     }
