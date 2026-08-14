@@ -39,7 +39,18 @@ export function WorkoutsPage() {
                 </div>
                 <div className="mt-0.5 text-[11.5px] text-muted-foreground">{w.exercise_count} exercises</div>
               </div>
-              <span className="shrink-0 text-muted-foreground">›</span>
+              <Button
+                type="button"
+                size="sm"
+                className="shrink-0"
+                disabled={w.exercise_count === 0}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigate(`/track/${w.id}`)
+                }}
+              >
+                Start
+              </Button>
             </div>
           </Card>
         ))}

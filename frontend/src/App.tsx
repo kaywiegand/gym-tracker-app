@@ -12,6 +12,7 @@ import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ExerciseEditPage } from '@/pages/ExerciseEditPage'
 import { WorkoutsPage } from '@/pages/WorkoutsPage'
 import { WorkoutEditPage } from '@/pages/WorkoutEditPage'
+import { TrackingPage } from '@/pages/TrackingPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
+        <Route path="/track/:workoutId" element={<TrackingPage />} />
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/exercises" replace />} />
           <Route path="/exercises" element={<ExercisesPage />} />
