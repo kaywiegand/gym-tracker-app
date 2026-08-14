@@ -8,6 +8,7 @@ import { RequireAuth } from '@/components/RequireAuth'
 import { AppShell } from '@/components/AppShell'
 import { LoginPage } from '@/pages/LoginPage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
+import { ExerciseEditPage } from '@/pages/ExerciseEditPage'
 import { WorkoutsPage } from '@/pages/WorkoutsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 
@@ -41,6 +42,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/exercises" replace />} />
           <Route path="/exercises" element={<ExercisesPage />} />
+          <Route path="/exercises/:id/edit" element={<ExerciseEditPage />} />
           <Route path="/workouts" element={<WorkoutsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
