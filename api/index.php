@@ -47,10 +47,16 @@ try {
         handleListExercises();
     } elseif ($method === 'POST' && $path === '/exercises') {
         handleCreateExercise();
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'last-sets') {
+        handleLastSetsForExercise($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'exercises') {
         handleGetExercise($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'exercises') {
         handleUpdateExercise($segments[1]);
+    } elseif ($method === 'POST' && $path === '/sync/push') {
+        handleSyncPush();
+    } elseif ($method === 'GET' && $path === '/bodyweight') {
+        handleGetBodyweight();
     } elseif ($method === 'GET' && $path === '/workouts') {
         handleListWorkouts();
     } elseif ($method === 'POST' && $path === '/workouts') {

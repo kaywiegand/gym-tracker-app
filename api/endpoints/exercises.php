@@ -41,3 +41,9 @@ function handleUpdateExercise(string $id): void
     }
     Http::respond($exercise);
 }
+
+function handleLastSetsForExercise(string $id): void
+{
+    Auth::require();
+    Http::respond((new SetRepository())->lastSetsForExercise($id));
+}
