@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiError } from '@/lib/api'
+import { putRow, type LocalBodyweight } from '@/lib/localDb'
+import { pushPending } from '@/lib/syncService'
+import { nowIso } from '@/lib/time'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
-import type { Settings, TrainingMode } from '@/types'
+import type { Bodyweight, Settings, TrainingMode } from '@/types'
 import { PageHeader } from '@/components/PageHeader'
 import { NumberField } from '@/components/NumberField'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -191,7 +194,9 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <p className="mb-2 mt-4 text-center text-[11px] text-muted-foreground">BIA &amp; HR import · PDF/CSV export · Sync — later stages</p>
+      <BodyweightCard />
+
+      <p className="mb-2 mt-4 text-center text-[11px] text-muted-foreground">BIA &amp; HR import · PDF/CSV export — later stages</p>
     </>
   )
 }
@@ -259,6 +264,75 @@ function ChangePasswordCard() {
               {submitting ? 'Saving…' : 'Change password'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// Minimal quick-entry card -- no dedicated screen, matching the plan's
+// scope decision (the prototype has no bodyweight input UI at all, only a
+// Stage-5 analysis view). Writes local-first like the tracking screen.
+function BodyweightCard() {
+  const [weightKg, setWeightKg] = useState(70)
+  const [last, setLast] = useState<Bodyweight | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    api
+      .get<Bodyweight[]>('/bodyweight?limit=1')
+      .then((rows) => {
+        if (rows[0]) {
+          setLast(rows[0])
+          setWeightKg(rows[0].weight_kg)
+        }
+      })
+      .catch(() => {
+        // non-fatal -- entry still works without a "last" reference
+      })
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    const now = nowIso()
+    const row: LocalBodyweight = {
+      id: crypto.randomUUID(),
+      measured_at: now.slice(0, 10),
+      weight_kg: weightKg,
+      note: null,
+      created_at: now,
+      updated_at: now,
+      deleted_at: null,
+      synced: false,
+    }
+    await putRow('bodyweight', row)
+    pushPending()
+    setLast(row)
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
+  }
+
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Body weight</div>
+      <Card>
+        <CardContent className="flex items-center justify-between py-1">
+          <div>
+            <div className="text-[14px] font-bold">Log weight</div>
+            {last && (
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                Last: {last.weight_kg} kg · {last.measured_at}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <NumberField width="5.25rem" step={0.1} unit="kg" value={weightKg} onChange={setWeightKg} aria-label="Body weight" />
+            <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </>
