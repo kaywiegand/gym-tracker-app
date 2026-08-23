@@ -123,10 +123,42 @@ export interface MuscleVolumeResponse {
   regions: MuscleVolumeRegion[]
 }
 
+export interface AcwrWeek {
+  week_start: string
+  ratio: number
+}
+
 export interface AcwrResponse {
   acute_kg: number
   chronic_kg: number
   ratio: number
+  weekly_series: AcwrWeek[]
+}
+
+export interface TrainingLoadResponse {
+  weekly_volume: { week_start: string; volume_kg: number }[]
+  weekly_sessions: { week_start: string; count: number }[]
+}
+
+export interface ConsistencyResponse {
+  dates: string[]
+}
+
+export interface ExerciseSessionSummary {
+  session_id: string
+  started_at: string
+  sets: { weight_kg: number; reps: number }[]
+}
+
+export interface WorkoutMuscleSplitSession {
+  session_id: string
+  started_at: string
+  ended_at: string | null
+  by_region: Record<string, number>
+}
+
+export interface WorkoutMuscleSplitResponse {
+  sessions: WorkoutMuscleSplitSession[]
 }
 
 export interface Workout {

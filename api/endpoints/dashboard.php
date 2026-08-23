@@ -4,7 +4,7 @@ declare(strict_types=1);
 function handleMuscleVolume(): void
 {
     Auth::require();
-    $weeks = isset($_GET['weeks']) ? max(1, min(52, (int) $_GET['weeks'])) : 8;
+    $weeks = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) : 8;
 
     $setRepo = new SetRepository();
     $rows = $setRepo->rawSetsWithMuscles($weeks * 7 + 7);
@@ -38,7 +38,47 @@ function handleMuscleVolume(): void
 function handleAcwr(): void
 {
     Auth::require();
-    $rows = (new SetRepository())->dailyVolume(35);
+    $weeks = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) : 8;
+    $now = gmdate('Y-m-d\TH:i:s\Z');
+
+    $rows = (new SetRepository())->dailyVolume($weeks * 7 + 28);
     $daily = MuscleVolume::dailyTotals($rows);
-    Http::respond(MuscleVolume::acwr($daily, gmdate('Y-m-d\TH:i:s\Z')));
+
+    $result = MuscleVolume::acwr($daily, $now);
+    $result['weekly_series'] = MuscleVolume::acwrWeeklySeries($daily, $weeks, $now);
+    Http::respond($result);
+}
+
+function handleTrainingLoad(): void
+{
+    Auth::require();
+    $weeks = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) : 8;
+    $now = gmdate('Y-m-d\TH:i:s\Z');
+
+    $rows = (new SetRepository())->dailyVolume($weeks * 7 + 7);
+    $daily = MuscleVolume::dailyTotals($rows);
+
+    Http::respond([
+        'weekly_volume' => MuscleVolume::weeksFromDaily($daily, $weeks, $now),
+        'weekly_sessions' => weeklySessionCounts((new SessionRepository())->recentDates($weeks * 7 + 7), $weeks, $now),
+    ]);
+}
+
+function weeklySessionCounts(array $dates, int $weeks, string $nowIso): array
+{
+    $counts = [];
+    foreach ($dates as $date) {
+        $counts[$date] = 1.0;
+    }
+    return array_map(
+        fn (array $week) => ['week_start' => $week['week_start'], 'count' => (int) $week['volume_kg']],
+        MuscleVolume::weeksFromDaily($counts, $weeks, $nowIso)
+    );
+}
+
+function handleConsistency(): void
+{
+    Auth::require();
+    $days = isset($_GET['days']) ? max(7, min(365, (int) $_GET['days'])) : 126;
+    Http::respond(['dates' => (new SessionRepository())->recentDates($days)]);
 }

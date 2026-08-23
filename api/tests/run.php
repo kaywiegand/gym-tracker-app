@@ -266,6 +266,50 @@ $targets = (new MuscleRepository())->volumeTargets();
 check('volumeTargets returns seeded regions', $targets['chest'] === ['mev' => 8, 'mav' => 16, 'mrv' => 22], $failures);
 check('volumeTargets covers all three seeded regions', count($targets) === 3, $failures);
 
+echo "MuscleVolume Part 2 (weekly totals, ACWR series) + dashboard repositories\n";
+
+$weeklyDaily = ['2026-04-06' => 100.0, '2026-04-07' => 50.0, '2026-04-13' => 200.0];
+$weeklyTotals = MuscleVolume::weeksFromDaily($weeklyDaily, 3, '2026-04-21T10:00:00Z');
+check('weeksFromDaily returns requested number of weeks', count($weeklyTotals) === 3, $failures);
+check('weeksFromDaily orders oldest first', array_column($weeklyTotals, 'week_start') === ['2026-04-06', '2026-04-13', '2026-04-20'], $failures);
+check('weeksFromDaily sums same-week days (100 + 50)', abs($weeklyTotals[0]['volume_kg'] - 150.0) < 0.001, $failures);
+check('weeksFromDaily keeps a data-less week at zero', $weeklyTotals[2]['volume_kg'] === 0.0, $failures);
+
+$flatDaily = [];
+for ($i = 0; $i < 60; $i++) {
+    $flatDaily[gmdate('Y-m-d', strtotime("2026-05-10 -{$i} days"))] = 100.0;
+}
+$acwrSeries = MuscleVolume::acwrWeeklySeries($flatDaily, 4, '2026-05-10T12:00:00Z');
+check('acwrWeeklySeries returns requested number of weeks', count($acwrSeries) === 4, $failures);
+check(
+    'acwrWeeklySeries ratio is ~1.0 throughout for constant daily volume',
+    array_reduce($acwrSeries, fn ($ok, $w) => $ok && abs($w['ratio'] - 1.0) < 0.01, true),
+    $failures
+);
+
+$splitWorkout = $woRepo->create(['name' => 'Test Split Workout', 'mode_id' => 2, 'exercises' => []]);
+$sessionRepo->upsert(['id' => 'sess-split-1', 'workout_id' => $splitWorkout['id'], 'started_at' => '2026-04-01T10:00:00Z', 'ended_at' => '2026-04-01T10:30:00Z', 'updated_at' => '2026-04-01T10:30:00Z']);
+$sessionRepo->upsert(['id' => 'sess-split-2', 'workout_id' => $splitWorkout['id'], 'started_at' => '2026-04-08T10:00:00Z', 'ended_at' => '2026-04-08T10:45:00Z', 'updated_at' => '2026-04-08T10:45:00Z']);
+$setRepo->upsert(['id' => 'set-split-1', 'session_id' => 'sess-split-1', 'exercise_id' => $muscleVolExercise['id'], 'set_index' => 0, 'weight_kg' => 60, 'reps' => 8, 'performed_at' => '2026-04-01T10:05:00Z', 'updated_at' => '2026-04-01T10:05:00Z']);
+$setRepo->upsert(['id' => 'set-split-2', 'session_id' => 'sess-split-2', 'exercise_id' => $muscleVolExercise['id'], 'set_index' => 0, 'weight_kg' => 62, 'reps' => 8, 'performed_at' => '2026-04-08T10:05:00Z', 'updated_at' => '2026-04-08T10:05:00Z']);
+
+$split = $setRepo->muscleSplitForWorkout($splitWorkout['id']);
+check('muscleSplitForWorkout returns one entry per session', count($split) === 2, $failures);
+check('muscleSplitForWorkout orders oldest first', $split[0]['session_id'] === 'sess-split-1', $failures);
+check('muscleSplitForWorkout weights the primary region 1.0', abs($split[0]['by_region']['chest'] - 1.0) < 0.001, $failures);
+check('muscleSplitForWorkout weights the secondary region 0.5', abs($split[0]['by_region']['shoulders'] - 0.5) < 0.001, $failures);
+check('muscleSplitForWorkout carries ended_at', $split[1]['ended_at'] === '2026-04-08T10:45:00Z', $failures);
+
+$summaries = $setRepo->sessionSummariesForExercise($muscleVolExercise['id']);
+check('sessionSummariesForExercise returns one entry per session', count($summaries) === 2, $failures);
+check('sessionSummariesForExercise orders oldest first', array_column($summaries, 'session_id') === ['sess-split-1', 'sess-split-2'], $failures);
+check('sessionSummariesForExercise keeps per-set weight/reps', $summaries[0]['sets'] === [['weight_kg' => 60.0, 'reps' => 8]], $failures);
+
+$sessionRepo->upsert(['id' => 'sess-recent', 'workout_id' => $wo['id'], 'started_at' => $recentIso, 'updated_at' => $recentIso]);
+$recentDates = (new SessionRepository())->recentDates(7);
+check('recentDates includes a session started moments ago', in_array(gmdate('Y-m-d'), $recentDates, true), $failures);
+check('recentDates excludes sessions outside the window', !in_array('2026-04-01', $recentDates, true), $failures);
+
 @unlink($dbPath);
 
 if ($failures) {

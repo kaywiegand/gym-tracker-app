@@ -122,4 +122,83 @@ final class SetRepository extends BaseRepository
             [$cutoff]
         );
     }
+
+    // Weighted sets-per-region for the last $limit sessions of one workout
+    // (Stage 4 workout-scope muscle split) -- same primary+secondary join as
+    // rawSetsWithMuscles(), scoped to a single workout's own history.
+    public function muscleSplitForWorkout(string $workoutId, int $limit = 6): array
+    {
+        $rows = $this->fetchAll(
+            'SELECT st.session_id, s.started_at, s.ended_at, mu.region, SUM(em.weight) AS sets
+             FROM sessions s
+             JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
+             JOIN exercise_muscles em ON em.exercise_id = st.exercise_id
+             JOIN muscles mu ON mu.id = em.muscle_id
+             WHERE s.workout_id = ? AND s.deleted_at IS NULL
+               AND s.id IN (
+                 SELECT id FROM sessions WHERE workout_id = ? AND deleted_at IS NULL
+                 ORDER BY started_at DESC LIMIT ' . (int) $limit . '
+               )
+             GROUP BY st.session_id, s.started_at, s.ended_at, mu.region
+             ORDER BY s.started_at ASC',
+            [$workoutId, $workoutId]
+        );
+
+        $bySession = [];
+        foreach ($rows as $row) {
+            $sessionId = $row['session_id'];
+            $bySession[$sessionId] ??= [
+                'session_id' => $sessionId,
+                'started_at' => $row['started_at'],
+                'ended_at' => $row['ended_at'],
+                'by_region' => [],
+            ];
+            $bySession[$sessionId]['by_region'][$row['region']] = (float) $row['sets'];
+        }
+        return array_values($bySession);
+    }
+
+    // Per-set detail for the last $limit sessions of one exercise, oldest
+    // first -- raw material for the Stage 4 "progression ladder" (formatting
+    // and up/hold comparisons happen client-side). Unlike historyForExercise
+    // (aggregated best_e1rm/volume), this keeps every individual set.
+    public function sessionSummariesForExercise(string $exerciseId, int $limit = 6): array
+    {
+        $sessionRows = $this->fetchAll(
+            'SELECT DISTINCT s.id AS session_id, s.started_at
+             FROM sessions s
+             JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
+             WHERE s.deleted_at IS NULL AND st.exercise_id = ?
+             ORDER BY s.started_at DESC
+             LIMIT ' . (int) $limit,
+            [$exerciseId]
+        );
+        if ($sessionRows === []) {
+            return [];
+        }
+
+        $sessionIds = array_column($sessionRows, 'session_id');
+        $placeholders = implode(',', array_fill(0, count($sessionIds), '?'));
+        $setRows = $this->fetchAll(
+            "SELECT session_id, weight_kg, reps FROM sets
+             WHERE exercise_id = ? AND deleted_at IS NULL AND is_warmup = 0 AND session_id IN ({$placeholders})
+             ORDER BY set_index",
+            array_merge([$exerciseId], $sessionIds)
+        );
+
+        $setsBySession = [];
+        foreach ($setRows as $row) {
+            $setsBySession[$row['session_id']][] = ['weight_kg' => (float) $row['weight_kg'], 'reps' => (int) $row['reps']];
+        }
+
+        $result = [];
+        foreach (array_reverse($sessionRows) as $session) {
+            $result[] = [
+                'session_id' => $session['session_id'],
+                'started_at' => $session['started_at'],
+                'sets' => $setsBySession[$session['session_id']] ?? [],
+            ];
+        }
+        return $result;
+    }
 }

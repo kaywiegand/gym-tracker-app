@@ -57,3 +57,10 @@ function handleLastSessionVolume(string $workoutId): void
     $result = (new SetRepository())->lastSessionVolume($workoutId, $exclude);
     Http::respond($result ?? ['session_id' => null, 'started_at' => null, 'volume_kg' => null, 'sets_count' => 0]);
 }
+
+function handleWorkoutMuscleSplit(string $workoutId): void
+{
+    Auth::require();
+    $limit = isset($_GET['limit']) ? max(1, min(50, (int) $_GET['limit'])) : 6;
+    Http::respond(['sessions' => (new SetRepository())->muscleSplitForWorkout($workoutId, $limit)]);
+}

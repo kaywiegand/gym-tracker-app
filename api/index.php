@@ -51,6 +51,8 @@ try {
         handleLastSetsForExercise($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'history') {
         handleExerciseHistory($segments[1]);
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'session-summaries') {
+        handleExerciseSessionSummaries($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'exercises') {
         handleGetExercise($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'exercises') {
@@ -65,6 +67,8 @@ try {
         handleCreateWorkout();
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'workouts' && $segments[2] === 'last-session-volume') {
         handleLastSessionVolume($segments[1]);
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'workouts' && $segments[2] === 'muscle-split') {
+        handleWorkoutMuscleSplit($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'workouts') {
         handleGetWorkout($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'workouts') {
@@ -75,6 +79,10 @@ try {
         handleMuscleVolume();
     } elseif ($method === 'GET' && $path === '/dashboard/acwr') {
         handleAcwr();
+    } elseif ($method === 'GET' && $path === '/dashboard/training-load') {
+        handleTrainingLoad();
+    } elseif ($method === 'GET' && $path === '/dashboard/consistency') {
+        handleConsistency();
     } else {
         Http::error('Not found', 404);
     }

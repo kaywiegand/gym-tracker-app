@@ -110,4 +110,45 @@ final class MuscleVolume
 
         return ['acute_kg' => $acute, 'chronic_kg' => $chronicWeekly, 'ratio' => $ratio];
     }
+
+    // Whole-body volume per week (no region split) -- feeds the "Volume/wk"
+    // KPI sparkline on the dashboard overview. Same $weeks/oldest-first
+    // convention as weeklyByRegion(), but flat.
+    public static function weeksFromDaily(array $dailyTotals, int $weeks, string $nowIso): array
+    {
+        $currentWeekStart = self::isoWeekStart($nowIso);
+        $weekStarts = self::lastWeekStarts($currentWeekStart, $weeks);
+        $sums = array_fill_keys($weekStarts, 0.0);
+
+        foreach ($dailyTotals as $day => $volume) {
+            $weekStart = self::isoWeekStart($day . 'T00:00:00Z');
+            if (isset($sums[$weekStart])) {
+                $sums[$weekStart] += $volume;
+            }
+        }
+
+        $result = [];
+        foreach ($weekStarts as $weekStart) {
+            $result[] = ['week_start' => $weekStart, 'volume_kg' => $sums[$weekStart]];
+        }
+        return $result;
+    }
+
+    // ACWR ratio as measured at the end of each of the last $weeks weeks
+    // (the current, still-in-progress week is measured as of $nowIso rather
+    // than its not-yet-reached Sunday) -- feeds the ACWR KPI sparkline.
+    public static function acwrWeeklySeries(array $dailyTotals, int $weeks, string $nowIso): array
+    {
+        $currentWeekStart = self::isoWeekStart($nowIso);
+        $weekStarts = self::lastWeekStarts($currentWeekStart, $weeks);
+
+        $result = [];
+        foreach ($weekStarts as $weekStart) {
+            $asOf = $weekStart === $currentWeekStart
+                ? $nowIso
+                : (new DateTimeImmutable($weekStart, new DateTimeZone('UTC')))->modify('+6 days')->format('Y-m-d\TH:i:s\Z');
+            $result[] = ['week_start' => $weekStart, 'ratio' => self::acwr($dailyTotals, $asOf)['ratio']];
+        }
+        return $result;
+    }
 }
