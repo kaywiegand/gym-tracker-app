@@ -92,4 +92,34 @@ final class SetRepository extends BaseRepository
             [$exerciseId]
         );
     }
+
+    // Raw rows for the muscle-volume dashboard (Stage 4) -- one row per
+    // exercise_muscles mapping a logged set touches (primary AND secondary,
+    // unlike ExerciseRepository/WorkoutRepository's role='primary'-only
+    // subqueries used for display). Week-bucketing and secondary-muscle
+    // weighting happen in MuscleVolume::weeklyByRegion(), not here.
+    public function rawSetsWithMuscles(int $sinceDays): array
+    {
+        $cutoff = gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400);
+        return $this->fetchAll(
+            'SELECT st.performed_at, st.weight_kg, st.reps, em.weight AS muscle_weight, mu.region
+             FROM sets st
+             JOIN exercise_muscles em ON em.exercise_id = st.exercise_id
+             JOIN muscles mu ON mu.id = em.muscle_id
+             WHERE st.deleted_at IS NULL AND st.is_warmup = 0 AND st.performed_at >= ?',
+            [$cutoff]
+        );
+    }
+
+    // Whole-body daily training load for ACWR (Stage 4, CLAUDE.md §8) -- no
+    // muscle join, every exercise counts once.
+    public function dailyVolume(int $days): array
+    {
+        $cutoff = gmdate('Y-m-d\TH:i:s\Z', time() - $days * 86400);
+        return $this->fetchAll(
+            'SELECT performed_at, weight_kg, reps FROM sets
+             WHERE deleted_at IS NULL AND is_warmup = 0 AND performed_at >= ?',
+            [$cutoff]
+        );
+    }
 }

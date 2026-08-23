@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { Dumbbell, ListChecks, Settings as SettingsIcon } from 'lucide-react'
+import { Dumbbell, LayoutDashboard, ListChecks, Settings as SettingsIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// Three tabs only (Exercises / Workouts / Settings) -- Stage 1 has no
-// tracking loop yet, so no "Training" tab with a start-workout hero
-// (that's Stage 2, see the plan's scope note).
+// Dashboard first -- Stage 4 makes it the "status at a glance" home screen
+// (CLAUDE.md §1), so it's also the new index redirect target in App.tsx.
 const TABS = [
+  { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/exercises', label: 'Exercises', Icon: Dumbbell },
   { to: '/workouts', label: 'Workouts', Icon: ListChecks },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon },

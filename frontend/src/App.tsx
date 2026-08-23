@@ -8,6 +8,7 @@ import type { Settings } from '@/types'
 import { RequireAuth } from '@/components/RequireAuth'
 import { AppShell } from '@/components/AppShell'
 import { LoginPage } from '@/pages/LoginPage'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ExerciseEditPage } from '@/pages/ExerciseEditPage'
 import { WorkoutsPage } from '@/pages/WorkoutsPage'
@@ -54,7 +55,8 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route path="/track/:workoutId" element={<TrackingPage />} />
         <Route element={<AppShell />}>
-          <Route index element={<Navigate to="/exercises" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseEditPage />} />
           <Route path="/workouts" element={<WorkoutsPage />} />

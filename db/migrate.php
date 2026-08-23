@@ -40,7 +40,7 @@ foreach (array_filter(array_map('trim', explode(';', $schema))) as $statement) {
 echo "   schema OK\n";
 
 $seedDir = __DIR__ . '/seed';
-$seedOrder = ['muscles.php', 'training_modes.php', 'settings.php', 'exercises.php', 'workouts.php'];
+$seedOrder = ['muscles.php', 'muscle_volume_targets.php', 'training_modes.php', 'settings.php', 'exercises.php', 'workouts.php'];
 foreach ($seedOrder as $file) {
     $path = $seedDir . '/' . $file;
     if (!is_file($path)) {

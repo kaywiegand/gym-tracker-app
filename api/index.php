@@ -71,6 +71,10 @@ try {
         handleUpdateWorkout($segments[1]);
     } elseif ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'workouts') {
         handleDeleteWorkout($segments[1]);
+    } elseif ($method === 'GET' && $path === '/dashboard/muscle-volume') {
+        handleMuscleVolume();
+    } elseif ($method === 'GET' && $path === '/dashboard/acwr') {
+        handleAcwr();
     } else {
         Http::error('Not found', 404);
     }

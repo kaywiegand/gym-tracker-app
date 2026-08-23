@@ -99,6 +99,36 @@ export interface ExerciseHistoryEntry {
   volume_kg: number
 }
 
+export interface WeeklyMetrics {
+  sets: number
+  volume_kg: number
+  best_e1rm: number
+}
+
+export interface MuscleVolumeWeek extends WeeklyMetrics {
+  week_start: string
+}
+
+export interface MuscleVolumeRegion {
+  region: string
+  mev: number
+  mav: number
+  mrv: number
+  this_week: WeeklyMetrics
+  last_week: WeeklyMetrics
+  weeks: MuscleVolumeWeek[]
+}
+
+export interface MuscleVolumeResponse {
+  regions: MuscleVolumeRegion[]
+}
+
+export interface AcwrResponse {
+  acute_kg: number
+  chronic_kg: number
+  ratio: number
+}
+
 export interface Workout {
   id: string
   name: string

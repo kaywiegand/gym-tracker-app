@@ -21,6 +21,8 @@ $pdo->exec("INSERT INTO muscles (id, name_en, region, sort) VALUES
     (1, 'Chest', 'chest', 1), (2, 'Triceps', 'arms', 2), (6, 'Shoulders', 'shoulders', 6)");
 $pdo->exec("INSERT INTO training_modes (id, key, name, rep_low, rep_high, sort) VALUES
     (1, 'strength', 'Strength', 3, 5, 1), (2, 'hypertrophy', 'Hypertrophy', 6, 10, 2)");
+$pdo->exec("INSERT INTO muscle_volume_targets (region, mev, mav, mrv) VALUES
+    ('chest', 8, 16, 22), ('arms', 6, 14, 22), ('shoulders', 8, 16, 24)");
 
 $failures = [];
 
@@ -182,6 +184,87 @@ $bwRepo->upsert(['id' => 'bw-2', 'measured_at' => '2026-01-02', 'weight_kg' => 7
 $recent = $bwRepo->recent(30);
 check('bodyweight recent returns both entries', count($recent) === 2, $failures);
 check('bodyweight recent orders newest first', $recent[0]['measured_at'] === '2026-01-02', $failures);
+
+echo "MuscleVolume (pure engine)\n";
+
+check('isoWeekStart on a Monday returns itself', MuscleVolume::isoWeekStart('2026-02-16T00:00:00Z') === '2026-02-16', $failures);
+check('isoWeekStart mid-week returns that week\'s Monday', MuscleVolume::isoWeekStart('2026-02-18T10:00:00Z') === '2026-02-16', $failures);
+check('isoWeekStart on a Sunday returns the same week\'s Monday', MuscleVolume::isoWeekStart('2026-02-22T23:59:00Z') === '2026-02-16', $failures);
+
+$volumeRows = [
+    // this week (2026-02-16..22): chest primary + chest-as-secondary (from a shoulder press), arms primary
+    ['performed_at' => '2026-02-17T10:00:00Z', 'weight_kg' => 100, 'reps' => 8, 'muscle_weight' => 1.0, 'region' => 'chest'],
+    ['performed_at' => '2026-02-17T10:05:00Z', 'weight_kg' => 50, 'reps' => 10, 'muscle_weight' => 0.5, 'region' => 'chest'],
+    ['performed_at' => '2026-02-17T10:10:00Z', 'weight_kg' => 40, 'reps' => 10, 'muscle_weight' => 1.0, 'region' => 'arms'],
+    // last week (2026-02-09..15): chest primary only
+    ['performed_at' => '2026-02-10T10:00:00Z', 'weight_kg' => 90, 'reps' => 8, 'muscle_weight' => 1.0, 'region' => 'chest'],
+];
+$byRegion = MuscleVolume::weeklyByRegion($volumeRows, 8, '2026-02-18T12:00:00Z');
+
+check('weeklyByRegion produces 8 week buckets', count($byRegion['chest']['weeks']) === 8, $failures);
+check('weeklyByRegion sums weighted sets this week (1.0 + 0.5)', abs($byRegion['chest']['this_week']['sets'] - 1.5) < 0.001, $failures);
+check('weeklyByRegion sums weighted volume this week (800 + 250)', abs($byRegion['chest']['this_week']['volume_kg'] - 1050.0) < 0.001, $failures);
+check(
+    'weeklyByRegion best_e1rm is a max, not weighted/summed',
+    abs($byRegion['chest']['this_week']['best_e1rm'] - (100 * (1 + 8 / 30))) < 0.001,
+    $failures
+);
+check('weeklyByRegion carries last week\'s data separately', abs($byRegion['chest']['last_week']['sets'] - 1.0) < 0.001, $failures);
+check('weeklyByRegion zero-fills a region\'s week with no sets', $byRegion['arms']['last_week']['sets'] === 0.0, $failures);
+check('weeklyByRegion omits a region with no rows at all', !array_key_exists('shoulders', $byRegion), $failures);
+
+$dailyRows = [
+    ['performed_at' => '2026-03-01T09:00:00Z', 'weight_kg' => 100, 'reps' => 10],
+    ['performed_at' => '2026-03-01T09:10:00Z', 'weight_kg' => 50, 'reps' => 5],
+    ['performed_at' => '2026-03-02T09:00:00Z', 'weight_kg' => 80, 'reps' => 8],
+];
+$daily = MuscleVolume::dailyTotals($dailyRows);
+check('dailyTotals sums same-day sets (1000 + 250)', abs($daily['2026-03-01'] - 1250.0) < 0.001, $failures);
+check('dailyTotals keeps separate days apart', abs($daily['2026-03-02'] - 640.0) < 0.001, $failures);
+
+$acwrDaily = [];
+for ($i = 0; $i < 7; $i++) {
+    $acwrDaily[gmdate('Y-m-d', strtotime("2026-03-15 -{$i} days"))] = 200.0; // acute: 7 days × 200 = 1400
+}
+for ($i = 7; $i < 28; $i++) {
+    $acwrDaily[gmdate('Y-m-d', strtotime("2026-03-15 -{$i} days"))] = 100.0; // remaining 21 days × 100 = 2100
+}
+$acwr = MuscleVolume::acwr($acwrDaily, '2026-03-15T12:00:00Z');
+check('acwr sums the acute (last 7 days) window', abs($acwr['acute_kg'] - 1400.0) < 0.001, $failures);
+check('acwr chronic is 28-day total / 4', abs($acwr['chronic_kg'] - ((1400 + 2100) / 4)) < 0.001, $failures);
+check('acwr ratio divides acute by chronic weekly average', abs($acwr['ratio'] - (1400 / ((1400 + 2100) / 4))) < 0.001, $failures);
+check('acwr with no history returns a zero ratio (no division by zero)', MuscleVolume::acwr([], '2026-03-15T12:00:00Z')['ratio'] === 0.0, $failures);
+
+echo "MuscleVolume + repositories (real joins)\n";
+$muscleVolExercise = $exRepo->create([
+    'name' => 'Test Incline Press',
+    'muscles' => [
+        ['muscle_id' => 1, 'role' => 'primary', 'weight' => 1.0],
+        ['muscle_id' => 6, 'role' => 'secondary', 'weight' => 0.5],
+    ],
+]);
+$recentIso = gmdate('Y-m-d\TH:i:s\Z', time() - 3600);
+$setRepo->upsert([
+    'id' => 'set-mv-1', 'session_id' => 'sess-mv', 'exercise_id' => $muscleVolExercise['id'],
+    'set_index' => 0, 'weight_kg' => 70, 'reps' => 8,
+    'performed_at' => $recentIso, 'updated_at' => $recentIso,
+]);
+
+$rawRows = $setRepo->rawSetsWithMuscles(7);
+$mvRows = array_values(array_filter($rawRows, fn ($r) => $r['weight_kg'] == 70 && $r['reps'] == 8));
+check('rawSetsWithMuscles produces one row per muscle mapping', count($mvRows) === 2, $failures);
+$byChest = array_values(array_filter($mvRows, fn ($r) => $r['region'] === 'chest'));
+$byShoulders = array_values(array_filter($mvRows, fn ($r) => $r['region'] === 'shoulders'));
+check('rawSetsWithMuscles: primary chest row weighted 1.0', count($byChest) === 1 && (float) $byChest[0]['muscle_weight'] === 1.0, $failures);
+check('rawSetsWithMuscles: secondary shoulders row weighted 0.5', count($byShoulders) === 1 && (float) $byShoulders[0]['muscle_weight'] === 0.5, $failures);
+
+$dailyVolRows = $setRepo->dailyVolume(7);
+check('dailyVolume includes the just-logged set', count(array_filter($dailyVolRows, fn ($r) => (float) $r['weight_kg'] === 70.0 && (int) $r['reps'] === 8)) === 1, $failures);
+check('dailyVolume(0) excludes it (outside the window)', $setRepo->dailyVolume(0) === [], $failures);
+
+$targets = (new MuscleRepository())->volumeTargets();
+check('volumeTargets returns seeded regions', $targets['chest'] === ['mev' => 8, 'mav' => 16, 'mrv' => 22], $failures);
+check('volumeTargets covers all three seeded regions', count($targets) === 3, $failures);
 
 @unlink($dbPath);
 

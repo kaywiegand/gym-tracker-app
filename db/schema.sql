@@ -25,6 +25,17 @@ CREATE TABLE IF NOT EXISTS muscles (
   sort INTEGER
 );
 
+-- Weekly working-set volume landmarks per muscle region (CLAUDE.md §8:
+-- "Bewertung an MEV/MAV/MRV") -- dedicated reference table, same pattern as
+-- training_modes/muscles, rather than overloading the generic settings KV
+-- store with 18 prefixed keys.
+CREATE TABLE IF NOT EXISTS muscle_volume_targets (
+  region TEXT PRIMARY KEY,
+  mev INTEGER,
+  mav INTEGER,
+  mrv INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS exercises (
   id TEXT PRIMARY KEY,
   name TEXT,
