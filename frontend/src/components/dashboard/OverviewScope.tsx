@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
+import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import { FilterChips } from '@/components/FilterChips'
 import { KpiTile } from '@/components/KpiTile'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { ConsistencyCalendar } from '@/components/ConsistencyCalendar'
+import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-
-const RANGE_WEEKS: Record<string, number> = { '3M': 13, '6M': 26, '9M': 39, '12M': 52, All: 104 }
-const RANGE_OPTIONS = Object.keys(RANGE_WEEKS)
 
 type RadarMetric = 'sets' | 'volume_kg' | 'best_e1rm'
 const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_kg: 'Volume', best_e1rm: 'e1RM' }
@@ -21,7 +20,7 @@ const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_
 // with many exercises. e1RM lives in the Exercise scope instead, where one
 // is explicitly picked.
 export function OverviewScope() {
-  const [range, setRange] = useState('3M')
+  const [range, setRange] = useState<DashboardRange>('3M')
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('sets')
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null)
@@ -71,7 +70,7 @@ export function OverviewScope() {
 
   return (
     <div className="flex flex-col gap-3">
-      <FilterChips options={RANGE_OPTIONS} value={range} onChange={setRange} />
+      <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
 
       <div className="grid grid-cols-3 gap-2">
         <KpiTile
@@ -80,6 +79,7 @@ export function OverviewScope() {
           unit="kg"
           sparkline={trainingLoad.weekly_volume.map((w) => w.volume_kg)}
           color="var(--brand-accent)"
+          infoTerm="Volume"
         />
         <KpiTile
           label="Sessions/wk"
@@ -94,11 +94,15 @@ export function OverviewScope() {
           trendClassName={acwrTone}
           sparkline={acwr.weekly_series.map((w) => w.ratio)}
           color="var(--brand-accent)"
+          infoTerm="ACWR"
         />
       </div>
 
       <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Muscle load this week</div>
+        <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Muscle load this week
+          <InfoButton term="MEV" />
+        </div>
         <MuscleBodyMap regions={muscleVolume.regions} />
       </Card>
 

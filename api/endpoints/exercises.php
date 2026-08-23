@@ -52,12 +52,14 @@ function handleExerciseHistory(string $id): void
 {
     Auth::require();
     $limit = isset($_GET['limit']) ? max(1, min(200, (int) $_GET['limit'])) : 20;
-    Http::respond((new SetRepository())->historyForExercise($id, $limit));
+    $sinceDays = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) * 7 : null;
+    Http::respond((new SetRepository())->historyForExercise($id, $limit, $sinceDays));
 }
 
 function handleExerciseSessionSummaries(string $id): void
 {
     Auth::require();
     $limit = isset($_GET['limit']) ? max(1, min(50, (int) $_GET['limit'])) : 6;
-    Http::respond((new SetRepository())->sessionSummariesForExercise($id, $limit));
+    $sinceDays = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) * 7 : null;
+    Http::respond((new SetRepository())->sessionSummariesForExercise($id, $limit, $sinceDays));
 }

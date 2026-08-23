@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { epley1RM } from '@/lib/metrics'
+import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import type { ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary } from '@/types'
 import { KpiTile } from '@/components/KpiTile'
 import { E1rmTrendChart } from '@/components/E1rmTrendChart'
+import { FilterChips } from '@/components/FilterChips'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +36,7 @@ function buildLadder(summaries: ExerciseSessionSummary[]): Rung[] {
 }
 
 export function ExerciseScope() {
+  const [range, setRange] = useState<DashboardRange>('3M')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ExerciseListItem[]>([])
   const [selected, setSelected] = useState<ExerciseListItem | null>(null)
@@ -55,21 +58,27 @@ export function ExerciseScope() {
 
   useEffect(() => {
     if (!selected) return
+    const weeks = RANGE_WEEKS[range]
     setLoading(true)
     Promise.all([
-      api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history?limit=20`),
-      api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?limit=6`),
+      api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history?limit=20&weeks=${weeks}`),
+      api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?limit=20&weeks=${weeks}`),
     ])
       .then(([historyData, summariesData]) => {
         setHistory(historyData)
         setSummaries(summariesData)
       })
       .finally(() => setLoading(false))
-  }, [selected])
+  }, [selected, range])
+
+  const rangeSwitch = (
+    <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
+  )
 
   if (!selected) {
     return (
       <div className="flex flex-col gap-2">
+        {rangeSwitch}
         <Input placeholder="Search an exercise…" value={query} onChange={(e) => setQuery(e.target.value)} />
         {results.map((r) => (
           <Card
@@ -113,6 +122,8 @@ export function ExerciseScope() {
         <span className="text-[12px] text-muted-foreground">change ›</span>
       </button>
 
+      {rangeSwitch}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : history.length === 0 ? (
@@ -128,6 +139,7 @@ export function ExerciseScope() {
               trendClassName="text-status-good"
               sparkline={history.map((h) => h.best_e1rm)}
               color="var(--metric-e1rm)"
+              infoTerm="e1RM"
             />
             <KpiTile
               label="Best set"

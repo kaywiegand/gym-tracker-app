@@ -75,22 +75,29 @@ final class SetRepository extends BaseRepository
     // first -- feeds the exercise-detail chart. Plain arithmetic (no SQLite
     // UDF) so this stays portable to the MySQL fallback (CLAUDE.md §3).
     // Warmup sets excluded, same convention as lastSessionVolume().
-    public function historyForExercise(string $exerciseId, int $limit = 20): array
+    // $sinceDays (optional) switches from the small display-limit default to
+    // a real date window (Stage 4 Exercise-scope range selector) -- when
+    // set, the LIMIT is raised to a generous cap instead of the small
+    // default so the date filter, not the row cap, decides what's included.
+    // Existing callers (ExerciseDetailSheet's ?limit=20, no range) are
+    // unaffected.
+    public function historyForExercise(string $exerciseId, int $limit = 20, ?int $sinceDays = null): array
     {
-        return $this->fetchAll(
-            'SELECT session_id, started_at, best_e1rm, volume_kg FROM (
-                SELECT s.id AS session_id, s.started_at,
+        $params = [$exerciseId];
+        $sql = 'SELECT s.id AS session_id, s.started_at,
                        MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm,
                        SUM(st.weight_kg * st.reps) AS volume_kg
                 FROM sessions s
                 JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
-                WHERE s.deleted_at IS NULL AND st.exercise_id = ?
-                GROUP BY s.id
-                ORDER BY s.started_at DESC
-                LIMIT ' . (int) $limit . '
-             ) ORDER BY started_at ASC',
-            [$exerciseId]
-        );
+                WHERE s.deleted_at IS NULL AND st.exercise_id = ?';
+        if ($sinceDays !== null) {
+            $sql .= ' AND s.started_at >= ?';
+            $params[] = gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400);
+            $limit = max($limit, 500);
+        }
+        $sql .= ' GROUP BY s.id ORDER BY s.started_at DESC LIMIT ' . (int) $limit;
+
+        return $this->fetchAll("SELECT session_id, started_at, best_e1rm, volume_kg FROM ({$sql}) ORDER BY started_at ASC", $params);
     }
 
     // Raw rows for the muscle-volume dashboard (Stage 4) -- one row per
@@ -126,22 +133,28 @@ final class SetRepository extends BaseRepository
     // Weighted sets-per-region for the last $limit sessions of one workout
     // (Stage 4 workout-scope muscle split) -- same primary+secondary join as
     // rawSetsWithMuscles(), scoped to a single workout's own history.
-    public function muscleSplitForWorkout(string $workoutId, int $limit = 6): array
+    public function muscleSplitForWorkout(string $workoutId, int $limit = 6, ?int $sinceDays = null): array
     {
+        $innerParams = [$workoutId];
+        $innerSql = 'SELECT id FROM sessions WHERE workout_id = ? AND deleted_at IS NULL';
+        if ($sinceDays !== null) {
+            $innerSql .= ' AND started_at >= ?';
+            $innerParams[] = gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400);
+            $limit = max($limit, 500);
+        }
+        $innerSql .= ' ORDER BY started_at DESC LIMIT ' . (int) $limit;
+
         $rows = $this->fetchAll(
-            'SELECT st.session_id, s.started_at, s.ended_at, mu.region, SUM(em.weight) AS sets
+            "SELECT st.session_id, s.started_at, s.ended_at, mu.region, SUM(em.weight) AS sets
              FROM sessions s
              JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
              JOIN exercise_muscles em ON em.exercise_id = st.exercise_id
              JOIN muscles mu ON mu.id = em.muscle_id
              WHERE s.workout_id = ? AND s.deleted_at IS NULL
-               AND s.id IN (
-                 SELECT id FROM sessions WHERE workout_id = ? AND deleted_at IS NULL
-                 ORDER BY started_at DESC LIMIT ' . (int) $limit . '
-               )
+               AND s.id IN ({$innerSql})
              GROUP BY st.session_id, s.started_at, s.ended_at, mu.region
-             ORDER BY s.started_at ASC',
-            [$workoutId, $workoutId]
+             ORDER BY s.started_at ASC",
+            array_merge([$workoutId], $innerParams)
         );
 
         $bySession = [];
@@ -162,17 +175,20 @@ final class SetRepository extends BaseRepository
     // first -- raw material for the Stage 4 "progression ladder" (formatting
     // and up/hold comparisons happen client-side). Unlike historyForExercise
     // (aggregated best_e1rm/volume), this keeps every individual set.
-    public function sessionSummariesForExercise(string $exerciseId, int $limit = 6): array
+    public function sessionSummariesForExercise(string $exerciseId, int $limit = 6, ?int $sinceDays = null): array
     {
-        $sessionRows = $this->fetchAll(
-            'SELECT DISTINCT s.id AS session_id, s.started_at
-             FROM sessions s
-             JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
-             WHERE s.deleted_at IS NULL AND st.exercise_id = ?
-             ORDER BY s.started_at DESC
-             LIMIT ' . (int) $limit,
-            [$exerciseId]
-        );
+        $params = [$exerciseId];
+        $sql = 'SELECT DISTINCT s.id AS session_id, s.started_at
+                FROM sessions s
+                JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
+                WHERE s.deleted_at IS NULL AND st.exercise_id = ?';
+        if ($sinceDays !== null) {
+            $sql .= ' AND s.started_at >= ?';
+            $params[] = gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400);
+            $limit = max($limit, 500);
+        }
+        $sql .= ' ORDER BY s.started_at DESC LIMIT ' . (int) $limit;
+        $sessionRows = $this->fetchAll($sql, $params);
         if ($sessionRows === []) {
             return [];
         }

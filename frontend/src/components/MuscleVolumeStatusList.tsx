@@ -3,6 +3,7 @@ import { REGION_LABELS } from '@/lib/muscleColors'
 import { statusFor, STATUS_BADGE_CLASS, STATUS_LABEL } from '@/lib/muscleStatus'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { InfoButton } from '@/components/InfoButton'
 
 interface MuscleVolumeStatusListProps {
   regions: MuscleVolumeRegion[]
@@ -19,8 +20,9 @@ export function MuscleVolumeStatusList({ regions }: MuscleVolumeStatusListProps)
 
   return (
     <Card className="p-3.5">
-      <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+      <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         Volume this week (sets)
+        <InfoButton term="MEV" />
       </div>
       <div className="flex flex-col gap-1.5">
         {ordered.map((r) => {

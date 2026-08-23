@@ -62,5 +62,6 @@ function handleWorkoutMuscleSplit(string $workoutId): void
 {
     Auth::require();
     $limit = isset($_GET['limit']) ? max(1, min(50, (int) $_GET['limit'])) : 6;
-    Http::respond(['sessions' => (new SetRepository())->muscleSplitForWorkout($workoutId, $limit)]);
+    $sinceDays = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) * 7 : null;
+    Http::respond(['sessions' => (new SetRepository())->muscleSplitForWorkout($workoutId, $limit, $sinceDays)]);
 }

@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/card'
+import { InfoButton } from '@/components/InfoButton'
 
 interface KpiTileProps {
   label: string
@@ -8,6 +9,7 @@ interface KpiTileProps {
   trendClassName?: string
   sparkline: number[]
   color: string
+  infoTerm?: string
 }
 
 // Hand-rolled sparkline (viewBox-scaled polyline) rather than pulling in
@@ -32,10 +34,13 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   )
 }
 
-export function KpiTile({ label, value, unit, trend, trendClassName, sparkline, color }: KpiTileProps) {
+export function KpiTile({ label, value, unit, trend, trendClassName, sparkline, color, infoTerm }: KpiTileProps) {
   return (
     <Card className="p-3">
-      <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
+        {label}
+        {infoTerm && <InfoButton term={infoTerm} />}
+      </div>
       <div className="mt-0.5 text-[21px] font-bold">
         {value}
         {unit && <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">{unit}</span>}

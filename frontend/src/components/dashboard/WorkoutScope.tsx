@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
+import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import type { WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { KpiTile } from '@/components/KpiTile'
+import { FilterChips } from '@/components/FilterChips'
+import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
 
 export function WorkoutScope() {
+  const [range, setRange] = useState<DashboardRange>('3M')
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([])
   const [selected, setSelected] = useState<WorkoutListItem | null>(null)
   const [split, setSplit] = useState<WorkoutMuscleSplitResponse | null>(null)
@@ -19,16 +23,22 @@ export function WorkoutScope() {
 
   useEffect(() => {
     if (!selected) return
+    const weeks = RANGE_WEEKS[range]
     setLoading(true)
     api
-      .get<WorkoutMuscleSplitResponse>(`/workouts/${selected.id}/muscle-split?limit=6`)
+      .get<WorkoutMuscleSplitResponse>(`/workouts/${selected.id}/muscle-split?limit=20&weeks=${weeks}`)
       .then(setSplit)
       .finally(() => setLoading(false))
-  }, [selected])
+  }, [selected, range])
+
+  const rangeSwitch = (
+    <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
+  )
 
   if (!selected) {
     return (
       <div className="flex flex-col gap-2">
+        {rangeSwitch}
         {workouts.map((w) => (
           <Card key={w.id} className="cursor-pointer px-3 py-2.5" onClick={() => setSelected(w)}>
             <div className="text-[14px] font-semibold">{w.name}</div>
@@ -72,6 +82,8 @@ export function WorkoutScope() {
         <span className="text-[12px] text-muted-foreground">change ›</span>
       </button>
 
+      {rangeSwitch}
+
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : sessionCount === 0 ? (
@@ -110,7 +122,10 @@ export function WorkoutScope() {
           </Card>
 
           <Card className="p-3.5">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">This workout's signature</div>
+            <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              This workout's signature
+              <InfoButton term="Signature" />
+            </div>
             <MuscleRadar series={radarSeries} />
           </Card>
         </>

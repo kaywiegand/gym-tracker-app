@@ -178,6 +178,17 @@ check('historyForExercise respects limit', count($limitedHistory) === 2, $failur
 check('historyForExercise limit keeps most recent sessions', array_column($limitedHistory, 'session_id') === ['sess-hist-2', 'sess-hist-3'], $failures);
 check('historyForExercise for unknown exercise is empty', $setRepo->historyForExercise('nope') === [], $failures);
 
+check(
+    'historyForExercise sinceDays excludes sessions outside the window',
+    $setRepo->historyForExercise($histExercise['id'], 20, 1) === [],
+    $failures
+);
+check(
+    'historyForExercise sinceDays includes sessions inside a wide window',
+    count($setRepo->historyForExercise($histExercise['id'], 20, 36500)) === 3,
+    $failures
+);
+
 $bwRepo = new BodyweightRepository();
 $bwRepo->upsert(['id' => 'bw-1', 'measured_at' => '2026-01-01', 'weight_kg' => 80.0, 'updated_at' => '2026-01-01T08:00:00Z']);
 $bwRepo->upsert(['id' => 'bw-2', 'measured_at' => '2026-01-02', 'weight_kg' => 79.6, 'updated_at' => '2026-01-02T08:00:00Z']);
@@ -299,11 +310,31 @@ check('muscleSplitForWorkout orders oldest first', $split[0]['session_id'] === '
 check('muscleSplitForWorkout weights the primary region 1.0', abs($split[0]['by_region']['chest'] - 1.0) < 0.001, $failures);
 check('muscleSplitForWorkout weights the secondary region 0.5', abs($split[0]['by_region']['shoulders'] - 0.5) < 0.001, $failures);
 check('muscleSplitForWorkout carries ended_at', $split[1]['ended_at'] === '2026-04-08T10:45:00Z', $failures);
+check(
+    'muscleSplitForWorkout sinceDays excludes sessions outside the window',
+    $setRepo->muscleSplitForWorkout($splitWorkout['id'], 6, 1) === [],
+    $failures
+);
+check(
+    'muscleSplitForWorkout sinceDays includes sessions inside a wide window',
+    count($setRepo->muscleSplitForWorkout($splitWorkout['id'], 6, 36500)) === 2,
+    $failures
+);
 
 $summaries = $setRepo->sessionSummariesForExercise($muscleVolExercise['id']);
 check('sessionSummariesForExercise returns one entry per session', count($summaries) === 2, $failures);
 check('sessionSummariesForExercise orders oldest first', array_column($summaries, 'session_id') === ['sess-split-1', 'sess-split-2'], $failures);
 check('sessionSummariesForExercise keeps per-set weight/reps', $summaries[0]['sets'] === [['weight_kg' => 60.0, 'reps' => 8]], $failures);
+check(
+    'sessionSummariesForExercise sinceDays excludes sessions outside the window',
+    $setRepo->sessionSummariesForExercise($muscleVolExercise['id'], 6, 1) === [],
+    $failures
+);
+check(
+    'sessionSummariesForExercise sinceDays includes sessions inside a wide window',
+    count($setRepo->sessionSummariesForExercise($muscleVolExercise['id'], 6, 36500)) === 2,
+    $failures
+);
 
 $sessionRepo->upsert(['id' => 'sess-recent', 'workout_id' => $wo['id'], 'started_at' => $recentIso, 'updated_at' => $recentIso]);
 $recentDates = (new SessionRepository())->recentDates(7);
