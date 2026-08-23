@@ -126,3 +126,18 @@
 **Entscheidung:** Kein 4. KPI "e1RM Bench" im Overview (anders als Prototyp) — welche einzelne Übung "die" Overview-Kennzahl sein soll ist für echte Nutzer mit vielen Übungen nicht wohldefiniert. e1RM lebt stattdessen im Exercise-Scope, wo eine Übung explizit gewählt wird.
 
 **Nächster Schritt:** Kay testet Stufe 3 + Stufe 4 (inkl. der Nacharbeit) zusammen. Danach gemeinsam Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements) planen.
+
+---
+
+## Session 2026-08-23 (Fortsetzung 3) — Stufe 4 Teil 3: Zeitraum überall, Body-Tab, Glossar
+
+**Was passiert ist:**
+- Kay hat den Prototyp direkt im Browser gesehen (`docs/references/workout-app-v3.html` per `window.nav('analysis')` aufgerufen, da Klicks im Preview-Pane in dieser Session unzuverlässig timeouten — JS-Injection als Workaround) und drei konkrete Nacharbeiten gewünscht, mit expliziten Zielen pro Scope (Overview: Trend/Balance/Load/Consistency auf einen Blick; Exercise: Plateau/Overload je Übung; Workout: Regelmäßigkeit/Balance/Signature/Splits):
+  1. Zeitraum-Switch (3M/6M/12M/All, kein 9M — so von Kay benannt) auf allen vier Scopes, nicht nur Overview.
+  2. Body-Tab als Platzhalter (Segmented Control komplett, Inhalt erst mit Stufe-5-BIA-Import).
+  3. Info-Buttons (ⓘ) für Fachbegriffe wie im Prototyp (`glossary()`/`glossTerm()`).
+- Backend: `historyForExercise`/`sessionSummariesForExercise`/`muscleSplitForWorkout` um optionalen `$sinceDays`-Parameter erweitert — abwärtskompatibel (bestehender `ExerciseDetailSheet`-Aufruf mit nur `?limit=` bleibt unverändert), neuer `?weeks=`-Query-Param auf den drei Endpoints.
+- Frontend: `lib/dashboardRanges.ts` (einzige Quelle für die Range-Optionen, ersetzt die bisherige Overview-lokale Kopie), Zeitraum-Switch in Exercise-/Workout-Scope ergänzt (Ladder/Stacked-Bar-Limit dabei von 6 auf 20 angehoben, da ein weiterer Zeitraum auch mehr Zeilen zeigen soll), `BodyScope` (Platzhalter, ehrlicher Empty-State, keine erfundenen BIA-Zahlen), Glossar-System (`lib/glossary.ts`, `useGlossaryStore`, `GlossarySheet`, `InfoButton`) — ein Sheet, von überall im Scope-Baum ansteuerbar ohne Prop-Drilling, mit Fokus+Highlight auf einen bestimmten Begriff.
+- Verifikation: `php api/tests/run.php` auf 88 Checks erweitert (10 neu — Cutoff-Verhalten je Methode, inkl. Bestätigung dass der alte `limit`-only-Pfad unverändert funktioniert), `tsc`/`oxlint` clean, kompletter Browser-Durchlauf (Range-Wechsel per Netzwerk-Log auf korrekten `weeks=`-Wert verifiziert, Glossar-Header-Button + fokussierter MEV-Button beide geprüft).
+
+**Nächster Schritt:** Kay testet Stufe 3 + Stufe 4 komplett. Danach gemeinsam Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements) planen — Body-Scope wird dann inhaltlich gefüllt.
