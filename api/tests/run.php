@@ -139,6 +139,43 @@ check('lastSetsForExercise excludes older session', !in_array('sess-old', array_
 check('lastSetsForExercise orders by set_index', $lastSets[0]['set_index'] === 0 && $lastSets[1]['set_index'] === 1, $failures);
 check('lastSetsForExercise for unknown exercise is empty', $setRepo->lastSetsForExercise('nope') === [], $failures);
 
+$histExercise = $exRepo->create(['name' => 'Test History Exercise', 'muscles' => []]);
+$sessionRepo->upsert(['id' => 'sess-hist-1', 'workout_id' => $wo['id'], 'started_at' => '2026-02-01T10:00:00Z', 'updated_at' => '2026-02-01T10:00:00Z']);
+$sessionRepo->upsert(['id' => 'sess-hist-2', 'workout_id' => $wo['id'], 'started_at' => '2026-02-08T10:00:00Z', 'updated_at' => '2026-02-08T10:00:00Z']);
+$sessionRepo->upsert(['id' => 'sess-hist-3', 'workout_id' => $wo['id'], 'started_at' => '2026-02-15T10:00:00Z', 'updated_at' => '2026-02-15T10:00:00Z']);
+$setRepo->upsert([
+    'id' => 'set-hist-1', 'session_id' => 'sess-hist-1', 'exercise_id' => $histExercise['id'],
+    'set_index' => 0, 'weight_kg' => 100, 'reps' => 5,
+    'performed_at' => '2026-02-01T10:05:00Z', 'updated_at' => '2026-02-01T10:05:00Z',
+]);
+$setRepo->upsert([
+    'id' => 'set-hist-2', 'session_id' => 'sess-hist-2', 'exercise_id' => $histExercise['id'],
+    'set_index' => 0, 'weight_kg' => 102.5, 'reps' => 5,
+    'performed_at' => '2026-02-08T10:05:00Z', 'updated_at' => '2026-02-08T10:05:00Z',
+]);
+$setRepo->upsert([
+    'id' => 'set-hist-3', 'session_id' => 'sess-hist-3', 'exercise_id' => $histExercise['id'],
+    'set_index' => 0, 'weight_kg' => 105, 'reps' => 5,
+    'performed_at' => '2026-02-15T10:05:00Z', 'updated_at' => '2026-02-15T10:05:00Z',
+]);
+$setRepo->upsert([
+    'id' => 'set-hist-3-warmup', 'session_id' => 'sess-hist-3', 'exercise_id' => $histExercise['id'],
+    'set_index' => 1, 'weight_kg' => 40, 'reps' => 10, 'is_warmup' => 1,
+    'performed_at' => '2026-02-15T10:00:00Z', 'updated_at' => '2026-02-15T10:00:00Z',
+]);
+
+$history = $setRepo->historyForExercise($histExercise['id']);
+check('historyForExercise returns one row per session', count($history) === 3, $failures);
+check('historyForExercise orders oldest first', array_column($history, 'session_id') === ['sess-hist-1', 'sess-hist-2', 'sess-hist-3'], $failures);
+check('historyForExercise excludes warmup sets from volume', abs($history[2]['volume_kg'] - 525.0) < 0.001, $failures);
+check('historyForExercise computes Epley e1RM', abs($history[0]['best_e1rm'] - (100 * (1 + 5 / 30))) < 0.001, $failures);
+check('historyForExercise volume is Σ weight×reps', abs($history[1]['volume_kg'] - 512.5) < 0.001, $failures);
+
+$limitedHistory = $setRepo->historyForExercise($histExercise['id'], 2);
+check('historyForExercise respects limit', count($limitedHistory) === 2, $failures);
+check('historyForExercise limit keeps most recent sessions', array_column($limitedHistory, 'session_id') === ['sess-hist-2', 'sess-hist-3'], $failures);
+check('historyForExercise for unknown exercise is empty', $setRepo->historyForExercise('nope') === [], $failures);
+
 $bwRepo = new BodyweightRepository();
 $bwRepo->upsert(['id' => 'bw-1', 'measured_at' => '2026-01-01', 'weight_kg' => 80.0, 'updated_at' => '2026-01-01T08:00:00Z']);
 $bwRepo->upsert(['id' => 'bw-2', 'measured_at' => '2026-01-02', 'weight_kg' => 79.6, 'updated_at' => '2026-01-02T08:00:00Z']);

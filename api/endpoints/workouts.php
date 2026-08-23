@@ -49,3 +49,11 @@ function handleDeleteWorkout(string $id): void
     }
     Http::respond(['ok' => true]);
 }
+
+function handleLastSessionVolume(string $workoutId): void
+{
+    Auth::require();
+    $exclude = isset($_GET['exclude_session']) ? (string) $_GET['exclude_session'] : null;
+    $result = (new SetRepository())->lastSessionVolume($workoutId, $exclude);
+    Http::respond($result ?? ['session_id' => null, 'started_at' => null, 'volume_kg' => null, 'sets_count' => 0]);
+}

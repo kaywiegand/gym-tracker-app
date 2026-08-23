@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { regionLabel, REGION_BADGE_CLASS } from '@/lib/muscleColors'
-import type { Exercise } from '@/types'
+import type { Exercise, ExerciseHistoryEntry } from '@/types'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { E1rmTrendChart } from '@/components/E1rmTrendChart'
 
 interface ExerciseDetailSheetProps {
   exerciseId: string | null
@@ -16,13 +17,19 @@ interface ExerciseDetailSheetProps {
 export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicated }: ExerciseDetailSheetProps) {
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [duplicating, setDuplicating] = useState(false)
+  const [history, setHistory] = useState<ExerciseHistoryEntry[] | null>(null)
 
   useEffect(() => {
     if (!exerciseId) {
       setExercise(null)
+      setHistory(null)
       return
     }
     api.get<Exercise>(`/exercises/${exerciseId}`).then(setExercise)
+    api
+      .get<ExerciseHistoryEntry[]>(`/exercises/${exerciseId}/history?limit=20`)
+      .then(setHistory)
+      .catch(() => setHistory([]))
   }, [exerciseId])
 
   const primary = exercise?.muscles.filter((m) => m.role === 'primary') ?? []
@@ -65,6 +72,13 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
                   </Badge>
                 ))}
               </div>
+
+              <div className="mt-4 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Progress (e1RM)</div>
+              {history && history.length >= 2 ? (
+                <E1rmTrendChart history={history} />
+              ) : (
+                <p className="mt-2 text-[12px] text-muted-foreground">Track this exercise a few times to see your progress trend.</p>
+              )}
 
               <div className="my-4 h-px bg-border" />
 

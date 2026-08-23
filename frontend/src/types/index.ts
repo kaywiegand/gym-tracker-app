@@ -89,6 +89,14 @@ export interface WorkoutExercise {
   rep_low_override: number | null
   rep_high_override: number | null
   increment_override_kg: number | null
+  exercise_default_increment_kg: number | null
+}
+
+export interface ExerciseHistoryEntry {
+  session_id: string
+  started_at: string
+  best_e1rm: number
+  volume_kg: number
 }
 
 export interface Workout {

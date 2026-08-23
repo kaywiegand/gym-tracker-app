@@ -49,6 +49,8 @@ try {
         handleCreateExercise();
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'last-sets') {
         handleLastSetsForExercise($segments[1]);
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'history') {
+        handleExerciseHistory($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'exercises') {
         handleGetExercise($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'exercises') {
@@ -61,6 +63,8 @@ try {
         handleListWorkouts();
     } elseif ($method === 'POST' && $path === '/workouts') {
         handleCreateWorkout();
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'workouts' && $segments[2] === 'last-session-volume') {
+        handleLastSessionVolume($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'workouts') {
         handleGetWorkout($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'workouts') {

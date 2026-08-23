@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
+import { epley1RM } from '@/lib/metrics'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
 import type { SetEntry, Workout } from '@/types'
@@ -23,7 +24,50 @@ interface ExerciseTrack {
 interface FinishResult {
   setsDone: number
   totalSets: number
+  volumeKg: number
   durationSec: number
+  prExerciseNames: string[]
+}
+
+// Shared between a fresh start (no logged sets yet) and resuming an
+// abandoned-but-not-finished session (some sets already logged, matched by
+// workout_exercise_id + set_index) -- see useTrackingStore.resume().
+function buildExercises(
+  workout: Workout,
+  lastSetsByExercise: Record<string, SetEntry[]>,
+  loggedByKey: Map<string, LocalSet>,
+): ExerciseTrack[] {
+  return workout.exercises.map((we, i) => {
+    const last = lastSetsByExercise[we.exercise_id] ?? []
+    const sets: DraftSet[] = Array.from({ length: we.planned_sets }, (_, j) => {
+      const logged = loggedByKey.get(`${we.id}:${j}`)
+      if (logged) {
+        return { weightKg: logged.weight_kg, reps: logged.reps, done: true, setId: logged.id }
+      }
+      const prior = last[j] ?? last[last.length - 1]
+      return {
+        weightKg: prior?.weight_kg ?? 0,
+        reps: prior?.reps ?? workout.rep_low,
+        done: false,
+        setId: null,
+      }
+    })
+    // Extra sets added mid-session (beyond planned_sets, see addSet) that
+    // were already logged before the session was abandoned -- keep them
+    // instead of dropping them on resume.
+    for (let j = we.planned_sets; loggedByKey.has(`${we.id}:${j}`); j++) {
+      const logged = loggedByKey.get(`${we.id}:${j}`)!
+      sets.push({ weightKg: logged.weight_kg, reps: logged.reps, done: true, setId: logged.id })
+    }
+    return {
+      workoutExerciseId: we.id,
+      exerciseId: we.exercise_id,
+      exerciseName: we.exercise_name,
+      plannedSets: we.planned_sets,
+      sets,
+      open: i === 0,
+    }
+  })
 }
 
 interface TrackingState {
@@ -34,13 +78,21 @@ interface TrackingState {
   exercises: ExerciseTrack[]
   restEndAt: number | null
   restDurationSec: number
+  lastSetsByExercise: Record<string, SetEntry[]>
 
   start: (workout: Workout, lastSetsByExercise: Record<string, SetEntry[]>, restSeconds: number) => void
+  resume: (
+    workout: Workout,
+    session: LocalSession,
+    loggedSets: LocalSet[],
+    lastSetsByExercise: Record<string, SetEntry[]>,
+    restSeconds: number,
+  ) => void
   toggleOpen: (exIndex: number) => void
   updateDraft: (exIndex: number, setIndex: number, patch: Partial<Pick<DraftSet, 'weightKg' | 'reps'>>) => void
+  applySuggestion: (exIndex: number, weightKg: number, reps: number) => void
   addSet: (exIndex: number) => void
   toggleDone: (exIndex: number, setIndex: number) => Promise<void>
-  extendRest: (seconds: number) => void
   skipRest: () => void
   finish: () => Promise<FinishResult>
   reset: () => void
@@ -54,6 +106,7 @@ const initialState = {
   exercises: [] as ExerciseTrack[],
   restEndAt: null as number | null,
   restDurationSec: 120,
+  lastSetsByExercise: {} as Record<string, SetEntry[]>,
 }
 
 // Draft weight/reps for a not-yet-done set are pure UI state -- nothing is
@@ -80,35 +133,33 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     }
     void putRow('sessions', session)
 
-    const exercises: ExerciseTrack[] = workout.exercises.map((we, i) => {
-      const last = lastSetsByExercise[we.exercise_id] ?? []
-      const sets: DraftSet[] = Array.from({ length: we.planned_sets }, (_, j) => {
-        const prior = last[j] ?? last[last.length - 1]
-        return {
-          weightKg: prior?.weight_kg ?? 0,
-          reps: prior?.reps ?? workout.rep_low,
-          done: false,
-          setId: null,
-        }
-      })
-      return {
-        workoutExerciseId: we.id,
-        exerciseId: we.exercise_id,
-        exerciseName: we.exercise_name,
-        plannedSets: we.planned_sets,
-        sets,
-        open: i === 0,
-      }
-    })
-
     set({
       sessionId,
       workoutId: workout.id,
       workoutName: workout.name,
       startedAt,
-      exercises,
+      exercises: buildExercises(workout, lastSetsByExercise, new Map()),
       restEndAt: null,
       restDurationSec: restSeconds,
+      lastSetsByExercise,
+    })
+  },
+
+  resume: (workout, session, loggedSets, lastSetsByExercise, restSeconds) => {
+    const loggedByKey = new Map<string, LocalSet>()
+    for (const s of loggedSets) {
+      loggedByKey.set(`${s.workout_exercise_id}:${s.set_index}`, s)
+    }
+
+    set({
+      sessionId: session.id,
+      workoutId: workout.id,
+      workoutName: workout.name,
+      startedAt: session.started_at,
+      exercises: buildExercises(workout, lastSetsByExercise, loggedByKey),
+      restEndAt: null,
+      restDurationSec: restSeconds,
+      lastSetsByExercise,
     })
   },
 
@@ -122,6 +173,14 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     set((state) => ({
       exercises: state.exercises.map((e, i) =>
         i !== exIndex ? e : { ...e, sets: e.sets.map((s, j) => (j === setIndex ? { ...s, ...patch } : s)) },
+      ),
+    }))
+  },
+
+  applySuggestion: (exIndex, weightKg, reps) => {
+    set((state) => ({
+      exercises: state.exercises.map((e, i) =>
+        i !== exIndex ? e : { ...e, sets: e.sets.map((s) => (s.done ? s : { ...s, weightKg, reps })) },
       ),
     }))
   },
@@ -176,10 +235,6 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     pushPending()
   },
 
-  extendRest: (seconds) => {
-    set((state) => ({ restEndAt: (state.restEndAt ?? Date.now()) + seconds * 1000 }))
-  },
-
   skipRest: () => set({ restEndAt: null }),
 
   finish: async () => {
@@ -203,11 +258,30 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
 
     const totalSets = state.exercises.reduce((a, e) => a + e.sets.length, 0)
     const setsDone = state.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0)
+    const volumeKg = state.exercises.reduce(
+      (a, e) => a + e.sets.filter((s) => s.done).reduce((b, s) => b + s.weightKg * s.reps, 0),
+      0,
+    )
     const durationSec = state.startedAt ? Math.round((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0
+
+    // PR = better e1RM than last time for this exercise (CLAUDE.md §8). No
+    // baseline (first time doing it) never counts as a PR.
+    const prExerciseNames: string[] = []
+    for (const e of state.exercises) {
+      const doneSets = e.sets.filter((s) => s.done)
+      if (doneSets.length === 0) continue
+      const previous = (state.lastSetsByExercise[e.exerciseId] ?? []).filter((s) => !s.is_warmup)
+      if (previous.length === 0) continue
+      const currentBest = Math.max(...doneSets.map((s) => epley1RM(s.weightKg, s.reps)))
+      const previousBest = Math.max(...previous.map((s) => epley1RM(s.weight_kg, s.reps)))
+      if (currentBest > previousBest) {
+        prExerciseNames.push(e.exerciseName)
+      }
+    }
 
     pushPending()
 
-    return { setsDone, totalSets, durationSec }
+    return { setsDone, totalSets, volumeKg, durationSec, prExerciseNames }
   },
 
   reset: () => set(initialState),

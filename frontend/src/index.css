@@ -26,6 +26,9 @@
     /* Interactive brand accent (focus, links, "suggested" highlights) --
        distinct from shadcn's own --accent (a neutral hover/highlight role). */
     --color-brand-accent: var(--brand-accent);
+    /* Fixed per-metric color (CLAUDE.md §7) -- e1RM stays this color on
+       every chart it appears on, distinct from status/muscle colors. */
+    --color-metric-e1rm: var(--metric-e1rm);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -110,6 +113,7 @@
     --status-warn: #e0a017;
     --status-crit: #d03b3b;
     --brand-accent: #2a78d6;
+    --metric-e1rm: #7c4fd1;
 }
 
 [data-theme="dark"] {
@@ -155,6 +159,7 @@
     --status-warn: #e0a017;
     --status-crit: #d03b3b;
     --brand-accent: #3987e5;
+    --metric-e1rm: #9b7bea;
 }
 
 @layer base {

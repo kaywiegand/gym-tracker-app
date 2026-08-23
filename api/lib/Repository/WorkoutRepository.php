@@ -33,7 +33,8 @@ final class WorkoutRepository extends BaseRepository
             "SELECT we.id, we.exercise_id, e.name AS exercise_name,
                 (SELECT mu.region FROM exercise_muscles em JOIN muscles mu ON mu.id = em.muscle_id
                  WHERE em.exercise_id = e.id AND em.role = 'primary' ORDER BY mu.sort LIMIT 1) AS region,
-                we.position, we.planned_sets, we.rep_low_override, we.rep_high_override, we.increment_override_kg
+                we.position, we.planned_sets, we.rep_low_override, we.rep_high_override, we.increment_override_kg,
+                e.default_increment_kg AS exercise_default_increment_kg
              FROM workout_exercises we
              JOIN exercises e ON e.id = we.exercise_id
              WHERE we.workout_id = ? AND we.deleted_at IS NULL

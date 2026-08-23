@@ -49,4 +49,47 @@ final class SetRepository extends BaseRepository
             [$exerciseId, $lastSession['session_id']]
         );
     }
+
+    // Total volume load (Σ weight × reps, CLAUDE.md §8) of the most recent
+    // other completed session of this workout -- used to compare a
+    // just-finished session against "last time". Warmup sets excluded.
+    public function lastSessionVolume(string $workoutId, ?string $excludeSessionId): ?array
+    {
+        $sql = 'SELECT s.id AS session_id, s.started_at,
+                       SUM(st.weight_kg * st.reps) AS volume_kg,
+                       COUNT(st.id) AS sets_count
+                FROM sessions s
+                JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
+                WHERE s.workout_id = ? AND s.deleted_at IS NULL';
+        $params = [$workoutId];
+        if ($excludeSessionId !== null) {
+            $sql .= ' AND s.id != ?';
+            $params[] = $excludeSessionId;
+        }
+        $sql .= ' GROUP BY s.id ORDER BY s.started_at DESC LIMIT 1';
+
+        return $this->fetchOne($sql, $params);
+    }
+
+    // Per-session e1RM (Epley) and volume trend for one exercise, oldest
+    // first -- feeds the exercise-detail chart. Plain arithmetic (no SQLite
+    // UDF) so this stays portable to the MySQL fallback (CLAUDE.md §3).
+    // Warmup sets excluded, same convention as lastSessionVolume().
+    public function historyForExercise(string $exerciseId, int $limit = 20): array
+    {
+        return $this->fetchAll(
+            'SELECT session_id, started_at, best_e1rm, volume_kg FROM (
+                SELECT s.id AS session_id, s.started_at,
+                       MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm,
+                       SUM(st.weight_kg * st.reps) AS volume_kg
+                FROM sessions s
+                JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
+                WHERE s.deleted_at IS NULL AND st.exercise_id = ?
+                GROUP BY s.id
+                ORDER BY s.started_at DESC
+                LIMIT ' . (int) $limit . '
+             ) ORDER BY started_at ASC',
+            [$exerciseId]
+        );
+    }
 }
