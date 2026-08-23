@@ -102,4 +102,27 @@
 - Sets und Volumen sind additiv pro Region (Sekundär ×0,5); e1RM ist es nicht (Übungen lassen sich nicht addieren) — deshalb im Radar als Maximum statt Summe.
 - Bekannte Einschränkung wie schon beim e1RM-Chart aus Stufe 3: die Heatmap zeigt nur die aktuelle Woche gefüllt, da alle bisherigen Testdaten von heute stammen — bei echter Nutzung über mehrere Wochen kein Problem.
 
+**Korrektur (siehe Session-Eintrag direkt danach):** Die Heatmap-Entscheidung oben war falsch — Kay hat zu Recht auf den Prototyp verwiesen, der eine Körper-Silhouette statt eines Datengitters zeigt. In der Fortsetzungs-Session direkt umgebaut.
+
 **Nächster Schritt:** Kay testet Stufe 3 + Stufe 4 zusammen. Danach gemeinsam Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements) planen.
+
+---
+
+## Session 2026-08-23 (Fortsetzung 2) — Stufe 4 Teil 2: Dashboard an den Prototyp angeglichen
+
+**Was passiert ist:**
+- Kay: "im Prototypen waren die Analyse-Einsicht schon deutlich umfangreicher. warum ist das jetzt so wenig?" — berechtigter Punkt. Direkter Vergleich mit `docs/references/workout-app-v3.html`s `vAnalysis()`/`aOverview()`/`aExercise()`/`aWorkout()`/`bodyHeat()` ergab zwei Kategorien Lücke:
+  1. Korrekt zurückgestellt: Body-Scope (braucht BIA-Daten, Stufe 5) und die Plateau-Karte (explizit Stufe 6) — beide bleiben draußen.
+  2. Echte Lücke: die Muskel-"Heatmap" war als Nivo-Datengitter gebaut (gestützt auf CLAUDE.md §3s Tech-Stack-Zeile), der Prototyp zeigt aber eine Körper-Silhouette (`bodyHeat()`). CLAUDE.md sagt selbst "UX-/Visual-Referenz ist der Prototyp" — das hätte stärker gewogen. Dazu fehlten KPI-Kacheln mit Sparkline, ein Consistency-Kalender, und die Exercise-/Workout-Analyse-Scopes aus dem Prototyp-Segmented-Control.
+- Plan-Mode (ohne neuen Explore-Agent, Codebase aus den letzten beiden Sessions noch vollständig im Kontext) für Teil 2, dann umgesetzt:
+  - `MuscleHeatmap` (Nivo) entfernt, ersetzt durch `MuscleBodyMap` — SVG-Pfade 1:1 aus dem Prototyp übernommen, aber auf die bestehenden 6 Regionen reduziert (nicht die 11 feineren Prototyp-Zonen) — bleibt konsistent mit der einzigen im Rest der App verwendeten Taxonomie.
+  - `statusFor()` nach `lib/muscleStatus.ts` extrahiert, damit Body-Map und Status-Liste dieselbe Ampel-Logik teilen.
+  - Neue KPI-Kacheln (Volume/Woche, Sessions/Woche, ACWR) mit handgerollter SVG-Sparkline (kein neues Nivo-Paket für eine Mini-Linie) — dafür neue Backend-Aggregationen `MuscleVolume::weeksFromDaily()`, `::acwrWeeklySeries()`, `SessionRepository::recentDates()`.
+  - Consistency-Kalender (echte UTC-Daten, kein Nivo).
+  - `MuscleRadar` verallgemeinert auf generische `{label, color, values}`-Serien (statt hart auf Region-Objekte verdrahtet) — Metrik-Toggle-Besitz liegt jetzt beim jeweiligen Scope, nicht mehr in der Radar-Komponente selbst.
+  - Dashboard ist jetzt ein 3-Scope-Screen (Overview/Exercise/Workout, Segmented Control) mit Zeitraum-Selector (3M–All, nur Overview). Exercise-Scope: Suche + e1RM/Best-Set-KPIs + bestehender e1RM-Chart + neue "Progression Ladder" (`sessionSummariesForExercise`). Workout-Scope: Workout-Wahl + Sessions/Ø-Dauer-KPIs + neuer `@nivo/bar`-Stacked-Muscle-Split + Signature-Radar (`muscleSplitForWorkout`).
+- Verifikation: `php api/tests/run.php` auf 79 Checks erweitert (17 neu), `tsc`/`oxlint` clean, kompletter Browser-Durchlauf — Body-Map-Füllfarben direkt aus dem DOM ausgelesen und gegen die Status-Liste gegengeprüft (alle 6 Regionen auf beiden Figuren korrekt), Exercise- und Workout-Scope komplett durchgeklickt mit echten Testdaten.
+
+**Entscheidung:** Kein 4. KPI "e1RM Bench" im Overview (anders als Prototyp) — welche einzelne Übung "die" Overview-Kennzahl sein soll ist für echte Nutzer mit vielen Übungen nicht wohldefiniert. e1RM lebt stattdessen im Exercise-Scope, wo eine Übung explizit gewählt wird.
+
+**Nächster Schritt:** Kay testet Stufe 3 + Stufe 4 (inkl. der Nacharbeit) zusammen. Danach gemeinsam Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements) planen.
