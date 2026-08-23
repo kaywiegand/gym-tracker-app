@@ -57,8 +57,30 @@
 
 ---
 
+## Session 2026-08-23 — Stufe-2-Testrunde (Findings) + Stufe 3 komplett
+
+**Was passiert ist:**
+- Kay hat Stufe 2 selbst getestet (App lokal gestartet, PHP-Backend auf Port 8010 wegen Port-Konflikt mit einem parallelen Worktree auf 8000 — `frontend/vite.config.ts` lokal umgebogen, bewusst **nicht** committed) und dabei drei echte Bugs/Lücken gefunden, die vor Stufe 3 gefixt wurden:
+  1. Zweiter Timer (Gesamtzeit) unter dem Workout-Namen war überflüssig sichtbar → aus dem Display entfernt, läuft weiterhin unsichtbar über Zeitstempel.
+  2. Rest-Timer: kein Ton bei Ablauf, „+15s" ungenutzt, Anzeige verschwand sofort bei 0 statt sichtbar zu bleiben → Web-Audio-Beep ergänzt, „+15s" entfernt, Rest-Bar bleibt bis Dismiss sichtbar (grün, „Rest done — keep going").
+  3. **Kein Resume/New-Prompt bei abgebrochener Session** — Kay dachte das sei schon gebaut, war es aber nicht. Verlassene Sessions (`ended_at: null`) wurden bei erneutem Start unter einer neuen Session-ID verwaist (Daten selbst nie verloren, da sofort in IndexedDB, aber ohne UI-Weg zum Fortsetzen). Nachgezogen: `findOpenSession`/`getSetsForSession` in `localDb.ts`, `resume()`-Action im Store, Resume/New-Screen in `TrackingPage`. In einem echten Full-Page-Reload-Test verifiziert (kein Duplikat, ID wird korrekt wiederverwendet).
+- Danach Stufe 3 (CLAUDE.md §10) geplant (Plan-Mode, Explore-Agent zur Bestandsaufnahme) und umgesetzt: Double-Progression-Suggestion (rein client-seitig, offline-tolerant wie die bestehende Last-Sets-Vorbelegung — kein neuer Endpoint nötig), e1RM (Epley) + PR-Erkennung (ggü. letztem Mal, kein Baseline-PR beim ersten Mal), erster Analyse-Chart (`@nivo/line`, e1RM-Trend im Exercise-Detail) mit neuem Endpoint `GET /exercises/:id/history`. Volumen-Vergleich pro Workout (`GET /workouts/:id/last-session-volume`) kam als Zwischenschritt schon während der Stufe-2-Nacharbeit dazu, ersetzt „Sets" durch „Volume" im Finish-Summary.
+- Nebenbei: Demo-Workout „Full Body Starter" (5 Übungen, 3 Compound + 2 Isolation) wird jetzt beim Seed mitgeliefert (`db/seed/workouts.php`), damit man nach `migrate.php` sofort etwas zum Tracken hat.
+- Verifikation: `php api/tests/run.php` auf 37 Checks erweitert (grün), `tsc`/`oxlint` clean, kompletter Browser-Durchlauf (Rest-Timer-Ablauf, Resume-Flow, Suggestion vor/nach Trigger, PR-Badge, e1RM-Chart).
+
+**Entscheidungen:**
+- Progression-Vorschlag ersetzt **nicht** die Vorbelegung mit den letzten Ist-Werten, sondern steht als separater Hinweis + „Use suggestion"-Button daneben — CLAUDE.md §8 verlangt explizit beides nebeneinander, kein stilles Überschreiben.
+- PR-Vergleich nutzt e1RM (ein Wert erfasst Gewicht- und Rep-Verbesserung gemeinsam) statt drei einzelne Bedingungen — bewusste Vereinfachung.
+- Plateau-/Deload-Detection bleibt draußen, ist laut Roadmap explizit Stufe 6.
+- `frontend/vite.config.ts`-Portänderung (8010 statt 8000) ist rein lokal für diesen Worktree wegen des Port-Konflikts — nicht committed, betrifft niemanden sonst.
+
+**Nächster Schritt:** Kay testet Stufe 3 selbst. Danach gemeinsam Stufe 4 (Muskel-Heatmap, Radar, ACWR, Dashboard) planen.
+
+---
+
 ## Aktueller Stand
 
 **Stufe 1 (Settings, Exercise-Library, Workout-Templates):** ✅ Abgeschlossen — alle 6 Akzeptanzkriterien aus `CLAUDE.md` §11 erfüllt und verifiziert.
-**Stufe 2 (Tracking-Loop, Offline-Sync, Rest-Timer, Körpergewicht):** ✅ Abgeschlossen — verifiziert inkl. echtem Offline/Sync-Test (Server gestoppt/neu gestartet).
-**Stufe 3–6:** ⏳ Noch nicht begonnen.
+**Stufe 2 (Tracking-Loop, Offline-Sync, Rest-Timer, Körpergewicht):** ✅ Abgeschlossen — inkl. Nacharbeiten aus Kays Testrunde (Rest-Timer-UX, Resume/New bei abgebrochener Session).
+**Stufe 3 (Progression-Engine, e1RM, PR-Erkennung, erster Analyse-Chart):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
+**Stufe 4–6:** ⏳ Noch nicht begonnen.
