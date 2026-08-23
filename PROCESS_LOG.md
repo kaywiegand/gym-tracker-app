@@ -83,4 +83,23 @@
 **Stufe 1 (Settings, Exercise-Library, Workout-Templates):** ✅ Abgeschlossen — alle 6 Akzeptanzkriterien aus `CLAUDE.md` §11 erfüllt und verifiziert.
 **Stufe 2 (Tracking-Loop, Offline-Sync, Rest-Timer, Körpergewicht):** ✅ Abgeschlossen — inkl. Nacharbeiten aus Kays Testrunde (Rest-Timer-UX, Resume/New bei abgebrochener Session).
 **Stufe 3 (Progression-Engine, e1RM, PR-Erkennung, erster Analyse-Chart):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
-**Stufe 4–6:** ⏳ Noch nicht begonnen.
+**Stufe 4 (Muskel-Heatmap, Radar, ACWR, Dashboard):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
+**Stufe 5–6:** ⏳ Noch nicht begonnen.
+
+---
+
+## Session 2026-08-23 (Fortsetzung) — Stufe 4 komplett
+
+**Was passiert ist:**
+- Direkt nach Stufe 3 committed (Kay wollte ohne Test-Pause weiter), Plan-Mode + Explore-Agent zur Bestandsaufnahme (Navigation/BottomNav-Struktur, Muskel-Farbmapping, Settings-Schema, bestehende Repository-Joins), dann Stufe 4 (CLAUDE.md §10) geplant und umgesetzt.
+- Zwei Stellen, die CLAUDE.md nicht exakt festlegt, aus bestehenden CLAUDE.md-Aussagen aufgelöst statt geraten: „Heatmap" = echte Nivo-Daten-Heatmap (Region × Woche), nicht ein Körper-Silhouette-SVG — CLAUDE.md §3 nennt `@nivo/heatmap` explizit. MEV/MAV/MRV = neue Referenztabelle `muscle_volume_targets` (gleiches Muster wie `training_modes`/`muscles`), Default-Werte sind ein vertretbarer Startpunkt aus gängiger Trainings-Volumen-Literatur, keine Wissenschaft in Stein gemeißelt.
+- Backend: `api/lib/MuscleVolume.php` (reine PHP-Engine — ISO-Wochen-Bucketing, Sekundär-Gewichtung ×0,5 für Sets/Volumen, e1RM als Peak statt Summe, ACWR-Formel), `SetRepository::rawSetsWithMuscles()` (erster Join im Code der primary UND secondary Muskelzuordnungen mit Gewicht liest, nicht nur `role='primary'` wie die bestehenden Joins in ExerciseRepository/WorkoutRepository), `SetRepository::dailyVolume()`, `MuscleRepository::volumeTargets()`. Neue Endpoints `GET /dashboard/muscle-volume`, `GET /dashboard/acwr`.
+- Frontend: neuer Dashboard-Tab, jetzt Landing-Screen (Index-Redirect von `/exercises` verschoben) — passt zum „Status auf einen Blick"-Zweck dieser Stufe. `MuscleVolumeStatusList` (Ampel-Liste gegen MEV/MAV/MRV, eigene Komponente statt ins Radar gequetscht), `MuscleHeatmap` (`@nivo/heatmap`, Ein-Hue-Skala), `MuscleRadar` (`@nivo/radar`, 6 Achsen, Sets/Volume/e1RM-Toggle, diese vs. letzte Woche), `AcwrCard` (Ratio + client-seitige Ampel-Farbe, gleiches Muster wie der Volumen-Delta aus Stufe 3).
+- Verifikation: `php api/tests/run.php` auf 62 Checks erweitert (25 neu — Wochen-Bucketing, Sekundär-Gewichtung, e1RM-als-Max, ACWR-Mathematik, echte Repository-Joins), `tsc`/`oxlint` clean, kompletter Browser-Durchlauf mit den bereits vorhandenen Testdaten (ACWR/Status-Liste/Heatmap/Radar rendern korrekt, alle drei Radar-Metriken durchgeklickt).
+
+**Entscheidungen:**
+- ACWR ist Gesamtkörper-Trainingslast, nicht pro Muskel (Sportwissenschafts-Konvention, passt zu CLAUDE.md §8s Wortlaut ohne Muskel-Bezug).
+- Sets und Volumen sind additiv pro Region (Sekundär ×0,5); e1RM ist es nicht (Übungen lassen sich nicht addieren) — deshalb im Radar als Maximum statt Summe.
+- Bekannte Einschränkung wie schon beim e1RM-Chart aus Stufe 3: die Heatmap zeigt nur die aktuelle Woche gefüllt, da alle bisherigen Testdaten von heute stammen — bei echter Nutzung über mehrere Wochen kein Problem.
+
+**Nächster Schritt:** Kay testet Stufe 3 + Stufe 4 zusammen. Danach gemeinsam Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements) planen.

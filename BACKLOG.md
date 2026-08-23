@@ -52,3 +52,12 @@ Informationsverluste erzeugen, nicht nur Kosmetik).
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
 | 8 | **e1RM-Chart: mehrere Sessions am selben Kalendertag verschmelzen** — `E1rmTrendChart` gruppiert x-Achse nach Datum (`YYYY-MM-DD`), nicht nach Session. Bei mehreren Sessions derselben Übung am selben Tag (z.B. beim Testen) überlappen die Punkte auf der x-Achse. Bei normaler Nutzung (max. 1 Session/Tag pro Übung) tritt das nicht auf — bei Bedarf auf Session-Reihenfolge statt Datum umstellen. | 3 |
+
+---
+
+## Aus Stufe 4 zurückgestellt
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 9 | **MEV/MAV/MRV nicht editierbar** — `muscle_volume_targets` wird mit vertretbaren Default-Werten geseedet (siehe PROCESS_LOG), aber es gibt keine Settings-UI um sie pro Region anzupassen. Gleiche Situation wie schon bei den Workout-Exercise-Rep-Range-Overrides (#4) — Datenmodell + Auswertung fertig, Editier-UI fehlt noch. | 2 |
+| 10 | **Heatmap/Radar zeigen nur die aktuelle Woche mit echten Daten** — alle bisherigen Testdaten stammen von heute, ältere Wochen sind entsprechend leer (0.0). Kein Bug, wird sich mit echter mehrwöchiger Nutzung von selbst auflösen. | 3 |
