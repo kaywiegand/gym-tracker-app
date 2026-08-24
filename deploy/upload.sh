@@ -12,8 +12,12 @@ set -euo pipefail
 #   export GYM_FTP_PASS
 #   ./deploy/upload.sh
 #
-# Uploads deploy-upload/ (rebuild it first if the frontend changed --
-# see README's Deploy section) to /public_html/gym-tracker/.
+# Uploads deploy-upload/ (rebuild it first if the frontend changed -- see
+# README's Deploy section) to the FTP root. NOTE: this assumes the FTP
+# user is already chrooted to public_html/gym-tracker/ (true for Kay's
+# account) -- if your FTP user's root is the whole public_html or the
+# server root instead, change the remote target below to the real
+# subpath, or you'll get a nested duplicate folder.
 
 : "${GYM_FTP_HOST:?Set GYM_FTP_HOST first, e.g. export GYM_FTP_HOST=ftp://ftp.example.com}"
 : "${GYM_FTP_USER:?Set GYM_FTP_USER first}"
@@ -36,7 +40,7 @@ fi
 lftp -u "$GYM_FTP_USER,$GYM_FTP_PASS" "$GYM_FTP_HOST" <<EOF
 set ftp:ssl-allow yes
 set ssl:verify-certificate no
-mirror --reverse --verbose deploy-upload /public_html/gym-tracker
+mirror --reverse --verbose deploy-upload /
 bye
 EOF
 
