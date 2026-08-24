@@ -91,8 +91,18 @@ final class BiaImport
 
     public static function parse(string $csv): array
     {
-        $lines = preg_split('/\r\n|\r|\n/', trim($csv));
-        $rows = array_map(fn ($l) => str_getcsv($l, ',', '"', '\\'), array_filter($lines, fn ($l) => trim($l) !== ''));
+        $lines = array_values(array_filter(preg_split('/\r\n|\r|\n/', trim($csv)), fn ($l) => trim($l) !== ''));
+        if (empty($lines)) {
+            return ['dates' => [], 'measuredAt' => [], 'externalId' => [], 'entries' => []];
+        }
+
+        // Downloaded template is comma-separated, but a spreadsheet app on a
+        // German-locale system (Numbers/Excel default there use ',' as the
+        // decimal separator) commonly re-saves edited CSVs as
+        // semicolon-separated -- detect from the header line instead of
+        // hardcoding ',', or every row silently fails to parse.
+        $delimiter = substr_count($lines[0], ';') > substr_count($lines[0], ',') ? ';' : ',';
+        $rows = array_map(fn ($l) => str_getcsv($l, $delimiter, '"', '\\'), $lines);
 
         $header = array_shift($rows) ?? [];
         $dates = array_values(array_slice($header, 3));

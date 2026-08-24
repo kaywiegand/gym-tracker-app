@@ -374,6 +374,20 @@ check('BiaImport::parseNumeric rejects a range', BiaImport::parseNumeric('37.0 -
 check('BiaImport::parseNumeric rejects free text', BiaImport::parseNumeric('Männlich') === null, $failures);
 check('BiaImport::parseNumeric keeps a negative number', BiaImport::parseNumeric('-0.7') === -0.7, $failures);
 
+// Real bug (Kay hit this live): a spreadsheet app on a German-locale
+// system (comma is the decimal separator there) commonly re-saves an
+// edited CSV as semicolon-separated instead of comma-separated. The
+// parser must not silently produce zero entries for that.
+$semicolonCsv = <<<CSV
+Kategorie;Sub-Kategorie;Metrik;2026-08-24
+Allgemeine Daten;-;ID;100
+Fitnessbewertung;-;Punktzahl;87
+CSV;
+$semicolonParsed = BiaImport::parse($semicolonCsv);
+check('BiaImport::parse auto-detects a semicolon-separated file', $semicolonParsed['dates'] === ['2026-08-24'], $failures);
+check('BiaImport::parse extracts externalId from a semicolon-separated file', $semicolonParsed['externalId']['2026-08-24'] === '100', $failures);
+check('BiaImport::parse extracts entries from a semicolon-separated file', count($semicolonParsed['entries']) === 1, $failures);
+
 echo "BiaRepository\n";
 $biaRepo = new BiaRepository();
 check('BiaRepository starts with no existing keys', $biaRepo->existingKeys() === [], $failures);
@@ -493,6 +507,27 @@ check('BackupRepository::importAll roundtrip: fedb exercise was never exported, 
 
 $reimportSummary = $restoreBackupRepo->importAll($exported);
 check('BackupRepository::importAll re-import inserts nothing new (idempotent)', $reimportSummary['exercises']['inserted'] === 0, $failures);
+
+// Real bug (Kay hit this live): a backup taken BEFORE a workout was
+// deleted, restored AFTER the deletion, used to be silently ignored --
+// the delete bumped updated_at, so the older backup snapshot looked
+// "stale" under last-write-wins and never overwrote the deleted row.
+// Restore must always apply the file's data, not defer to updated_at.
+$restoreWorkoutRepo = new WorkoutRepository($restorePdo);
+$restoreWorkoutRepo->softDelete($splitWorkout['id']);
+$deletedRow = $restorePdo->prepare('SELECT deleted_at FROM workouts WHERE id = ?');
+$deletedRow->execute([$splitWorkout['id']]);
+check('setup: workout is deleted before the restore-of-older-backup test', $deletedRow->fetch()['deleted_at'] !== null, $failures);
+
+$undoSummary = $restoreBackupRepo->importAll($exported);
+$revivedRow = $restorePdo->prepare('SELECT deleted_at FROM workouts WHERE id = ?');
+$revivedRow->execute([$splitWorkout['id']]);
+check(
+    'BackupRepository::importAll restores an older snapshot over a since-deleted row',
+    $revivedRow->fetch()['deleted_at'] === null,
+    $failures
+);
+check('BackupRepository::importAll counts the revived row as updated, not inserted', $undoSummary['workouts']['updated'] >= 1, $failures);
 
 @unlink($restoreDbPath);
 Db::setOverrides(['sqlite_path' => $dbPath]);

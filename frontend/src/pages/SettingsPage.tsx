@@ -606,7 +606,7 @@ function BackupCard() {
         <CardContent className="flex flex-col gap-3 py-1">
           <p className="text-[12px] text-muted-foreground">
             Full backup of everything you've entered (workouts, custom exercises, tracking history, body/BIA/heart-rate data) — includes
-            your login password.
+            your login password. Restoring always applies the file's data, even over newer changes already in the database.
           </p>
           <div className="flex gap-2">
             <a href="/api/backup/export">

@@ -162,3 +162,19 @@
 - Kein Foto→KI-Extraktion in der App selbst — die KI-Übertragung Foto→CSV passiert bei Kay, außerhalb der App.
 
 **Nächster Schritt:** Kay testet Stufe 5 (inkl. Stufe 3+4, noch offen). Danach Stufe 6 (Export/PDF, Plateau-/Deload-Detection, Deep-Analytics) planen.
+
+---
+
+## Session 2026-08-24 (Fortsetzung) — Kays echter Testlauf: zwei Bugs gefunden und gefixt
+
+**Was passiert ist:**
+- Für Kays eigenen Testlauf ein interaktives Checklisten-Artifact gebaut (27 Testfälle über Stufe 3–5 + Offline-Regression, lokal gespeicherter Fortschritt, Notizfeld, Export-Funktion) — kein Teil des Repos, nur ein Hilfsmittel für die Session.
+- Kay hat tatsächlich mit echten Dateien getestet (nicht nur durchgeklickt) und zwei reale Bugs gefunden, die mit meinen eigenen synthetischen Testdaten vorher nicht aufgefallen waren:
+  1. **BIA-Import scheiterte komplett bei Semikolon-getrennter CSV.** Kay hatte die heruntergeladene Vorlage in einer Tabellenkalkulation (deutsches Gebietsschema, Komma = Dezimaltrennzeichen) bearbeitet und gespeichert — dabei wird beim Speichern standardmäßig Semikolon statt Komma als Trennzeichen verwendet. `BiaImport::parse()` hatte das Trennzeichen hart auf `,` codiert; jede Zeile hatte dadurch nur 1 Feld statt der erwarteten Spalten → `count($row) < 3` → jede Zeile wurde übersprungen → 0 importiert, 0 übersprungen, bei jedem Versuch, unabhängig vom Dateiinhalt. Direkt an Kays realer Datei (`~/Desktop/bia-template.csv`) reproduziert und gefixt: Trennzeichen wird jetzt aus der Kopfzeile erkannt (mehr `;` als `,` → Semikolon), sonst Komma.
+  2. **Backup-Restore konnte eine Löschung nicht rückgängig machen.** Kay hatte ein Backup heruntergeladen, danach ein Workout gelöscht, und wollte über Restore genau das rückgängig machen — das Workout blieb aber verschwunden. Ursache: `BackupRepository::importUpsertTable()` nutzte bisher `BaseRepository::upsertRow()` — dasselbe Last-Write-Wins-Prinzip wie beim Live-Sync (CLAUDE.md §4). Das Löschen aktualisiert `updated_at` auf den Löschzeitpunkt; das ist neuer als der Zeitstempel im (älteren) Backup → der Restore wurde als "veraltet" stillschweigend verworfen. Genau falsch herum für eine explizite Wiederherstellungs-Aktion. Direkt an Kays realer Backup-Datei (`~/Downloads/gym-tracker-backup-2026-08-24.json`) reproduziert und gefixt: Restore überschreibt jetzt bedingungslos (`BackupRepository::forceUpsertRow()`, kein Timestamp-Vergleich) — die wiederhergestellte Datei ist immer maßgeblich, nicht die aktuelle DB.
+- Beide Bugs mit dedizierten Regressionstests abgesichert (`api/tests/run.php`, 118 → 122 Checks: Semikolon-Parsing, und explizit "ein gelöschtes Workout wird durch Restore eines älteren, nicht-gelöschten Backups wiederbelebt"), Settings-Backup-Hinweistext ergänzt ("Restoring always applies the file's data, even over newer changes"), `tsc`/`oxlint` clean.
+- Kays reale BIA-Daten und das gelöschte Workout in seiner laufenden Dev-DB direkt wiederhergestellt (Duplikate aus der Fehlersuche bereinigt), per Browser verifiziert (Workouts-Liste + Body-Dashboard zeigen wieder den korrekten Stand).
+
+**Entscheidung:** Restore-Semantik ist bewusst NICHT dieselbe wie Live-Sync — Live-Sync schützt vor einem Offline-Gerät, das versehentlich neuere Server-Änderungen überschreibt; ein explizites Restore ist eine bewusste, einmalige Nutzeraktion ("dieser Snapshot soll jetzt gelten") und muss deshalb immer gewinnen, unabhängig von `updated_at`.
+
+**Nächster Schritt:** Kay testet weiter (Stufe 3+4 stehen noch aus). Vorschlag an Kay offen: soll ein gelöschter BIA-Scan beim erneuten Hochladen derselben Quelldatei wieder auftauchen (aktuelles, bewusstes Verhalten — ermöglicht Korrektur einer fehlerhaften Datei) oder für immer blockiert bleiben?

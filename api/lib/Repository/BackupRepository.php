@@ -8,11 +8,16 @@ declare(strict_types=1);
 // reproducible via `php db/migrate.php` (muscles, training_modes,
 // muscle_volume_targets, FEDB exercises) are excluded on purpose.
 //
-// Restore reuses BaseRepository::upsertRow() for every table that has the
-// id/updated_at/deleted_at shape (last-write-wins, same as live sync) --
-// tables without that shape (bia_values, hr_samples, media: immutable
-// child rows, no updated_at) get simple insert-if-id-missing handling, and
-// settings (key/value, no id) gets its own tiny upsert-by-key.
+// Restore is an explicit, one-time user action ("bring back what's in this
+// file") -- NOT the same thing as live sync's last-write-wins merge. A
+// restored row always overwrites whatever is currently in the DB,
+// regardless of updated_at. (Real bug this fixed: restoring a backup taken
+// before a since-deleted row was deleted used to be silently ignored,
+// because the delete's updated_at was newer than the backup's snapshot --
+// exactly backwards for a recovery action.) Tables without an id/updated_at
+// shape (bia_values, hr_samples, media: immutable child rows) get simple
+// insert-if-id-missing handling, and settings (key/value, no id) gets its
+// own tiny upsert-by-key.
 final class BackupRepository extends BaseRepository
 {
     // Parents before children -- matters for readability/restore order
@@ -103,24 +108,49 @@ final class BackupRepository extends BaseRepository
 
     // $row's keys already match the table's columns exactly (it came from
     // SELECT * in exportAll(), round-tripped through JSON, which preserves
-    // key order) -- upsertRow() can take it as-is.
+    // key order). Unconditional overwrite -- see class doc comment for why
+    // this can't reuse BaseRepository::upsertRow()'s timestamp guard.
     private function importUpsertTable(string $table, array $rows): array
     {
         $inserted = 0;
         $updated = 0;
+        $skipped = 0;
         foreach ($rows as $row) {
-            if (!isset($row['id'], $row['updated_at'])) {
+            if (!isset($row['id'])) {
+                $skipped++;
                 continue;
             }
-            $before = $this->fetchOne("SELECT updated_at FROM {$table} WHERE id = ?", [$row['id']]);
-            $this->upsertRow($table, $row, (string) $row['id']);
-            if ($before === null) {
+            if ($this->forceUpsertRow($table, $row)) {
                 $inserted++;
-            } elseif ($row['updated_at'] > $before['updated_at']) {
+            } else {
                 $updated++;
             }
         }
-        return ['inserted' => $inserted, 'updated' => $updated, 'skipped' => count($rows) - $inserted - $updated];
+        return ['inserted' => $inserted, 'updated' => $updated, 'skipped' => $skipped];
+    }
+
+    // Insert-or-overwrite by id, no updated_at comparison. Returns true if
+    // the row was newly inserted, false if an existing row was overwritten.
+    private function forceUpsertRow(string $table, array $columns): bool
+    {
+        $id = (string) $columns['id'];
+        $existing = $this->fetchOne("SELECT id FROM {$table} WHERE id = ?", [$id]);
+        $cols = array_keys($columns);
+
+        if ($existing === null) {
+            $this->execute(
+                "INSERT INTO {$table} (" . implode(', ', $cols) . ') VALUES (' . $this->placeholders($cols) . ')',
+                array_values($columns)
+            );
+            return true;
+        }
+
+        $updateCols = array_values(array_filter($cols, fn ($c) => $c !== 'id'));
+        $assignments = implode(', ', array_map(fn ($c) => "{$c} = ?", $updateCols));
+        $params = array_map(fn ($c) => $columns[$c], $updateCols);
+        $params[] = $id;
+        $this->execute("UPDATE {$table} SET {$assignments} WHERE id = ?", $params);
+        return false;
     }
 
     private function importExerciseMuscles(array $rows): array
