@@ -20,3 +20,8 @@ api/config.local.php
 # Deployment environment notes (domain, FTP paths — no secrets, but still
 # environment-specific to Kay's machine, not shared history)
 /DEPLOY.md
+
+# Consolidated, ready-to-upload deploy tree (built frontend + api + db +
+# deploy scripts, assembled fresh before each deploy -- not source, not
+# committed)
+/deploy-upload/
