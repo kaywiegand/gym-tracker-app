@@ -353,6 +353,14 @@ function BodyweightCard() {
   )
 }
 
+// A successful BIA/HR/backup upload can change data shown on other pages
+// (Body-Scope dashboard, Workouts list, ...) that won't refetch until they
+// next mount -- reload after a moment so the whole app reflects it, not
+// just this card's own list.
+function reloadAfterDelay(delayMs = 1200) {
+  setTimeout(() => window.location.reload(), delayMs)
+}
+
 const MEASUREMENT_SITES = ['waist', 'chest', 'hip', 'arm', 'thigh'] as const
 
 // Tape-measure quick entry -- mirrors BodyweightCard exactly (Stage-5 plan
@@ -473,6 +481,7 @@ function BiaCard() {
       const result = await api.upload<BiaImportResult>('/bia/import', file)
       setStatus({ type: 'success', text: `Imported ${result.imported} scan(s), skipped ${result.skipped} already-known.` })
       loadMeasurements()
+      reloadAfterDelay()
     } catch (err) {
       setStatus({ type: 'error', text: err instanceof ApiError ? err.message : 'Import failed.' })
     } finally {
@@ -547,6 +556,7 @@ function HeartRateCard() {
         type: 'success',
         text: `Matched ${result.matched} new heart-rate sample(s) across ${result.sessions_touched} session(s).`,
       })
+      reloadAfterDelay()
     } catch (err) {
       setStatus({ type: 'error', text: err instanceof ApiError ? err.message : 'Import failed.' })
     } finally {
@@ -592,6 +602,7 @@ function BackupCard() {
       const result = await api.upload<BackupImportResult>('/backup/import', file)
       const total = Object.values(result.tables).reduce((sum, t) => sum + t.inserted + t.updated, 0)
       setStatus({ type: 'success', text: `Restore complete — ${total} row(s) inserted or updated across ${Object.keys(result.tables).length} tables.` })
+      reloadAfterDelay()
     } catch (err) {
       setStatus({ type: 'error', text: err instanceof ApiError ? err.message : 'Restore failed.' })
     } finally {
