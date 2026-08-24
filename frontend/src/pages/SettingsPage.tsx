@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, ApiError } from '@/lib/api'
 import { putRow, type LocalBodyMeasurement, type LocalBodyweight } from '@/lib/localDb'
 import { pushPending } from '@/lib/syncService'
@@ -175,6 +175,25 @@ export function SettingsPage() {
               aria-label="Rest timer"
             />
           </div>
+
+          <div className="h-px bg-border" />
+
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[14px] font-bold">Flag a plateau after</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">sessions with no e1RM growth</div>
+            </div>
+            <NumberField
+              width="6rem"
+              step={1}
+              min={2}
+              unit="sessions"
+              value={parseInt(settings.plateau_sessions, 10)}
+              onChange={(v) => setSettings({ ...settings, plateau_sessions: String(v) })}
+              onBlur={() => saveSettings({ plateau_sessions: settings.plateau_sessions })}
+              aria-label="Plateau detection threshold"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -209,8 +228,7 @@ export function SettingsPage() {
       <BiaCard />
       <HeartRateCard />
       <BackupCard />
-
-      <p className="mb-2 mt-4 text-center text-[11px] text-muted-foreground">PDF/CSV report export — later stage</p>
+      <ExportCard />
     </>
   )
 }
@@ -631,6 +649,35 @@ function BackupCard() {
             <input ref={fileInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
           </div>
           {status && <p className={status.type === 'error' ? 'text-sm text-destructive' : 'text-sm text-status-good'}>{status.text}</p>}
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// Human-readable export (Stage 6, CLAUDE.md §2) -- distinct from the Backup
+// card above, which is a raw disaster-recovery snapshot. CSV is generated
+// server-side; the PDF path is a print-optimized page (window.print()) so
+// this stays dependency-free (CLAUDE.md §3/§12 -- no PHP PDF library).
+function ExportCard() {
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Export</div>
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-1">
+          <p className="text-[12px] text-muted-foreground">A human-readable export of your training log, or a printable progress report.</p>
+          <div className="flex gap-2">
+            <a href="/api/export/training-log.csv">
+              <Button type="button" variant="outline" size="sm">
+                Download training log (CSV)
+              </Button>
+            </a>
+            <Link to="/report">
+              <Button type="button" size="sm">
+                Print report (PDF)
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </>

@@ -84,8 +84,9 @@
 **Stufe 2 (Tracking-Loop, Offline-Sync, Rest-Timer, Körpergewicht):** ✅ Abgeschlossen — inkl. Nacharbeiten aus Kays Testrunde (Rest-Timer-UX, Resume/New bei abgebrochener Session).
 **Stufe 3 (Progression-Engine, e1RM, PR-Erkennung, erster Analyse-Chart):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
 **Stufe 4 (Muskel-Heatmap, Radar, ACWR, Dashboard):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
-**Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements, Backup/Restore):** ✅ Abgeschlossen — verifiziert (inkl. Kays echter BIA-CSV), noch ungetestet von Kay.
-**Stufe 6:** ⏳ Noch nicht begonnen.
+**Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements, Backup/Restore):** ✅ Abgeschlossen — von Kay live getestet, zwei echte Bugs gefunden und gefixt (Semikolon-CSV, Restore-Last-Write-Wins).
+**Stufe 6 Runde 1 (Plateau-Detection, CSV/PDF-Export):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay. Kalorien-Schätzung bewusst zurückgestellt (BACKLOG #15).
+**Stufe 3–4:** weiterhin ungetestet von Kay.
 
 ---
 
@@ -178,3 +179,16 @@
 **Entscheidung:** Restore-Semantik ist bewusst NICHT dieselbe wie Live-Sync — Live-Sync schützt vor einem Offline-Gerät, das versehentlich neuere Server-Änderungen überschreibt; ein explizites Restore ist eine bewusste, einmalige Nutzeraktion ("dieser Snapshot soll jetzt gelten") und muss deshalb immer gewinnen, unabhängig von `updated_at`.
 
 **Nächster Schritt:** Kay testet weiter (Stufe 3+4 stehen noch aus). Vorschlag an Kay offen: soll ein gelöschter BIA-Scan beim erneuten Hochladen derselben Quelldatei wieder auftauchen (aktuelles, bewusstes Verhalten — ermöglicht Korrektur einer fehlerhaften Datei) oder für immer blockiert bleiben?
+
+---
+
+## Session 2026-08-24 (Fortsetzung 2) — Stufe 6 Runde 1: Plateau-Detection, CSV/PDF-Export
+
+**Was passiert ist:**
+- Kay: "dann geh die nächste Stufe an." Plan-Mode (ohne neuen Explore-Agent, Codebase aus dieser Session noch vollständig im Kontext) für Stufe 6 (CLAUDE.md §10: "Export/PDF, Plateau-/Deload-Detection, Deep-Analytics"). Scope-Entscheidung: Plateau-Detection UND Export komplett umgesetzt, "Deep-Analytics" wird durch die Plateau-Detection selbst erfüllt (CLAUDE.md §8 nennt sie explizit "Differenzierer") — die einzige noch offene §8-Idee, Kalorien-Schätzung (Keytel, HR-basiert), bewusst zurückgestellt (CLAUDE.md markiert sie selbst als "später"; eigene offene Fragen zu Gewichtsquelle/Geschlecht-Parsing/UI-Fläche) → BACKLOG #15.
+- **Plateau-Detection:** `lib/plateau.ts::detectPlateau()` (reine Funktion, kein neuer Endpoint — nutzt die bereits von `ExerciseScope` geladene e1RM-Historie) vergleicht aktuelles e1RM gegen den Wert von N Sessions davor (N = neuer Settings-Key `plateau_sessions`, Default 4, editierbar in Settings). `ExerciseScope` zeigt bei Treffer einen Plateau-Banner plus — als Antwort auf Kays ursprüngliches Stufe-4-Teil-3-Ziel "Plateau UND Overload erkennen" — eine kompakte Gesamtkörper-ACWR-Zeile (bewusst nicht als erfundener Pro-Übungs-Overload-Wert deklariert).
+- **CSV-Export:** `SetRepository::exportRows()` + `GET /export/training-log.csv` — ein Trainings-Log (eine Zeile pro Satz, e1RM serverseitig mit derselben Formel wie überall sonst), bewusst nicht ein Export pro Tabelle (das wäre nur eine schlechtere Kopie von Stufe 5s JSON-Backup).
+- **PDF-Export:** kein PHP-PDF-Dependency (CLAUDE.md §3/§12: "keine unnötigen Dependencies") — stattdessen `ReportPage.tsx` unter neuer Route `/report` (außerhalb `AppShell`, wie `/track/:workoutId`), druckoptimiertes Layout, `window.print()` → jeder Browser bietet "Als PDF speichern". Neuer globaler `@media print`-Override in `index.css` erzwingt die Light-Palette-Tokens unabhängig vom aktiven Theme — ohne das wäre ein Ausdruck im (Standard-)Dark-Theme helle Schrift auf weißem Papier, da Browser `background-color` beim Drucken meist weglassen, `color` aber nicht.
+- Verifikation: `php api/tests/run.php` auf 136 Checks erweitert (3 neu für `exportRows()`), `tsc`/`oxlint` clean. Kompletter Browser-Durchlauf gegen die echte laufende Dev-DB: CSV-Export stichprobenartig gegen SQL gegengeprüft (inkl. Epley-e1RM-Handrechnung, leeres e1RM bei Warmup), Plateau-Banner mit einer temporären synthetischen Test-Übung (5 Sessions, absichtlich flaches e1RM) verifiziert und danach wieder gelöscht, Glossar-Eintrag "Plateau" geprüft, `/report` lädt echte Overview/Muscle-Load/Consistency/BIA-Daten, Print-CSS-Regel im kompilierten Stylesheet bestätigt.
+
+**Nächster Schritt:** Kay testet Stufe 3, 4 und 6 (Stufe 5 ist getestet). Danach: Kalorien-Schätzung (BACKLOG #15) oder ein anderes P2/P3-Backlog-Item, je nach Kays Priorität.

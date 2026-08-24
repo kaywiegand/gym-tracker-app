@@ -103,6 +103,8 @@ try {
         handleBackupExport();
     } elseif ($method === 'POST' && $path === '/backup/import') {
         handleBackupImport();
+    } elseif ($method === 'GET' && $path === '/export/training-log.csv') {
+        handleExportTrainingLog();
     } else {
         Http::error('Not found', 404);
     }

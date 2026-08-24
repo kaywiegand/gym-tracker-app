@@ -15,6 +15,7 @@ import { WorkoutsPage } from '@/pages/WorkoutsPage'
 import { WorkoutEditPage } from '@/pages/WorkoutEditPage'
 import { TrackingPage } from '@/pages/TrackingPage'
 import { SettingsPage } from '@/pages/SettingsPage'
+import { ReportPage } from '@/pages/ReportPage'
 
 export default function App() {
   const status = useAuthStore((s) => s.status)
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/track/:workoutId" element={<TrackingPage />} />
+        <Route path="/report" element={<ReportPage />} />
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />

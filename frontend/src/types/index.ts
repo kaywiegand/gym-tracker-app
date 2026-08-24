@@ -5,6 +5,7 @@ export interface Settings {
   progression_trigger: 'all_sets' | 'last_set'
   rest_seconds: string
   theme: 'dark' | 'light'
+  plateau_sessions: string
   [key: string]: string
 }
 

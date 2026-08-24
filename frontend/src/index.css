@@ -173,3 +173,19 @@
     @apply font-sans;
     }
 }
+
+/* Dark is the app default (light text on a dark ground) -- printed without
+   this, "print backgrounds" being off (the common browser default) strips
+   the dark background but keeps the light text, making the page unreadable
+   on paper/PDF. Force the light palette for print regardless of the active
+   theme, everywhere in the app, not just the /report page. */
+@media print {
+  :root, [data-theme="dark"] {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --border: oklch(0.922 0 0);
+  }
+}

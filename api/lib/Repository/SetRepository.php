@@ -217,4 +217,22 @@ final class SetRepository extends BaseRepository
         }
         return $result;
     }
+
+    // Every logged set, oldest first, with exercise/workout names -- flat
+    // rows for the Stage 6 CSV training-log export (CLAUDE.md §2). LEFT JOIN
+    // sessions/workouts since a set's session could in principle be missing
+    // (defensive, not expected in practice).
+    public function exportRows(): array
+    {
+        return $this->fetchAll(
+            'SELECT s.performed_at, s.set_index, s.weight_kg, s.reps, s.is_warmup,
+                    e.name AS exercise_name, w.name AS workout_name
+             FROM sets s
+             JOIN exercises e ON e.id = s.exercise_id
+             LEFT JOIN sessions sess ON sess.id = s.session_id
+             LEFT JOIN workouts w ON w.id = sess.workout_id
+             WHERE s.deleted_at IS NULL
+             ORDER BY s.performed_at ASC, s.set_index ASC'
+        );
+    }
 }

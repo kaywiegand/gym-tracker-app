@@ -342,6 +342,32 @@ $recentDates = (new SessionRepository())->recentDates(7);
 check('recentDates includes a session started moments ago', in_array(gmdate('Y-m-d'), $recentDates, true), $failures);
 check('recentDates excludes sessions outside the window', !in_array('2026-04-01', $recentDates, true), $failures);
 
+echo "SetRepository::exportRows\n";
+$exportExercise = $exRepo->create(['name' => 'Test Export Exercise', 'muscles' => []]);
+$exportWorkout = $woRepo->create(['name' => 'Test Export Workout', 'mode_id' => 2, 'exercises' => []]);
+$sessionRepo->upsert(['id' => 'sess-export-1', 'workout_id' => $exportWorkout['id'], 'started_at' => '2026-03-01T10:00:00Z', 'updated_at' => '2026-03-01T10:00:00Z']);
+$setRepo->upsert([
+    'id' => 'set-export-1', 'session_id' => 'sess-export-1', 'exercise_id' => $exportExercise['id'],
+    'set_index' => 0, 'weight_kg' => 80, 'reps' => 5,
+    'performed_at' => '2026-03-01T10:05:00Z', 'updated_at' => '2026-03-01T10:05:00Z',
+]);
+$setRepo->upsert([
+    'id' => 'set-export-deleted', 'session_id' => 'sess-export-1', 'exercise_id' => $exportExercise['id'],
+    'set_index' => 1, 'weight_kg' => 80, 'reps' => 5,
+    'performed_at' => '2026-03-01T10:06:00Z', 'updated_at' => '2026-03-01T10:06:00Z', 'deleted_at' => '2026-03-01T10:10:00Z',
+]);
+
+$exportRows = $setRepo->exportRows();
+$exportedRow = null;
+foreach ($exportRows as $row) {
+    if ($row['exercise_name'] === 'Test Export Exercise') {
+        $exportedRow = $row;
+    }
+}
+check('exportRows includes a logged set with its exercise name', $exportedRow !== null, $failures);
+check('exportRows includes the workout name via the session', $exportedRow['workout_name'] === 'Test Export Workout', $failures);
+check('exportRows excludes soft-deleted sets', count(array_filter($exportRows, fn ($r) => $r['exercise_name'] === 'Test Export Exercise')) === 1, $failures);
+
 echo "BiaImport\n";
 $biaCsv = <<<CSV
 Kategorie,Sub-Kategorie,Metrik,2025-01-01,2025-01-02

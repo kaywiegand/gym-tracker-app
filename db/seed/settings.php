@@ -9,6 +9,7 @@ return function (PDO $pdo, array $args): void {
         'progression_trigger' => 'all_sets',
         'rest_seconds' => '120',
         'theme' => 'dark',
+        'plateau_sessions' => '4',
     ];
 
     $existingStmt = $pdo->prepare('SELECT value FROM settings WHERE key = ?');

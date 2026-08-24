@@ -5,11 +5,12 @@ einen Repository-Layer). Frontend: React-PWA (Vite, TypeScript, Tailwind,
 shadcn/ui). Siehe `CLAUDE.md` für das vollständige Briefing und
 `docs/references/workout-app-v3.html` für die UX-Referenz.
 
-**Stand:** Stufe 1–5 sind fertig — Settings/Exercise-Library/Workout-Templates,
-Tracking-Loop mit Offline-Sync, Progression/e1RM/PR-Badges, das komplette
-Analyse-Dashboard (Overview/Exercise/Workout/Body), und BIA-Import/HR-Import/
-Body-Measurements/Backup. Export/PDF und Plateau-/Deload-Detection kommen
-erst mit Stufe 6.
+**Stand:** Stufe 1–6 (Runde 1) sind fertig — Settings/Exercise-Library/
+Workout-Templates, Tracking-Loop mit Offline-Sync, Progression/e1RM/PR-Badges,
+das komplette Analyse-Dashboard (Overview/Exercise/Workout/Body), BIA-Import/
+HR-Import/Body-Measurements/Backup, Plateau-Detection sowie CSV-/PDF-Export.
+Die Keytel-Kalorienschätzung aus CLAUDE.md §8 ist bewusst noch offen (siehe
+BACKLOG.md).
 
 ## Voraussetzungen
 
@@ -117,8 +118,25 @@ Alles unter Settings, im selben Bereich wie Körpergewicht:
   menschenlesbare Reports, hier um eine rohe Datensicherung). FEDB-Übungen
   und reine Seed-Tabellen (`muscles`, `training_modes`,
   `muscle_volume_targets`) sind nicht enthalten — die kommen über
-  `php db/migrate.php` zurück. Restore ist idempotent (gleiches Upsert-
-  Prinzip wie der Offline-Sync: `id` + `updated_at`, last-write-wins).
+  `php db/migrate.php` zurück. Restore überschreibt bedingungslos mit den
+  Daten aus der Datei (nicht last-write-wins wie der Offline-Sync — ein
+  Restore ist eine bewusste, einmalige Aktion und muss auch eine seitdem
+  erfolgte Löschung rückgängig machen können).
+
+## Plateau-Detection & Export (Stufe 6)
+
+- **Plateau-Detection:** Dashboard → Exercise zeigt einen Hinweis, wenn eine
+  Übung über die in Settings konfigurierte Anzahl Sessions (Default 4) kein
+  e1RM-Wachstum zeigt — plus eine kompakte Gesamtkörper-ACWR-Zeile als
+  Trainingslast-Kontext (CLAUDE.md §8).
+- **CSV-Export:** Settings → Export → „Download training log (CSV)" —
+  ein Trainings-Log (eine Zeile pro Satz inkl. berechnetem e1RM), zum Öffnen
+  in Excel/Sheets oder Weitergeben an einen Coach.
+- **PDF-Export:** Settings → Export → „Print report (PDF)" öffnet
+  `/report`, eine druckoptimierte Zusammenfassung (Overview-KPIs, Muskel-
+  Status, Consistency, BIA-Kennzahlen). Bewusst kein PHP-PDF-Dependency
+  (CLAUDE.md §3/§12) — `window.print()` im Browser, "Als PDF speichern" im
+  Druckdialog erledigt den Rest.
 
 ## Production Build
 

@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { epley1RM } from '@/lib/metrics'
+import { detectPlateau } from '@/lib/plateau'
 import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
-import type { ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary } from '@/types'
+import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
 import { KpiTile } from '@/components/KpiTile'
 import { E1rmTrendChart } from '@/components/E1rmTrendChart'
 import { FilterChips } from '@/components/FilterChips'
+import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -42,6 +44,8 @@ export function ExerciseScope() {
   const [selected, setSelected] = useState<ExerciseListItem | null>(null)
   const [history, setHistory] = useState<ExerciseHistoryEntry[]>([])
   const [summaries, setSummaries] = useState<ExerciseSessionSummary[]>([])
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -63,10 +67,14 @@ export function ExerciseScope() {
     Promise.all([
       api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history?limit=20&weeks=${weeks}`),
       api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?limit=20&weeks=${weeks}`),
+      api.get<Settings>('/settings'),
+      api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}`),
     ])
-      .then(([historyData, summariesData]) => {
+      .then(([historyData, summariesData, settingsData, acwrData]) => {
         setHistory(historyData)
         setSummaries(summariesData)
+        setSettings(settingsData)
+        setAcwr(acwrData)
       })
       .finally(() => setLoading(false))
   }, [selected, range])
@@ -110,6 +118,9 @@ export function ExerciseScope() {
   const lastE1rm = history[history.length - 1]?.best_e1rm ?? 0
   const firstE1rm = history[0]?.best_e1rm ?? lastE1rm
   const ladder = buildLadder(summaries)
+  const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
+  const isPlateaued = detectPlateau(history, plateauSessions)
+  const acwrInRange = acwr ? acwr.ratio >= 0.8 && acwr.ratio <= 1.3 : true
 
   return (
     <div className="flex flex-col gap-3">
@@ -130,6 +141,26 @@ export function ExerciseScope() {
         <p className="text-sm text-muted-foreground">No history yet for this exercise.</p>
       ) : (
         <>
+          {isPlateaued && (
+            <Card className="border-status-warn/40 bg-status-warn/10 p-3">
+              <div className="flex items-center gap-1 text-[12.5px] font-bold text-status-warn">
+                Plateau
+                <InfoButton term="Plateau" />
+              </div>
+              <p className="mt-0.5 text-[11.5px] text-status-warn/90">
+                No e1RM growth in the last {plateauSessions} sessions — consider a deload week or an exercise variation.
+              </p>
+            </Card>
+          )}
+
+          {acwr && (
+            <div className="flex items-center gap-1 text-[11.5px] text-muted-foreground">
+              Overall training load: <span className={acwrInRange ? 'text-status-good' : 'text-status-warn'}>{acwr.ratio.toFixed(2)}</span>
+              <span>({acwrInRange ? 'in range' : 'outside 0.8–1.3'})</span>
+              <InfoButton term="ACWR" />
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <KpiTile
               label="e1RM now"

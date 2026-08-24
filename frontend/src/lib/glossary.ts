@@ -4,9 +4,7 @@ export interface GlossaryEntry {
   definition: string
 }
 
-// Only terms that actually appear somewhere in this app's UI right now --
-// no Plateau entry, since plateau detection itself isn't built yet (Stage
-// 6); a glossary entry with nothing to point at would be misleading.
+// Only terms that actually appear somewhere in this app's UI right now.
 export const GLOSSARY: GlossaryEntry[] = [
   {
     term: 'e1RM',
@@ -54,5 +52,11 @@ export const GLOSSARY: GlossaryEntry[] = [
     term: 'Signature',
     label: "Workout signature",
     definition: 'A workout’s typical muscle-group distribution — average sets per region across its recent sessions.',
+  },
+  {
+    term: 'Plateau',
+    label: 'Plateau',
+    definition:
+      'No e1RM growth over the configured number of recent sessions (default 4, adjustable in Settings). A signal to consider a deload week or switching up the exercise or rep range.',
   },
 ]

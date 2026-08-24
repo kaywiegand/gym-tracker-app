@@ -72,3 +72,11 @@ Informationsverluste erzeugen, nicht nur Kosmetik).
 | 12 | **Kein "Strength × Composition"-Decouple-Chart** — Prototyp überlagert e1RM-Trend mit BIA-Verlauf; bräuchte echte Korrelationslogik zwischen zwei unterschiedlich getakteten Zeitreihen (Training wöchentlich, BIA-Scans ein paar Mal im Jahr). Bewusst zurückgestellt, keine erfundene Formel. | 3 |
 | 13 | **Body-Scope-Zeitraum-Switch (3M/6M/12M/All) filtert nichts** — bleibt nur für UI-Konsistenz mit den anderen drei Scopes bestehen. BIA-Scans sind zu selten für eine sinnvolle Zeitraum-Filterung. Nachziehen falls die Scan-Frequenz mal deutlich steigt. | 3 |
 | 14 | **Backup enthält keine Bilddateien** — `media`-Zeilen (Pfade) sind im JSON-Backup enthalten, die eigentlichen Bild-Dateien in `/uploads` nicht. Für echte Portabilität müsste `/uploads` klassisch per Dateisystem-Backup (rsync o.ä.) gesichert werden. | 3 |
+
+---
+
+## Aus Stufe 6 zurückgestellt
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 15 | **Kalorien-Schätzung (Keytel, HR-basiert) nicht gebaut** — CLAUDE.md §8 nennt sie explizit "(später)". Voraussetzungen sind seit Stufe 5 vorhanden (HR-Samples pro Session, Alter/Geschlecht/Gewicht aus BIA), aber noch offene Entscheidungen: Gewichtsquelle (Bodyweight vs. BIA, welches wenn beide vorhanden), Geschlecht-Parsing aus dem BIA-Freitext ("Männlich"/"Weiblich" → Keytel-Formel-Zweig), eigene UI-Fläche (wo genau angezeigt). Bewusst als eigene Runde zurückgestellt statt in Stufe 6 Runde 1 mit reingepackt. | 2 |
