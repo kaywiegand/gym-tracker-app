@@ -43,6 +43,10 @@ try {
         handlePutTrainingMode($segments[1]);
     } elseif ($method === 'GET' && $path === '/muscles') {
         handleGetMuscles();
+    } elseif ($method === 'GET' && $path === '/muscle-volume-targets') {
+        handleGetMuscleVolumeTargets();
+    } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'muscle-volume-targets') {
+        handlePutMuscleVolumeTarget($segments[1]);
     } elseif ($method === 'GET' && $path === '/exercises') {
         handleListExercises();
     } elseif ($method === 'POST' && $path === '/exercises') {

@@ -19,4 +19,23 @@ final class MuscleRepository extends BaseRepository
         }
         return $byRegion;
     }
+
+    // List form of volumeTargets() for the Settings editor (BACKLOG #9) --
+    // one row per region, ordered like everywhere else region lists appear.
+    public function listVolumeTargets(): array
+    {
+        return $this->fetchAll(
+            "SELECT mvt.region, mvt.mev, mvt.mav, mvt.mrv
+             FROM muscle_volume_targets mvt
+             JOIN (SELECT DISTINCT region, MIN(sort) AS sort FROM muscles GROUP BY region) mu ON mu.region = mvt.region
+             ORDER BY mu.sort"
+        );
+    }
+
+    public function updateVolumeTarget(string $region, int $mev, int $mav, int $mrv): bool
+    {
+        $stmt = $this->db->prepare('UPDATE muscle_volume_targets SET mev = ?, mav = ?, mrv = ? WHERE region = ?');
+        $stmt->execute([$mev, $mav, $mrv, $region]);
+        return $stmt->rowCount() > 0;
+    }
 }

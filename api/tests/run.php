@@ -173,6 +173,7 @@ check('historyForExercise orders oldest first', array_column($history, 'session_
 check('historyForExercise excludes warmup sets from volume', abs($history[2]['volume_kg'] - 525.0) < 0.001, $failures);
 check('historyForExercise computes Epley e1RM', abs($history[0]['best_e1rm'] - (100 * (1 + 5 / 30))) < 0.001, $failures);
 check('historyForExercise volume is Σ weight×reps', abs($history[1]['volume_kg'] - 512.5) < 0.001, $failures);
+check('historyForExercise sets_count excludes warmup sets', (int) $history[2]['sets_count'] === 1, $failures);
 
 $limitedHistory = $setRepo->historyForExercise($histExercise['id'], 2);
 check('historyForExercise respects limit', count($limitedHistory) === 2, $failures);
@@ -277,6 +278,13 @@ check('dailyVolume(0) excludes it (outside the window)', $setRepo->dailyVolume(0
 $targets = (new MuscleRepository())->volumeTargets();
 check('volumeTargets returns seeded regions', $targets['chest'] === ['mev' => 8, 'mav' => 16, 'mrv' => 22], $failures);
 check('volumeTargets covers all three seeded regions', count($targets) === 3, $failures);
+
+$muscleRepo = new MuscleRepository();
+$listedTargets = $muscleRepo->listVolumeTargets();
+check('listVolumeTargets returns one row per region', count($listedTargets) === 3, $failures);
+check('updateVolumeTarget updates an existing region', $muscleRepo->updateVolumeTarget('chest', 10, 18, 24) === true, $failures);
+check('updateVolumeTarget persists the new values', $muscleRepo->volumeTargets()['chest'] === ['mev' => 10, 'mav' => 18, 'mrv' => 24], $failures);
+check('updateVolumeTarget returns false for an unknown region', $muscleRepo->updateVolumeTarget('nope', 1, 2, 3) === false, $failures);
 
 echo "MuscleVolume Part 2 (weekly totals, ACWR series) + dashboard repositories\n";
 

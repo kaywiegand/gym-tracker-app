@@ -9,13 +9,17 @@ import { ExercisePickerSheet } from '@/components/ExercisePickerSheet'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { X, ChevronUp, ChevronDown } from 'lucide-react'
+import { X, ChevronUp, ChevronDown, SlidersHorizontal } from 'lucide-react'
 
 interface DraftExercise {
   tempId: string
   exercise_id: string
   exercise_name: string
   planned_sets: number
+  rep_low_override: number | null
+  rep_high_override: number | null
+  increment_override_kg: number | null
+  showOverrides: boolean
 }
 
 export function WorkoutEditPage() {
@@ -49,6 +53,10 @@ export function WorkoutEditPage() {
           exercise_id: e.exercise_id,
           exercise_name: e.exercise_name,
           planned_sets: e.planned_sets,
+          rep_low_override: e.rep_low_override,
+          rep_high_override: e.rep_high_override,
+          increment_override_kg: e.increment_override_kg,
+          showOverrides: e.rep_low_override !== null || e.rep_high_override !== null || e.increment_override_kg !== null,
         })),
       )
       setLoading(false)
@@ -56,7 +64,19 @@ export function WorkoutEditPage() {
   }, [id])
 
   function addExercise(ex: ExerciseListItem) {
-    setExercises((prev) => [...prev, { tempId: crypto.randomUUID(), exercise_id: ex.id, exercise_name: ex.name, planned_sets: 3 }])
+    setExercises((prev) => [
+      ...prev,
+      {
+        tempId: crypto.randomUUID(),
+        exercise_id: ex.id,
+        exercise_name: ex.name,
+        planned_sets: 3,
+        rep_low_override: null,
+        rep_high_override: null,
+        increment_override_kg: null,
+        showOverrides: false,
+      },
+    ])
     setPickerOpen(false)
   }
 
@@ -66,6 +86,14 @@ export function WorkoutEditPage() {
 
   function updatePlannedSets(tempId: string, value: number) {
     setExercises((prev) => prev.map((e) => (e.tempId === tempId ? { ...e, planned_sets: value } : e)))
+  }
+
+  function updateOverride(tempId: string, field: 'rep_low_override' | 'rep_high_override' | 'increment_override_kg', value: number | null) {
+    setExercises((prev) => prev.map((e) => (e.tempId === tempId ? { ...e, [field]: value } : e)))
+  }
+
+  function toggleOverrides(tempId: string) {
+    setExercises((prev) => prev.map((e) => (e.tempId === tempId ? { ...e, showOverrides: !e.showOverrides } : e)))
   }
 
   function move(tempId: string, direction: -1 | 1) {
@@ -85,7 +113,13 @@ export function WorkoutEditPage() {
     const payload = {
       name: name.trim(),
       mode_id: modeId,
-      exercises: exercises.map((e) => ({ exercise_id: e.exercise_id, planned_sets: e.planned_sets })),
+      exercises: exercises.map((e) => ({
+        exercise_id: e.exercise_id,
+        planned_sets: e.planned_sets,
+        rep_low_override: e.rep_low_override,
+        rep_high_override: e.rep_high_override,
+        increment_override_kg: e.increment_override_kg,
+      })),
     }
     try {
       if (isEditing) {
@@ -135,36 +169,96 @@ export function WorkoutEditPage() {
       <div className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Exercises</div>
       <div className="flex flex-col gap-1.5">
         {exercises.length === 0 && <p className="text-sm text-muted-foreground">No exercises yet.</p>}
-        {exercises.map((ex, i) => (
-          <Card key={ex.tempId} className="px-3 py-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13.5px] font-bold">{ex.exercise_name}</div>
-                <div className="mt-0.5 text-[11px] text-muted-foreground">
-                  {selectedMode ? `${selectedMode.rep_low}–${selectedMode.rep_high} reps` : ''} · no fixed target weight
+        {exercises.map((ex, i) => {
+          const repLow = ex.rep_low_override ?? selectedMode?.rep_low
+          const repHigh = ex.rep_high_override ?? selectedMode?.rep_high
+          const hasOverride = ex.rep_low_override !== null || ex.rep_high_override !== null || ex.increment_override_kg !== null
+          return (
+            <Card key={ex.tempId} className="px-3 py-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13.5px] font-bold">{ex.exercise_name}</div>
+                  <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    {repLow !== undefined && repHigh !== undefined ? `${repLow}–${repHigh} reps` : ''}
+                    {hasOverride ? ' (custom)' : ''} · no fixed target weight
+                  </div>
                 </div>
-              </div>
-              <NumberField width="3.5rem" value={ex.planned_sets} onChange={(v) => updatePlannedSets(ex.tempId, v)} aria-label={`${ex.exercise_name} planned sets`} />
-              <div className="flex flex-col">
-                <button type="button" disabled={i === 0} className="text-muted-foreground disabled:opacity-30" onClick={() => move(ex.tempId, -1)} aria-label="Move up">
-                  <ChevronUp className="size-4" />
+                <NumberField width="3.5rem" value={ex.planned_sets} onChange={(v) => updatePlannedSets(ex.tempId, v)} aria-label={`${ex.exercise_name} planned sets`} />
+                <div className="flex flex-col">
+                  <button type="button" disabled={i === 0} className="text-muted-foreground disabled:opacity-30" onClick={() => move(ex.tempId, -1)} aria-label="Move up">
+                    <ChevronUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={i === exercises.length - 1}
+                    className="text-muted-foreground disabled:opacity-30"
+                    onClick={() => move(ex.tempId, 1)}
+                    aria-label="Move down"
+                  >
+                    <ChevronDown className="size-4" />
+                  </button>
+                </div>
+                <button type="button" className="text-muted-foreground" onClick={() => removeExercise(ex.tempId)} aria-label={`Remove ${ex.exercise_name}`}>
+                  <X className="size-4" />
                 </button>
-                <button
-                  type="button"
-                  disabled={i === exercises.length - 1}
-                  className="text-muted-foreground disabled:opacity-30"
-                  onClick={() => move(ex.tempId, 1)}
-                  aria-label="Move down"
-                >
-                  <ChevronDown className="size-4" />
-                </button>
               </div>
-              <button type="button" className="text-muted-foreground" onClick={() => removeExercise(ex.tempId)} aria-label={`Remove ${ex.exercise_name}`}>
-                <X className="size-4" />
+
+              <button
+                type="button"
+                className={`mt-2 flex items-center gap-1 text-[11px] ${hasOverride ? 'text-brand-accent' : 'text-muted-foreground'}`}
+                onClick={() => toggleOverrides(ex.tempId)}
+              >
+                <SlidersHorizontal className="size-3" />
+                {ex.showOverrides ? 'Hide overrides' : hasOverride ? 'Edit overrides' : 'Override rep range / increment'}
               </button>
-            </div>
-          </Card>
-        ))}
+
+              {ex.showOverrides && (
+                <div className="mt-2 flex flex-wrap items-center gap-3 border-t border-border pt-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">Reps</span>
+                    <NumberField
+                      width="3.25rem"
+                      value={ex.rep_low_override ?? selectedMode?.rep_low ?? 0}
+                      onChange={(v) => updateOverride(ex.tempId, 'rep_low_override', v)}
+                      aria-label={`${ex.exercise_name} rep low override`}
+                    />
+                    <span className="text-muted-foreground">–</span>
+                    <NumberField
+                      width="3.25rem"
+                      value={ex.rep_high_override ?? selectedMode?.rep_high ?? 0}
+                      onChange={(v) => updateOverride(ex.tempId, 'rep_high_override', v)}
+                      aria-label={`${ex.exercise_name} rep high override`}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] text-muted-foreground">Step</span>
+                    <NumberField
+                      width="4rem"
+                      step={0.5}
+                      unit="kg"
+                      value={ex.increment_override_kg ?? 2.5}
+                      onChange={(v) => updateOverride(ex.tempId, 'increment_override_kg', v)}
+                      aria-label={`${ex.exercise_name} increment override`}
+                    />
+                  </div>
+                  {hasOverride && (
+                    <button
+                      type="button"
+                      className="text-[11px] text-muted-foreground underline underline-offset-2"
+                      onClick={() => {
+                        updateOverride(ex.tempId, 'rep_low_override', null)
+                        updateOverride(ex.tempId, 'rep_high_override', null)
+                        updateOverride(ex.tempId, 'increment_override_kg', null)
+                      }}
+                    >
+                      Reset to workout default
+                    </button>
+                  )}
+                </div>
+              )}
+            </Card>
+          )
+        })}
       </div>
 
       <Button type="button" variant="outline" className="mt-2 w-full border-dashed" onClick={() => setPickerOpen(true)}>

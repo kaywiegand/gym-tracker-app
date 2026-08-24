@@ -114,6 +114,8 @@
     --status-crit: #d03b3b;
     --brand-accent: #2a78d6;
     --metric-e1rm: #7c4fd1;
+    --metric-volume: #2a78d6;
+    --metric-sets: #0d9488;
 }
 
 [data-theme="dark"] {
@@ -160,6 +162,8 @@
     --status-crit: #d03b3b;
     --brand-accent: #3987e5;
     --metric-e1rm: #9b7bea;
+    --metric-volume: #3987e5;
+    --metric-sets: #2dd4bf;
 }
 
 @layer base {

@@ -15,7 +15,6 @@ Prio: `1` = hoch · `2` = mittel · `3` = niedrig
 | 1 | **Muskel-Icon-Set** — Prototyp-Icons sind bewusst Platzhalter (CLAUDE.md §7). Listen sind in Stufe 1 bewusst ohne Icons gebaut (Namen reichen). Falls später ein besserer Original-Icon-Satz kommt: Entscheidung treffen ob er in Listen zurückkommt oder nur in Detail-Ansichten bleibt. | 3 |
 | 2 | **"In your workouts" im Exercise-Picker** — Prototyp zeigt eine "Most trained"-Sektion oben im Picker. Aktuell zeigt der Picker nur Suche + Gruppierung nach Region. Seit Stufe 2 gibt es echte Session/Sets-Historie — "meistgenutzt" oder "zuletzt verwendet" wäre jetzt berechenbar, aber bewusst noch nicht gebaut (kein UI-Auftrag dafür). Bei Bedarf nachziehen. | 2 |
 | 3 | **Muskel-Zuordnung im Exercise-Editor** — "Duplicate & edit" kopiert primary/secondary Muskeln 1:1, aber es gibt noch keine UI um sie für die Kopie neu zuzuordnen (nur Skalarfelder editierbar: Name/Equipment/Category/Mechanic/Increment). Für eigene Custom-Übungen mit abweichender Muskel-Verteilung müsste das nachgezogen werden — bewusst Overengineering-Vermeidung für Stufe 1. | 2 |
-| 4 | **Workout-Exercise Rep-Range-Override — UI fehlt weiterhin** — Die Progression-Engine (Stufe 3) liest `rep_low_override`/`rep_high_override`/`increment_override_kg` bereits korrekt aus (fällt sauber auf Workout-Modus bzw. `settings.default_increment_kg` zurück), aber es gibt weiterhin keine UI im Workout-Editor um sie zu *setzen* — Felder bleiben für jede Übung `NULL`. Erst relevant sobald eine Übung tatsächlich einen abweichenden Rep-Bereich/Schritt braucht. | 2 |
 
 ---
 
@@ -47,19 +46,10 @@ Informationsverluste erzeugen, nicht nur Kosmetik).
 
 ---
 
-## Aus Stufe 3 zurückgestellt
-
-| # | Beschreibung | Prio |
-| :--- | :--- | :--- |
-| 8 | **e1RM-Chart: mehrere Sessions am selben Kalendertag verschmelzen** — `E1rmTrendChart` gruppiert x-Achse nach Datum (`YYYY-MM-DD`), nicht nach Session. Bei mehreren Sessions derselben Übung am selben Tag (z.B. beim Testen) überlappen die Punkte auf der x-Achse. Bei normaler Nutzung (max. 1 Session/Tag pro Übung) tritt das nicht auf — bei Bedarf auf Session-Reihenfolge statt Datum umstellen. | 3 |
-
----
-
 ## Aus Stufe 4 zurückgestellt
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 9 | **MEV/MAV/MRV nicht editierbar** — `muscle_volume_targets` wird mit vertretbaren Default-Werten geseedet (siehe PROCESS_LOG), aber es gibt keine Settings-UI um sie pro Region anzupassen. Gleiche Situation wie schon bei den Workout-Exercise-Rep-Range-Overrides (#4) — Datenmodell + Auswertung fertig, Editier-UI fehlt noch. | 2 |
 | 10 | **Body-Map/Radar/Heatmap-Historie zeigen nur die aktuelle Woche mit echten Daten** — alle bisherigen Testdaten stammen von heute, ältere Wochen sind entsprechend leer (0.0). Kein Bug, wird sich mit echter mehrwöchiger Nutzung von selbst auflösen. | 3 |
 
 ---
@@ -80,3 +70,12 @@ Informationsverluste erzeugen, nicht nur Kosmetik).
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
 | 15 | **Kalorien-Schätzung (Keytel, HR-basiert) nicht gebaut** — CLAUDE.md §8 nennt sie explizit "(später)". Voraussetzungen sind seit Stufe 5 vorhanden (HR-Samples pro Session, Alter/Geschlecht/Gewicht aus BIA), aber noch offene Entscheidungen: Gewichtsquelle (Bodyweight vs. BIA, welches wenn beide vorhanden), Geschlecht-Parsing aus dem BIA-Freitext ("Männlich"/"Weiblich" → Keytel-Formel-Zweig), eigene UI-Fläche (wo genau angezeigt). Bewusst als eigene Runde zurückgestellt statt in Stufe 6 Runde 1 mit reingepackt. | 2 |
+
+---
+
+## Offen aus Kays Testrunde 2026-08-24
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 16 | **BIA-Import "0 imported" noch nicht final geklärt** — Kay meldete `Imported 0 scan(s), skipped 0` nach dem Ausfüllen der heruntergeladenen Vorlage. Der bekannte Semikolon-Bug ist gefixt; ein zusätzlich gefundener Bug (kaputter PHP-Prozess nach dem Ordner-Rename, siehe PROCESS_LOG) könnte die eigentliche Ursache gewesen sein. Die vermutete Datei in `~/Downloads/bia-template.csv` war beim Nachtesten aber eine unausgefüllte Vorlage — nicht zweifelsfrei reproduziert. Erneut mit der tatsächlich hochgeladenen Datei prüfen. | 1 |
+| 17 | **Exercise-Scope-Redesign (3-Linien-Chart) nicht live durchgeklickt** — `MultiMetricTrendChart` ersetzt die alten KPI-Kacheln + Einzel-Chart. Nur per tsc/lint/Code-Review geprüft, kein Zugriff auf Kays Passwort für einen echten Browser-Durchlauf. Sollte als erstes bei der nächsten Testrunde angeschaut werden. | 1 |

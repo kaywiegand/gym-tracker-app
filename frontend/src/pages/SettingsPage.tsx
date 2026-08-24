@@ -12,9 +12,11 @@ import type {
   BiaMeasurement,
   Bodyweight,
   HrImportResult,
+  MuscleVolumeTarget,
   Settings,
   TrainingMode,
 } from '@/types'
+import { REGION_LABELS } from '@/lib/muscleColors'
 import { PageHeader } from '@/components/PageHeader'
 import { NumberField } from '@/components/NumberField'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -36,13 +38,19 @@ export function SettingsPage() {
 
   const [settings, setSettings] = useState<Settings | null>(null)
   const [modes, setModes] = useState<TrainingMode[]>([])
+  const [volumeTargets, setVolumeTargets] = useState<MuscleVolumeTarget[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([api.get<Settings>('/settings'), api.get<TrainingMode[]>('/training-modes')])
-      .then(([s, m]) => {
+    Promise.all([
+      api.get<Settings>('/settings'),
+      api.get<TrainingMode[]>('/training-modes'),
+      api.get<MuscleVolumeTarget[]>('/muscle-volume-targets'),
+    ])
+      .then(([s, m, vt]) => {
         setSettings(s)
         setModes(m)
+        setVolumeTargets(vt)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -57,6 +65,19 @@ export function SettingsPage() {
       rep_high: mode.rep_high,
     })
     setModes(updated)
+  }
+
+  function updateVolumeTarget(region: string, field: 'mev' | 'mav' | 'mrv', value: number) {
+    setVolumeTargets((prev) => prev.map((t) => (t.region === region ? { ...t, [field]: value } : t)))
+  }
+
+  async function saveVolumeTarget(target: MuscleVolumeTarget) {
+    const updated = await api.put<MuscleVolumeTarget[]>(`/muscle-volume-targets/${target.region}`, {
+      mev: target.mev,
+      mav: target.mav,
+      mrv: target.mrv,
+    })
+    setVolumeTargets(updated)
   }
 
   async function saveSettings(patch: Partial<Settings>) {
@@ -120,6 +141,43 @@ export function SettingsPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Weekly volume targets (sets)</div>
+      <div className="flex flex-col gap-2">
+        {volumeTargets.map((target) => (
+          <Card key={target.region}>
+            <CardContent className="flex items-center justify-between py-1">
+              <span className="text-[14px] font-bold">{REGION_LABELS[target.region] ?? target.region}</span>
+              <div className="flex items-center gap-1.5">
+                <NumberField
+                  width="3.5rem"
+                  value={target.mev}
+                  onChange={(v) => updateVolumeTarget(target.region, 'mev', v)}
+                  onBlur={() => saveVolumeTarget(volumeTargets.find((t) => t.region === target.region)!)}
+                  aria-label={`${target.region} MEV`}
+                />
+                <span className="text-muted-foreground">–</span>
+                <NumberField
+                  width="3.5rem"
+                  value={target.mav}
+                  onChange={(v) => updateVolumeTarget(target.region, 'mav', v)}
+                  onBlur={() => saveVolumeTarget(volumeTargets.find((t) => t.region === target.region)!)}
+                  aria-label={`${target.region} MAV`}
+                />
+                <span className="text-muted-foreground">–</span>
+                <NumberField
+                  width="3.5rem"
+                  value={target.mrv}
+                  onChange={(v) => updateVolumeTarget(target.region, 'mrv', v)}
+                  onBlur={() => saveVolumeTarget(volumeTargets.find((t) => t.region === target.region)!)}
+                  aria-label={`${target.region} MRV`}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        <p className="px-1 text-[11px] text-muted-foreground">MEV – MAV – MRV: minimum effective, maximum adaptive, maximum recoverable volume.</p>
       </div>
 
       <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Progression &amp; rest</div>

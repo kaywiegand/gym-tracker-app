@@ -86,7 +86,8 @@ final class SetRepository extends BaseRepository
         $params = [$exerciseId];
         $sql = 'SELECT s.id AS session_id, s.started_at,
                        MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm,
-                       SUM(st.weight_kg * st.reps) AS volume_kg
+                       SUM(st.weight_kg * st.reps) AS volume_kg,
+                       COUNT(st.id) AS sets_count
                 FROM sessions s
                 JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
                 WHERE s.deleted_at IS NULL AND st.exercise_id = ?';
@@ -97,7 +98,10 @@ final class SetRepository extends BaseRepository
         }
         $sql .= ' GROUP BY s.id ORDER BY s.started_at DESC LIMIT ' . (int) $limit;
 
-        return $this->fetchAll("SELECT session_id, started_at, best_e1rm, volume_kg FROM ({$sql}) ORDER BY started_at ASC", $params);
+        return $this->fetchAll(
+            "SELECT session_id, started_at, best_e1rm, volume_kg, sets_count FROM ({$sql}) ORDER BY started_at ASC",
+            $params
+        );
     }
 
     // Raw rows for the muscle-volume dashboard (Stage 4) -- one row per

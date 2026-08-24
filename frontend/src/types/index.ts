@@ -98,6 +98,7 @@ export interface ExerciseHistoryEntry {
   started_at: string
   best_e1rm: number
   volume_kg: number
+  sets_count: number
 }
 
 export interface WeeklyMetrics {
@@ -108,6 +109,13 @@ export interface WeeklyMetrics {
 
 export interface MuscleVolumeWeek extends WeeklyMetrics {
   week_start: string
+}
+
+export interface MuscleVolumeTarget {
+  region: string
+  mev: number
+  mav: number
+  mrv: number
 }
 
 export interface MuscleVolumeRegion {

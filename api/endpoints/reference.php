@@ -26,3 +26,23 @@ function handleGetMuscles(): void
     Auth::require();
     Http::respond((new MuscleRepository())->all());
 }
+
+function handleGetMuscleVolumeTargets(): void
+{
+    Auth::require();
+    Http::respond((new MuscleRepository())->listVolumeTargets());
+}
+
+function handlePutMuscleVolumeTarget(string $region): void
+{
+    Auth::require();
+    $body = Http::jsonBody();
+    if (!isset($body['mev'], $body['mav'], $body['mrv'])) {
+        Http::error('mev, mav and mrv are required');
+    }
+    $repo = new MuscleRepository();
+    if (!$repo->updateVolumeTarget($region, (int) $body['mev'], (int) $body['mav'], (int) $body['mrv'])) {
+        Http::error('Unknown region', 404);
+    }
+    Http::respond($repo->listVolumeTargets());
+}

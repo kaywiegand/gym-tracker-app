@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import { epley1RM } from '@/lib/metrics'
 import { detectPlateau } from '@/lib/plateau'
 import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
-import { KpiTile } from '@/components/KpiTile'
-import { E1rmTrendChart } from '@/components/E1rmTrendChart'
+import { MultiMetricTrendChart } from '@/components/MultiMetricTrendChart'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
@@ -106,17 +104,7 @@ export function ExerciseScope() {
     )
   }
 
-  const bestSet = summaries
-    .flatMap((s) => s.sets)
-    .reduce<{ weightKg: number; reps: number } | null>((best, s) => {
-      if (!best || epley1RM(s.weight_kg, s.reps) > epley1RM(best.weightKg, best.reps)) {
-        return { weightKg: s.weight_kg, reps: s.reps }
-      }
-      return best
-    }, null)
-
-  const lastE1rm = history[history.length - 1]?.best_e1rm ?? 0
-  const firstE1rm = history[0]?.best_e1rm ?? lastE1rm
+  const lastEntry = history[history.length - 1]
   const ladder = buildLadder(summaries)
   const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
   const isPlateaued = detectPlateau(history, plateauSessions)
@@ -161,30 +149,31 @@ export function ExerciseScope() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <KpiTile
-              label="e1RM now"
-              value={Math.round(lastE1rm).toString()}
-              unit="kg"
-              trend={lastE1rm > firstE1rm ? `▲ from ${Math.round(firstE1rm)}` : undefined}
-              trendClassName="text-status-good"
-              sparkline={history.map((h) => h.best_e1rm)}
-              color="var(--metric-e1rm)"
-              infoTerm="e1RM"
-            />
-            <KpiTile
-              label="Best set"
-              value={bestSet ? `${bestSet.weightKg}` : '—'}
-              unit={bestSet ? `kg ×${bestSet.reps}` : undefined}
-              sparkline={history.map((h) => h.volume_kg)}
-              color="var(--brand-accent)"
-            />
-          </div>
-
           <Card className="p-3.5">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">e1RM trend</div>
+            <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">e1RM now</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: 'var(--metric-e1rm)' }}>
+                  {Math.round(lastEntry?.best_e1rm ?? 0)}
+                  <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">kg</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Volume</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: 'var(--metric-volume)' }}>
+                  {Math.round(lastEntry?.volume_kg ?? 0).toLocaleString()}
+                  <span className="ml-0.5 text-[10px] font-normal text-muted-foreground">kg</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Sets</div>
+                <div className="text-[17px] font-bold tabular-nums" style={{ color: 'var(--metric-sets)' }}>
+                  {lastEntry?.sets_count ?? 0}
+                </div>
+              </div>
+            </div>
             {history.length >= 2 ? (
-              <E1rmTrendChart history={history} />
+              <MultiMetricTrendChart history={history} />
             ) : (
               <p className="text-[12px] text-muted-foreground">Track this exercise a few more times to see a trend.</p>
             )}
