@@ -154,22 +154,40 @@ Kein SSH auf Level-1-Webhosting → alles per FTP, Migration per
 Browser-Trigger statt CLI. `deploy/` enthält zwei Einmal-Skripte dafür,
 keins davon ist Teil der laufenden App (nach Gebrauch löschen).
 
-1. **Den ganzen `deploy/`-Ordner zuerst hochladen** (als Ordner, Struktur
-   beibehalten — die Skripte referenzieren `db/` relativ zu ihrem eigenen
-   Ordner), dann `https://<domain>/deploy/check-env.php` im Browser
-   aufrufen. Zeigt PHP-Version, ob `PDO_SQLite` oder `PDO_MySQL` verfügbar
-   ist, und ob der Docroot beschreibbar ist.
-2. **Falls `pdo_sqlite` fehlt:** `api/config.local.php` (gitignored, Vorlage
+**Datei-Upload:** entweder manuell per FTP-Client (FileZilla, Cyberduck —
+ein Web-Browser-Filemanager erzwingt oft Einzeldateien, ein echter Client
+kann ganze Ordner in einem Rutsch), oder mit `deploy/upload.sh`
+(`lftp`-basiert, `brew install lftp` falls nicht vorhanden). Das Skript
+liest die FTP-Zugangsdaten aus Umgebungsvariablen, die *im eigenen*
+Terminal gesetzt werden — nie in einen Chat einfügen:
+
+```bash
+export GYM_FTP_HOST=ftp://ftp.example.com   # dein Hetzner-FTP-Host
+export GYM_FTP_USER=your-ftp-user
+read -s GYM_FTP_PASS && export GYM_FTP_PASS         # Eingabe unsichtbar, nicht in der History
+./deploy/upload.sh
+```
+
+Lädt `deploy-upload/` (siehe Schritt 1–4 unten, wie der Ordner entsteht)
+komplett hoch. Kein `--delete` — ein Re-Deploy würde sonst `db/fitness.db`
+und alles in `uploads/` auf dem Server löschen, da beides in
+`deploy-upload/` bewusst fehlt.
+
+1. `deploy-upload/` lokal zusammenstellen: Inhalt von `frontend/dist/`
+   (nach `cd frontend && npm run build`) + `api/` (ohne `api/tests/` — das
+   wäre sonst direkt über eine URL aufrufbar, `.htaccess` leitet nur
+   nicht-existierende Pfade um) + `db/` (ohne `fitness.db` — entsteht erst
+   durch die Migration) + ein leeres `uploads/`-Verzeichnis + der ganze
+   `deploy/`-Ordner, alles auf einer Ebene.
+2. Hochladen (Skript oder manuell) nach `/public_html/<zielordner>/`.
+3. `https://<domain>/deploy/check-env.php` im Browser aufrufen. Zeigt
+   PHP-Version, ob `PDO_SQLite` oder `PDO_MySQL` verfügbar ist, und ob der
+   Docroot beschreibbar ist.
+4. **Falls `pdo_sqlite` fehlt:** `api/config.local.php` (gitignored, Vorlage
    in `api/config.php`) mit `driver => 'mysql'` und den Zugangsdaten der
-   MySQL-DB aus dem Hosting-Panel anlegen — Repository-Layer ist dafür
-   vorbereitet, `schema.sql` ist portables ANSI-SQL.
-3. `cd frontend && npm run build` lokal ausführen, Inhalt von
-   `frontend/dist/` in den Docroot hochladen.
-4. `api/` (ohne `api/tests/` — das wäre sonst direkt über eine URL
-   aufrufbar, `.htaccess` leitet nur nicht-existierende Pfade um), `db/`
-   (ohne `fitness.db` — das entsteht erst durch die Migration) und ein
-   leeres `uploads/`-Verzeichnis in denselben Docroot hochladen, neben den
-   Frontend-Build.
+   MySQL-DB aus dem Hosting-Panel anlegen, dann diese eine Datei nachladen
+   — der Repository-Layer ist dafür bereits vorbereitet, `schema.sql` ist
+   portables ANSI-SQL.
 5. `https://<domain>/deploy/run-migration.php?token=<Token aus der Datei>&password=<gewünschtes App-Passwort>`
    im Browser aufrufen. Läuft `db/migrate.php` serverseitig aus (Schema +
    Seeds + Passwort-Hash). Idempotent, aber der Token ist Einmalgebrauch —
