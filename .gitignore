@@ -16,3 +16,7 @@ db/*.sqlite
 
 # Local config overrides
 api/config.local.php
+
+# Deployment environment notes (domain, FTP paths — no secrets, but still
+# environment-specific to Kay's machine, not shared history)
+/DEPLOY.md

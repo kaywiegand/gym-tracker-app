@@ -150,22 +150,36 @@ Service-Worker-Precache).
 
 ## Deploy (Hetzner Webhosting, PHP + statisch, kein Node/Root)
 
-1. **Vor dem ersten Deploy:** prüfen, ob `PDO_SQLite` auf dem Host aktiv
-   ist (`php -m` im Hosting-Panel oder via `phpinfo()`). Falls nicht,
-   `api/config.local.php` (gitignored, Vorlage in `api/config.php`) mit
-   `driver => 'mysql'` und den Zugangsdaten der bereitgestellten MySQL-DB
-   anlegen — der Repository-Layer ist dafür bereits vorbereitet, `schema.sql`
-   ist portables ANSI-SQL.
-2. `npm run build` lokal ausführen, den Inhalt von `frontend/dist/` in den
-   Docroot kopieren.
-3. `api/`, `db/` (ohne `fitness.db`) und `uploads/` (leer) in denselben
-   Docroot kopieren, daneben liegend zum Frontend-Build.
-4. Auf dem Server `php db/migrate.php --password=<produktivpasswort>`
-   einmalig ausführen (per SSH oder Cronjob-Trigger, falls kein SSH
-   verfügbar ist).
-5. Docroot muss `api/.htaccess` respektieren (mod_rewrite) — leitet alle
+Kein SSH auf Level-1-Webhosting → alles per FTP, Migration per
+Browser-Trigger statt CLI. `deploy/` enthält zwei Einmal-Skripte dafür,
+keins davon ist Teil der laufenden App (nach Gebrauch löschen).
+
+1. **Den ganzen `deploy/`-Ordner zuerst hochladen** (als Ordner, Struktur
+   beibehalten — die Skripte referenzieren `db/` relativ zu ihrem eigenen
+   Ordner), dann `https://<domain>/deploy/check-env.php` im Browser
+   aufrufen. Zeigt PHP-Version, ob `PDO_SQLite` oder `PDO_MySQL` verfügbar
+   ist, und ob der Docroot beschreibbar ist.
+2. **Falls `pdo_sqlite` fehlt:** `api/config.local.php` (gitignored, Vorlage
+   in `api/config.php`) mit `driver => 'mysql'` und den Zugangsdaten der
+   MySQL-DB aus dem Hosting-Panel anlegen — Repository-Layer ist dafür
+   vorbereitet, `schema.sql` ist portables ANSI-SQL.
+3. `cd frontend && npm run build` lokal ausführen, Inhalt von
+   `frontend/dist/` in den Docroot hochladen.
+4. `api/` (ohne `api/tests/` — das wäre sonst direkt über eine URL
+   aufrufbar, `.htaccess` leitet nur nicht-existierende Pfade um), `db/`
+   (ohne `fitness.db` — das entsteht erst durch die Migration) und ein
+   leeres `uploads/`-Verzeichnis in denselben Docroot hochladen, neben den
+   Frontend-Build.
+5. `https://<domain>/deploy/run-migration.php?token=<Token aus der Datei>&password=<gewünschtes App-Passwort>`
+   im Browser aufrufen. Läuft `db/migrate.php` serverseitig aus (Schema +
+   Seeds + Passwort-Hash). Idempotent, aber der Token ist Einmalgebrauch —
+   **danach den kompletten `deploy/`-Ordner sofort per FTP löschen**, nie
+   live stehen lassen.
+6. Docroot muss `api/.htaccess` respektieren (mod_rewrite) — leitet alle
    `/api/*`-Requests, die keine echte Datei sind, an `api/index.php` weiter.
-6. `/uploads` muss vom Webserver beschreibbar sein, wird aber nicht mit
+   Test: `https://<domain>/api/settings` sollte `{"error":"Unauthorized"}`
+   liefern (401), nicht 404 — sonst greift das Rewrite nicht.
+7. `/uploads` muss vom Webserver beschreibbar sein, wird aber nicht mit
    Public-Domain-Assets vorbefüllt (private Bilder, s. `CLAUDE.md` §2).
 
 ## Struktur
