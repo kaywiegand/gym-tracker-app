@@ -1,20 +1,30 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiError } from '@/lib/api'
-import { putRow, type LocalBodyweight } from '@/lib/localDb'
+import { putRow, type LocalBodyMeasurement, type LocalBodyweight } from '@/lib/localDb'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
-import type { Bodyweight, Settings, TrainingMode } from '@/types'
+import type {
+  BackupImportResult,
+  BiaImportResult,
+  BiaMeasurement,
+  Bodyweight,
+  HrImportResult,
+  Settings,
+  TrainingMode,
+} from '@/types'
 import { PageHeader } from '@/components/PageHeader'
 import { NumberField } from '@/components/NumberField'
 import { SegmentedControl } from '@/components/SegmentedControl'
+import { BiaMeasurementDetailSheet } from '@/components/BiaMeasurementDetailSheet'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Trash2 } from 'lucide-react'
 
 type TriggerMode = 'all_sets' | 'last_set'
 
@@ -195,8 +205,12 @@ export function SettingsPage() {
       </Card>
 
       <BodyweightCard />
+      <BodyMeasurementCard />
+      <BiaCard />
+      <HeartRateCard />
+      <BackupCard />
 
-      <p className="mb-2 mt-4 text-center text-[11px] text-muted-foreground">BIA &amp; HR import · PDF/CSV export — later stages</p>
+      <p className="mb-2 mt-4 text-center text-[11px] text-muted-foreground">PDF/CSV report export — later stage</p>
     </>
   )
 }
@@ -333,6 +347,279 @@ function BodyweightCard() {
               {saved ? 'Saved' : 'Save'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+const MEASUREMENT_SITES = ['waist', 'chest', 'hip', 'arm', 'thigh'] as const
+
+// Tape-measure quick entry -- mirrors BodyweightCard exactly (Stage-5 plan
+// §4.7: body measurements are offline-first like bodyweight, unlike the
+// file-import cards below which are inherently online actions).
+function BodyMeasurementCard() {
+  const [site, setSite] = useState<(typeof MEASUREMENT_SITES)[number]>('waist')
+  const [valueCm, setValueCm] = useState(80)
+  const [last, setLast] = useState<Record<string, { value_cm: number; measured_at: string }>>({})
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    api
+      .get<{ site: string; value_cm: number; measured_at: string }[]>('/body-measurements?limit=50')
+      .then((rows) => {
+        const bySite: Record<string, { value_cm: number; measured_at: string }> = {}
+        for (const row of rows) {
+          if (!bySite[row.site]) {
+            bySite[row.site] = { value_cm: row.value_cm, measured_at: row.measured_at }
+          }
+        }
+        setLast(bySite)
+        if (bySite[site]) {
+          setValueCm(bySite[site].value_cm)
+        }
+      })
+      .catch(() => {
+        // non-fatal -- entry still works without a "last" reference
+      })
+  }, [site])
+
+  async function handleSave() {
+    setSaving(true)
+    const now = nowIso()
+    const row: LocalBodyMeasurement = {
+      id: crypto.randomUUID(),
+      measured_at: now.slice(0, 10),
+      site,
+      value_cm: valueCm,
+      note: null,
+      created_at: now,
+      updated_at: now,
+      deleted_at: null,
+      synced: false,
+    }
+    await putRow('body_measurements', row)
+    pushPending()
+    setLast((prev) => ({ ...prev, [site]: { value_cm: valueCm, measured_at: row.measured_at } }))
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
+  }
+
+  const lastForSite = last[site]
+
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Body measurements</div>
+      <Card>
+        <CardContent className="flex items-center justify-between py-1">
+          <div>
+            <select
+              value={site}
+              onChange={(e) => setSite(e.target.value as (typeof MEASUREMENT_SITES)[number])}
+              className="rounded-md border border-border bg-secondary px-2 py-1.5 text-[13px] font-bold capitalize outline-none"
+              aria-label="Measurement site"
+            >
+              {MEASUREMENT_SITES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            {lastForSite && (
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Last: {lastForSite.value_cm} cm · {lastForSite.measured_at}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <NumberField width="5.25rem" step={0.5} unit="cm" value={valueCm} onChange={setValueCm} aria-label="Measurement value" />
+            <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+              {saved ? 'Saved' : 'Save'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// BIA import (Stage-5 plan §4.1): photograph the scan printout, use an
+// external AI to fill in the downloadable CSV template, upload it here --
+// a genuine mobile-friendly workflow, no fixed server-side file path.
+function BiaCard() {
+  const [measurements, setMeasurements] = useState<BiaMeasurement[]>([])
+  const [status, setStatus] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [openMeasurementId, setOpenMeasurementId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function loadMeasurements() {
+    api.get<BiaMeasurement[]>('/bia/measurements?limit=50').then(setMeasurements)
+  }
+
+  useEffect(() => {
+    loadMeasurements()
+  }, [])
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImporting(true)
+    setStatus(null)
+    try {
+      const result = await api.upload<BiaImportResult>('/bia/import', file)
+      setStatus({ type: 'success', text: `Imported ${result.imported} scan(s), skipped ${result.skipped} already-known.` })
+      loadMeasurements()
+    } catch (err) {
+      setStatus({ type: 'error', text: err instanceof ApiError ? err.message : 'Import failed.' })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await api.delete(`/bia/measurements/${id}`)
+    loadMeasurements()
+  }
+
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Body composition (BIA)</div>
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-1">
+          <p className="text-[12px] text-muted-foreground">
+            Photograph your scan printout, have an AI fill in the CSV template, then upload it here.
+          </p>
+          <div className="flex gap-2">
+            <a href="/api/bia/template">
+              <Button type="button" variant="outline" size="sm">
+                Download CSV template
+              </Button>
+            </a>
+            <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+              {importing ? 'Importing…' : 'Upload & import'}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileChange} />
+          </div>
+          {status && <p className={status.type === 'error' ? 'text-sm text-destructive' : 'text-sm text-status-good'}>{status.text}</p>}
+
+          {measurements.length > 0 && (
+            <div className="flex flex-col">
+              {measurements.map((m) => (
+                <div key={m.id} className="flex items-center justify-between border-b border-border py-1.5 last:border-b-0">
+                  <button type="button" className="text-[13px] font-semibold" onClick={() => setOpenMeasurementId(m.id)}>
+                    {m.measured_at.slice(0, 10)}
+                  </button>
+                  <button type="button" aria-label={`Delete scan from ${m.measured_at.slice(0, 10)}`} onClick={() => handleDelete(m.id)}>
+                    <Trash2 className="size-[15px] text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <BiaMeasurementDetailSheet measurementId={openMeasurementId} onOpenChange={(open) => !open && setOpenMeasurementId(null)} />
+    </>
+  )
+}
+
+// HR import from an Apple Health export.xml (Stage-5 plan §4.2). The
+// export can be 100+ MB -- if the upload fails with a size error, the
+// server's upload_max_filesize/post_max_size need raising (see README).
+function HeartRateCard() {
+  const [status, setStatus] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setImporting(true)
+    setStatus(null)
+    try {
+      const result = await api.upload<HrImportResult>('/hr/import', file)
+      setStatus({
+        type: 'success',
+        text: `Matched ${result.matched} new heart-rate sample(s) across ${result.sessions_touched} session(s).`,
+      })
+    } catch (err) {
+      setStatus({ type: 'error', text: err instanceof ApiError ? err.message : 'Import failed.' })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Heart rate</div>
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-1">
+          <p className="text-[12px] text-muted-foreground">
+            Upload an Apple Health export.xml — only samples inside a logged training session are kept.
+          </p>
+          <div>
+            <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+              {importing ? 'Uploading & matching…' : 'Upload & import'}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".xml,text/xml,application/xml" className="hidden" onChange={handleFileChange} />
+          </div>
+          {status && <p className={status.type === 'error' ? 'text-sm text-destructive' : 'text-sm text-status-good'}>{status.text}</p>}
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// Manual full backup/restore of all user-generated data (Stage-5 plan
+// §4.3), motivated by CLAUDE.md §2 ("Datenhoheit ... kein Lock-in").
+function BackupCard() {
+  const [status, setStatus] = useState<{ type: 'error' | 'success'; text: string } | null>(null)
+  const [restoring, setRestoring] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setRestoring(true)
+    setStatus(null)
+    try {
+      const result = await api.upload<BackupImportResult>('/backup/import', file)
+      const total = Object.values(result.tables).reduce((sum, t) => sum + t.inserted + t.updated, 0)
+      setStatus({ type: 'success', text: `Restore complete — ${total} row(s) inserted or updated across ${Object.keys(result.tables).length} tables.` })
+    } catch (err) {
+      setStatus({ type: 'error', text: err instanceof ApiError ? err.message : 'Restore failed.' })
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Backup</div>
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-1">
+          <p className="text-[12px] text-muted-foreground">
+            Full backup of everything you've entered (workouts, custom exercises, tracking history, body/BIA/heart-rate data) — includes
+            your login password.
+          </p>
+          <div className="flex gap-2">
+            <a href="/api/backup/export">
+              <Button type="button" variant="outline" size="sm">
+                Download full backup
+              </Button>
+            </a>
+            <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={restoring}>
+              {restoring ? 'Restoring…' : 'Restore from backup'}
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFileChange} />
+          </div>
+          {status && <p className={status.type === 'error' ? 'text-sm text-destructive' : 'text-sm text-status-good'}>{status.text}</p>}
         </CardContent>
       </Card>
     </>

@@ -32,5 +32,12 @@ function handleSyncPush(): void
         }
     }
 
+    $bodyMeasurementRepo = new BodyMeasurementRepository();
+    foreach (($body['body_measurements'] ?? []) as $row) {
+        if (isset($row['id'])) {
+            $bodyMeasurementRepo->upsert($row);
+        }
+    }
+
     Http::respond(['ok' => true]);
 }

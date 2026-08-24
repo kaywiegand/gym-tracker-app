@@ -43,4 +43,16 @@ final class SessionRepository extends BaseRepository
         }
         return array_keys($dates);
     }
+
+    // Every finished session's time window, oldest first -- feeds
+    // HrImport::matchFromAppleHealthXml()'s forward sweep (CLAUDE.md §8: HR
+    // matched by set/session timestamps). A session with no ended_at is
+    // still in progress or was abandoned -- no window to match against.
+    public function allTimeWindows(): array
+    {
+        return $this->fetchAll(
+            'SELECT id, started_at, ended_at FROM sessions
+             WHERE ended_at IS NOT NULL AND deleted_at IS NULL ORDER BY started_at ASC'
+        );
+    }
 }

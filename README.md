@@ -5,10 +5,11 @@ einen Repository-Layer). Frontend: React-PWA (Vite, TypeScript, Tailwind,
 shadcn/ui). Siehe `CLAUDE.md` für das vollständige Briefing und
 `docs/references/workout-app-v3.html` für die UX-Referenz.
 
-**Stand:** Stufe 1 (Settings, Exercise-Library, Workout-Templates) und
-Stufe 2 (Tracking-Loop, Offline-Sync, Rest-Timer, Körpergewicht) sind
-fertig. Progression/e1RM/PR-Badges/Analyse-Charts sind bewusst noch nicht
-gebaut — die kommen erst mit Stufe 3.
+**Stand:** Stufe 1–5 sind fertig — Settings/Exercise-Library/Workout-Templates,
+Tracking-Loop mit Offline-Sync, Progression/e1RM/PR-Badges, das komplette
+Analyse-Dashboard (Overview/Exercise/Workout/Body), und BIA-Import/HR-Import/
+Body-Measurements/Backup. Export/PDF und Plateau-/Deload-Detection kommen
+erst mit Stufe 6.
 
 ## Voraussetzungen
 
@@ -88,6 +89,36 @@ Vorbelegung neuer Sätze mit den letzten Ist-Werten (`GET
 /api/exercises/:id/last-sets`) ist ein Online-Best-Effort-Abruf beim
 Workout-Start, mit leerem Fallback wenn offline (Details im Plan der
 Stufe-2-Session).
+
+## BIA-/HR-Import & Backup (Stufe 5)
+
+Alles unter Settings, im selben Bereich wie Körpergewicht:
+
+- **Body composition (BIA):** CSV-Vorlage herunterladen, den fotografierten
+  Scan per externer KI in die Vorlage übertragen lassen, ausgefüllte CSV
+  wieder hochladen. Import ist idempotent (Dedupe über `external_id` +
+  Scan-Datum zusammen — die reale InBody-Datei kann dieselbe ID über zwei
+  Scans hinweg wiederverwenden). Jeder importierte Scan zeigt beim Antippen
+  **alle** Werte, gruppiert wie im Original-Ausdruck — nicht nur die 5
+  kuratierten KPI-Kacheln im Body-Dashboard-Tab.
+- **Heart rate:** Apple-Health-`export.xml` hochladen. Nur Samples, deren
+  Zeitstempel in ein bereits abgeschlossenes Trainings-Session-Fenster
+  fallen, werden übernommen (Rest des Tages wird verworfen). Die Datei kann
+  100+ MB groß sein — PHPs `upload_max_filesize`/`post_max_size` (Default
+  oft 2–8 MB) müssen auf dem Hosting entsprechend angehoben werden (z.B.
+  `.user.ini` mit `upload_max_filesize=200M` und `post_max_size=200M` im
+  Docroot); das ist eine reine PHP-Ini-Einstellung, die zur Laufzeit nicht
+  umgangen werden kann. Ein zu großer Upload gibt eine klare Fehlermeldung
+  statt eines kryptischen Absturzes zurück.
+- **Backup:** vollständiger JSON-Export aller individuell erzeugten Daten
+  (Workouts, eigene Übungen, Trainings-/Tracking-Historie, Bodyweight/
+  Body-Measurements, BIA- und HR-Daten, `settings` inkl. Passwort-Hash) —
+  bewusst kein Vorgriff auf Stufe 6s Export/PDF (dort geht es um
+  menschenlesbare Reports, hier um eine rohe Datensicherung). FEDB-Übungen
+  und reine Seed-Tabellen (`muscles`, `training_modes`,
+  `muscle_volume_targets`) sind nicht enthalten — die kommen über
+  `php db/migrate.php` zurück. Restore ist idempotent (gleiches Upsert-
+  Prinzip wie der Offline-Sync: `id` + `updated_at`, last-write-wins).
 
 ## Production Build
 

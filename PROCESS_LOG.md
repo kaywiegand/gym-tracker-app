@@ -84,7 +84,8 @@
 **Stufe 2 (Tracking-Loop, Offline-Sync, Rest-Timer, Körpergewicht):** ✅ Abgeschlossen — inkl. Nacharbeiten aus Kays Testrunde (Rest-Timer-UX, Resume/New bei abgebrochener Session).
 **Stufe 3 (Progression-Engine, e1RM, PR-Erkennung, erster Analyse-Chart):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
 **Stufe 4 (Muskel-Heatmap, Radar, ACWR, Dashboard):** ✅ Abgeschlossen — verifiziert, noch ungetestet von Kay.
-**Stufe 5–6:** ⏳ Noch nicht begonnen.
+**Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements, Backup/Restore):** ✅ Abgeschlossen — verifiziert (inkl. Kays echter BIA-CSV), noch ungetestet von Kay.
+**Stufe 6:** ⏳ Noch nicht begonnen.
 
 ---
 
@@ -141,3 +142,23 @@
 - Verifikation: `php api/tests/run.php` auf 88 Checks erweitert (10 neu — Cutoff-Verhalten je Methode, inkl. Bestätigung dass der alte `limit`-only-Pfad unverändert funktioniert), `tsc`/`oxlint` clean, kompletter Browser-Durchlauf (Range-Wechsel per Netzwerk-Log auf korrekten `weeks=`-Wert verifiziert, Glossar-Header-Button + fokussierter MEV-Button beide geprüft).
 
 **Nächster Schritt:** Kay testet Stufe 3 + Stufe 4 komplett. Danach gemeinsam Stufe 5 (BIA-Import, HR-Import/-Matching, Body-Measurements) planen — Body-Scope wird dann inhaltlich gefüllt.
+
+---
+
+## Session 2026-08-24 — Stufe 5: BIA-Import, HR-Import/-Matching, Body-Measurements, Backup/Restore
+
+**Was passiert ist:**
+- Plan-Mode über drei Runden, jeweils mit Kays Korrekturen gegen einen ersten Entwurf geprüft, bevor umgesetzt wurde:
+  1. BIA-Import ist kein fixer Server-Dateipfad, sondern ein echter mobiler Workflow: Scan fotografieren → externe KI füllt eine herunterladbare CSV-Vorlage aus → Upload in der App. Dedupe-Schlüssel `(external_id, measured_at)` zusammen, nicht `external_id` allein — Kays reale Datei (`uploads/fitness-export-bia.csv`) hat zwei verschiedene Scans mit identischer ID.
+  2. FitScore (`Fitnessbewertung/Punktzahl` + `/Skala`) ist ein echtes InBody-Feld, keine erfundene Kennzahl — als fünfte KPI-Kachel übernommen.
+  3. HR-Import (Apple Health `export.xml`) bekommt ebenfalls einen Upload-Button in Settings statt nur eines Server-Dateipfads; ein komplettes Backup/Restore (JSON, alle individuell erzeugten Daten außer Seed-Referenztabellen) kommt in denselben Settings-Bereich; die Body-Scope-Detailansicht zeigt alle importierten BIA-Werte, nicht nur die 5 KPIs — Kay: „die App soll den Ausdruck voll ersetzen."
+- Backend: `BiaImport.php`/`HrImport.php` (reine Parser/Matcher, kein DB-Zugriff), `BiaRepository`/`HrRepository`/`BodyMeasurementRepository`/`BackupRepository` (neu), `SessionRepository::allTimeWindows()`. `HrImport::matchFromAppleHealthXml()` nutzt `XMLReader` (Streaming, kein `SimpleXML`/`DOMDocument`) gegen die reale 165-MB-Exportdatei, Zwei-Zeiger-Sweep gegen sortierte Session-Fenster statt einer Sample×Session-Schleife. `BackupRepository` exportiert/importiert 13 Tabellen (Restore nutzt `BaseRepository::upsertRow()` überall wo `id`+`updated_at` existiert, sonst Insert-falls-fehlt für `bia_values`/`hr_samples`/`media`/`exercise_muscles`, Key-Upsert für `settings`) — FEDB-Übungen und reine Seed-Tabellen bewusst ausgeschlossen (via `php db/migrate.php` reproduzierbar). Neue Endpoints unter `/bia/*`, `/hr/import`, `/body-measurements`, `/backup/export`+`/backup/import`. `db/migrate.php` bekam eine erste additive Spalten-Migration (`bia_measurements.external_id`, try/catch statt PRAGMA-Introspektion — portabel für den MySQL-Fallback).
+- Frontend: `BiaMeasurementDetailSheet` (alle Werte einer Messung, nach Kategorie gruppiert — wiederverwendet in Settings-Scan-Liste und Body-Scope-Historie), `BodyScope` komplett neu (5 KPI-Kacheln + Sparklines + Scan-Historie, ehrlicher Empty-State ohne Daten), vier neue Settings-Karten (Body composition/BIA, Heart rate, Body measurements — Bandmaß-Schnelleingabe nach exakt dem Bodyweight-Muster inkl. IndexedDB-Store-Version-Bump, Backup). `api.upload()` (multipart, FormData) neu in `lib/api.ts` — `request()` musste angepasst werden, den JSON-`Content-Type`-Header bei `FormData`-Bodies wegzulassen (sonst hätte der Browser den Multipart-Boundary nicht selbst setzen können).
+- Verifikation: `php api/tests/run.php` von 88 auf 118 Checks erweitert (BiaImport-Parsing inkl. Einheiten-Suffix/Bereichs-Erkennung, der reale Dedupe-Bug, HrImport-Fenster-Matching mit einer synthetischen XML-Fixture, BackupRepository-Roundtrip inkl. explizitem Test dass FEDB-Übungen nicht exportiert werden), `tsc`/`oxlint` clean, `php db/migrate.php` zweimal gegen eine Wegwerf-DB (idempotent, Spalten-Migration greift). Kompletter Browser-Durchlauf gegen die echte laufende Dev-DB: Kays reale BIA-CSV importiert (4 Scans, 60 Werte je Scan), Re-Import idempotent (0 importiert/4 übersprungen), Body-Scope zeigt alle 5 echten KPI-Werte + Sparklines, Detail-Sheet zeigt alle 60 Werte gruppiert, Löschen über die echte UI verifiziert, HR-Import gegen eine synthetische Apple-Health-XML mit einer echten Session aus der Dev-DB (nur das Sample im Session-Fenster wurde übernommen), Backup-Export→Import-Roundtrip gegen die echte DB (idempotent), Body-Measurements-Karte über die echte UI gespeichert und in SQLite verifiziert.
+
+**Entscheidungen:**
+- Backup/Restore ist bewusst kein Vorgriff auf Stufe 6 (CLAUDE.md §10 nennt dort "Export/PDF") — Stufe 6 meint menschenlesbare Reports, dieser Mechanismus ist ein roher JSON-Datensicherungs-Mechanismus, motiviert durch CLAUDE.md §2s "kein Lock-in". `settings` (inkl. `password_hash`) ist Teil des Backups, da es echte Nutzerkonfiguration ist, keine Seed-Daten.
+- Body-Scope-Zeitraum-Switch (3M/6M/12M/All) bleibt für UI-Konsistenz mit den anderen drei Scopes bestehen, filtert aber nichts — BIA-Scans sind zu selten (ein paar pro Jahr) als dass eine Zeitraum-Filterung sinnvoll wäre. Backlog-Kandidat falls die Scan-Frequenz mal deutlich steigt.
+- Kein Foto→KI-Extraktion in der App selbst — die KI-Übertragung Foto→CSV passiert bei Kay, außerhalb der App.
+
+**Nächster Schritt:** Kay testet Stufe 5 (inkl. Stufe 3+4, noch offen). Danach Stufe 6 (Export/PDF, Plateau-/Deload-Detection, Deep-Analytics) planen.

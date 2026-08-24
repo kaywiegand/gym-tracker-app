@@ -83,6 +83,26 @@ try {
         handleTrainingLoad();
     } elseif ($method === 'GET' && $path === '/dashboard/consistency') {
         handleConsistency();
+    } elseif ($method === 'GET' && $path === '/body-measurements') {
+        handleGetBodyMeasurements();
+    } elseif ($method === 'GET' && $path === '/bia/template') {
+        handleBiaTemplate();
+    } elseif ($method === 'POST' && $path === '/bia/import') {
+        handleBiaImport();
+    } elseif ($method === 'GET' && $path === '/bia/latest') {
+        handleLatestBia();
+    } elseif ($method === 'GET' && $path === '/bia/measurements') {
+        handleListBiaMeasurements();
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'bia' && $segments[1] === 'measurements') {
+        handleGetBiaMeasurement($segments[2]);
+    } elseif ($method === 'DELETE' && count($segments) === 3 && $segments[0] === 'bia' && $segments[1] === 'measurements') {
+        handleDeleteBiaMeasurement($segments[2]);
+    } elseif ($method === 'POST' && $path === '/hr/import') {
+        handleHrImport();
+    } elseif ($method === 'GET' && $path === '/backup/export') {
+        handleBackupExport();
+    } elseif ($method === 'POST' && $path === '/backup/import') {
+        handleBackupImport();
     } else {
         Http::error('Not found', 404);
     }

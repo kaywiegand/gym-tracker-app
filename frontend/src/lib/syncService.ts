@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import { getUnsynced, markSynced, type LocalBodyweight, type LocalSession, type LocalSet } from '@/lib/localDb'
+import { getUnsynced, markSynced, type LocalBodyMeasurement, type LocalBodyweight, type LocalSession, type LocalSet } from '@/lib/localDb'
 
 let syncing = false
 
@@ -19,13 +19,14 @@ export async function pushPending(): Promise<void> {
   }
   syncing = true
   try {
-    const [sessions, sets, bodyweight] = await Promise.all([
+    const [sessions, sets, bodyweight, bodyMeasurements] = await Promise.all([
       getUnsynced<LocalSession>('sessions'),
       getUnsynced<LocalSet>('sets'),
       getUnsynced<LocalBodyweight>('bodyweight'),
+      getUnsynced<LocalBodyMeasurement>('body_measurements'),
     ])
 
-    if (sessions.length === 0 && sets.length === 0 && bodyweight.length === 0) {
+    if (sessions.length === 0 && sets.length === 0 && bodyweight.length === 0 && bodyMeasurements.length === 0) {
       return
     }
 
@@ -33,12 +34,14 @@ export async function pushPending(): Promise<void> {
       sessions: sessions.map(stripSynced),
       sets: sets.map(stripSynced),
       bodyweight: bodyweight.map(stripSynced),
+      body_measurements: bodyMeasurements.map(stripSynced),
     })
 
     await Promise.all([
       markSynced('sessions', sessions.map((s) => s.id)),
       markSynced('sets', sets.map((s) => s.id)),
       markSynced('bodyweight', bodyweight.map((s) => s.id)),
+      markSynced('body_measurements', bodyMeasurements.map((s) => s.id)),
     ])
   } catch {
     // left queued for the next trigger

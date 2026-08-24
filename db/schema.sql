@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS bia_measurements (
   measured_at TEXT,
   source TEXT,
   note TEXT,
+  external_id TEXT,
   created_at TEXT,
   updated_at TEXT,
   deleted_at TEXT
@@ -179,3 +180,4 @@ CREATE INDEX IF NOT EXISTS idx_sessions_workout_started ON sessions(workout_id, 
 CREATE INDEX IF NOT EXISTS idx_workout_exercises_workout_position ON workout_exercises(workout_id, position);
 CREATE INDEX IF NOT EXISTS idx_bia_values_measurement ON bia_values(measurement_id);
 CREATE INDEX IF NOT EXISTS idx_exercise_muscles_muscle ON exercise_muscles(muscle_id);
+CREATE INDEX IF NOT EXISTS idx_hr_samples_session ON hr_samples(session_id);

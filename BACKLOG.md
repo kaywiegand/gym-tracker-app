@@ -61,3 +61,14 @@ Informationsverluste erzeugen, nicht nur Kosmetik).
 | :--- | :--- | :--- |
 | 9 | **MEV/MAV/MRV nicht editierbar** — `muscle_volume_targets` wird mit vertretbaren Default-Werten geseedet (siehe PROCESS_LOG), aber es gibt keine Settings-UI um sie pro Region anzupassen. Gleiche Situation wie schon bei den Workout-Exercise-Rep-Range-Overrides (#4) — Datenmodell + Auswertung fertig, Editier-UI fehlt noch. | 2 |
 | 10 | **Body-Map/Radar/Heatmap-Historie zeigen nur die aktuelle Woche mit echten Daten** — alle bisherigen Testdaten stammen von heute, ältere Wochen sind entsprechend leer (0.0). Kein Bug, wird sich mit echter mehrwöchiger Nutzung von selbst auflösen. | 3 |
+
+---
+
+## Aus Stufe 5 zurückgestellt
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 11 | **BIA "Bereich"-Zeilen ohne strukturierte Referenzbereiche** — `bia_values.ref_low`/`ref_high` bleiben beim CSV-Import immer `NULL`; die "Bereich"-Zeilen der echten InBody-CSV (z.B. "37.0 - 45.2") landen 1:1 als Text in `value_text`, nicht als geparstes Min/Max. Verliert keine Information (jede Zelle bleibt sichtbar in der Detail-Ansicht), aber ein Chart mit Referenzband bräuchte das geparst. | 3 |
+| 12 | **Kein "Strength × Composition"-Decouple-Chart** — Prototyp überlagert e1RM-Trend mit BIA-Verlauf; bräuchte echte Korrelationslogik zwischen zwei unterschiedlich getakteten Zeitreihen (Training wöchentlich, BIA-Scans ein paar Mal im Jahr). Bewusst zurückgestellt, keine erfundene Formel. | 3 |
+| 13 | **Body-Scope-Zeitraum-Switch (3M/6M/12M/All) filtert nichts** — bleibt nur für UI-Konsistenz mit den anderen drei Scopes bestehen. BIA-Scans sind zu selten für eine sinnvolle Zeitraum-Filterung. Nachziehen falls die Scan-Frequenz mal deutlich steigt. | 3 |
+| 14 | **Backup enthält keine Bilddateien** — `media`-Zeilen (Pfade) sind im JSON-Backup enthalten, die eigentlichen Bild-Dateien in `/uploads` nicht. Für echte Portabilität müsste `/uploads` klassisch per Dateisystem-Backup (rsync o.ä.) gesichert werden. | 3 |

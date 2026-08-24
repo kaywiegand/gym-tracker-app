@@ -212,3 +212,59 @@ export interface Bodyweight {
   updated_at: string
   deleted_at: string | null
 }
+
+export interface BodyMeasurement {
+  id: string
+  measured_at: string
+  site: string
+  value_cm: number
+  note: string | null
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
+}
+
+export interface BiaMeasurement {
+  id: string
+  measured_at: string
+  source: string
+  external_id: string | null
+  created_at: string
+}
+
+export interface BiaValue {
+  id: string
+  category: string
+  subcategory: string | null
+  metric: string
+  value_num: number | null
+  value_text: string | null
+  unit: string | null
+  ref_low: number | null
+  ref_high: number | null
+}
+
+export interface BiaMeasurementDetail {
+  measurement: BiaMeasurement
+  values: BiaValue[]
+}
+
+export interface BiaImportResult {
+  imported: number
+  skipped: number
+}
+
+export interface HrImportResult {
+  matched: number
+  sessions_touched: number
+}
+
+export interface BackupTableSummary {
+  inserted: number
+  updated: number
+  skipped: number
+}
+
+export interface BackupImportResult {
+  tables: Record<string, BackupTableSummary>
+}

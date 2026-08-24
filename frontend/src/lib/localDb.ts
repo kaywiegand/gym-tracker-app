@@ -1,32 +1,39 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { Bodyweight, Session, SetEntry } from '@/types'
+import type { BodyMeasurement, Bodyweight, Session, SetEntry } from '@/types'
 
 export type LocalSession = Session & { synced: boolean }
 export type LocalSet = SetEntry & { synced: boolean }
 export type LocalBodyweight = Bodyweight & { synced: boolean }
+export type LocalBodyMeasurement = BodyMeasurement & { synced: boolean }
 
 interface GymTrackerDB extends DBSchema {
   sessions: { key: string; value: LocalSession }
   sets: { key: string; value: LocalSet }
   bodyweight: { key: string; value: LocalBodyweight }
+  body_measurements: { key: string; value: LocalBodyMeasurement }
 }
 
-export type StoreName = 'sessions' | 'sets' | 'bodyweight'
+export type StoreName = 'sessions' | 'sets' | 'bodyweight' | 'body_measurements'
 
 let dbPromise: Promise<IDBPDatabase<GymTrackerDB>> | null = null
 
 // Every write goes here first (CLAUDE.md §2: "jede Eingabe wird zuerst
 // lokal gespeichert"). No indexes -- data volume per user is small
-// (their own sets/sessions/bodyweight), so getAll()+filter for the sync
-// queue is simpler than fighting IndexedDB's key-type restrictions
-// (booleans aren't valid index keys).
+// (their own sets/sessions/bodyweight/body_measurements), so
+// getAll()+filter for the sync queue is simpler than fighting IndexedDB's
+// key-type restrictions (booleans aren't valid index keys).
 function getDb(): Promise<IDBPDatabase<GymTrackerDB>> {
   if (!dbPromise) {
-    dbPromise = openDB<GymTrackerDB>('gym-tracker', 1, {
-      upgrade(db) {
-        db.createObjectStore('sessions', { keyPath: 'id' })
-        db.createObjectStore('sets', { keyPath: 'id' })
-        db.createObjectStore('bodyweight', { keyPath: 'id' })
+    dbPromise = openDB<GymTrackerDB>('gym-tracker', 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore('sessions', { keyPath: 'id' })
+          db.createObjectStore('sets', { keyPath: 'id' })
+          db.createObjectStore('bodyweight', { keyPath: 'id' })
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore('body_measurements', { keyPath: 'id' })
+        }
       },
     })
   }

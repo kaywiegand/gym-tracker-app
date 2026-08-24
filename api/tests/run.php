@@ -23,6 +23,7 @@ $pdo->exec("INSERT INTO training_modes (id, key, name, rep_low, rep_high, sort) 
     (1, 'strength', 'Strength', 3, 5, 1), (2, 'hypertrophy', 'Hypertrophy', 6, 10, 2)");
 $pdo->exec("INSERT INTO muscle_volume_targets (region, mev, mav, mrv) VALUES
     ('chest', 8, 16, 22), ('arms', 6, 14, 22), ('shoulders', 8, 16, 24)");
+$pdo->exec("INSERT INTO settings (key, value) VALUES ('theme', 'dark'), ('rest_seconds', '120')");
 
 $failures = [];
 
@@ -340,6 +341,161 @@ $sessionRepo->upsert(['id' => 'sess-recent', 'workout_id' => $wo['id'], 'started
 $recentDates = (new SessionRepository())->recentDates(7);
 check('recentDates includes a session started moments ago', in_array(gmdate('Y-m-d'), $recentDates, true), $failures);
 check('recentDates excludes sessions outside the window', !in_array('2026-04-01', $recentDates, true), $failures);
+
+echo "BiaImport\n";
+$biaCsv = <<<CSV
+Kategorie,Sub-Kategorie,Metrik,2025-01-01,2025-01-02
+Allgemeine Daten,-,ID,111,111
+Allgemeine Daten,-,Körpergrösse,173,173cm
+Allgemeine Daten,-,Datum / Testzeit,01-01-2025 08:00,01-02-2025 09:30
+Allgemeine Daten,-,Geschlecht,Männlich,Männlich
+Körperzusammensetzungsanalyse,Gesamtkörperwasser (L),Wert,47.2,47.5
+Körperzusammensetzungsanalyse,Gesamtkörperwasser (L),Bereich,37.0 - 45.2,37.0 - 45.2
+CSV;
+$parsed = BiaImport::parse($biaCsv);
+check('BiaImport::parse extracts dates', $parsed['dates'] === ['2025-01-01', '2025-01-02'], $failures);
+check('BiaImport::parse extracts externalId per date', $parsed['externalId']['2025-01-01'] === '111' && $parsed['externalId']['2025-01-02'] === '111', $failures);
+check('BiaImport::parse extracts and formats measuredAt', $parsed['measuredAt']['2025-01-01'] === '2025-01-01T08:00:00Z', $failures);
+check('BiaImport::parse excludes the ID row from entries', !in_array('ID', array_column($parsed['entries'], 'metric'), true), $failures);
+
+$heightEntry = array_values(array_filter($parsed['entries'], fn ($e) => $e['metric'] === 'Körpergrösse' && $e['date'] === '2025-01-02'))[0];
+check('BiaImport::parse strips a unit suffix for valueNum', $heightEntry['valueNum'] === 173.0, $failures);
+check('BiaImport::parse keeps the raw text including unit suffix', $heightEntry['valueText'] === '173cm', $failures);
+
+$rangeEntry = array_values(array_filter($parsed['entries'], fn ($e) => $e['metric'] === 'Bereich' && $e['date'] === '2025-01-01'))[0];
+check('BiaImport::parse treats a range as non-numeric', $rangeEntry['valueNum'] === null, $failures);
+
+$genderEntry = array_values(array_filter($parsed['entries'], fn ($e) => $e['metric'] === 'Geschlecht' && $e['date'] === '2025-01-01'))[0];
+check('BiaImport::parse treats free text as non-numeric', $genderEntry['valueNum'] === null, $failures);
+
+check('BiaImport::parseNumeric plain integer', BiaImport::parseNumeric('173') === 173.0, $failures);
+check('BiaImport::parseNumeric strips a unit suffix', BiaImport::parseNumeric('173cm') === 173.0, $failures);
+check('BiaImport::parseNumeric rejects a range', BiaImport::parseNumeric('37.0 - 45.2') === null, $failures);
+check('BiaImport::parseNumeric rejects free text', BiaImport::parseNumeric('Männlich') === null, $failures);
+check('BiaImport::parseNumeric keeps a negative number', BiaImport::parseNumeric('-0.7') === -0.7, $failures);
+
+echo "BiaRepository\n";
+$biaRepo = new BiaRepository();
+check('BiaRepository starts with no existing keys', $biaRepo->existingKeys() === [], $failures);
+
+$m1 = $biaRepo->createMeasurement('2026-02-13T15:34:00Z', '260213001', 'csv_import');
+$biaRepo->insertValues($m1['id'], [
+    ['category' => 'Muskel-Fett Analyse', 'subcategory' => null, 'metric' => 'Gewicht', 'valueNum' => 80.1, 'valueText' => '80.1'],
+    ['category' => 'Fitnessbewertung', 'subcategory' => null, 'metric' => 'Punktzahl', 'valueNum' => 89.0, 'valueText' => '89'],
+]);
+
+check('BiaRepository::list returns the new measurement', count($biaRepo->list()) === 1, $failures);
+check('BiaRepository::valuesFor returns all rows for the measurement', count($biaRepo->valuesFor($m1['id'])) === 2, $failures);
+
+$latest = $biaRepo->latest();
+check('BiaRepository::latest returns the newest measurement', $latest['measurement']['id'] === $m1['id'], $failures);
+check('BiaRepository::latest includes its values', count($latest['values']) === 2, $failures);
+
+// Real-data quirk (Stage-5 plan §2): the InBody export reuses the same
+// external ID across two different scan dates -- dedupe must key on
+// (external_id, measured_at) together, never external_id alone, or the
+// second real scan would be silently dropped as a "duplicate".
+$m2 = $biaRepo->createMeasurement('2026-06-12T08:24:00Z', '260213001', 'csv_import');
+check('BiaRepository allows a second scan with a duplicate external_id but a different measured_at', $m2['id'] !== $m1['id'], $failures);
+$keys = $biaRepo->existingKeys();
+check('BiaRepository::existingKeys distinguishes the two same-external_id scans', count($keys) === 2, $failures);
+check(
+    'BiaRepository::existingKeys key includes measured_at',
+    isset($keys['260213001|2026-02-13T15:34:00Z']) && isset($keys['260213001|2026-06-12T08:24:00Z']),
+    $failures
+);
+
+check('BiaRepository::softDelete returns true once', $biaRepo->softDelete($m2['id']) === true, $failures);
+check('BiaRepository::softDelete returns false on repeat', $biaRepo->softDelete($m2['id']) === false, $failures);
+check('BiaRepository::list excludes a deleted measurement', count($biaRepo->list()) === 1, $failures);
+check('BiaRepository::find returns null for a deleted measurement', $biaRepo->find($m2['id']) === null, $failures);
+
+echo "HrImport\n";
+$hrXmlPath = sys_get_temp_dir() . '/gym_tracker_test_hr_' . uniqid() . '.xml';
+file_put_contents($hrXmlPath, <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="de_CH">
+<Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Test" unit="count/min" startDate="2026-01-01 09:59:00 +0000" endDate="2026-01-01 09:59:00 +0000" value="70"></Record>
+<Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Test" unit="count/min" startDate="2026-01-01 10:05:00 +0000" endDate="2026-01-01 10:05:00 +0000" value="120"></Record>
+<Record type="HKQuantityTypeIdentifierStepCount" sourceName="Test" unit="count" startDate="2026-01-01 10:06:00 +0000" endDate="2026-01-01 10:06:00 +0000" value="30"></Record>
+<Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Test" unit="count/min" startDate="2026-01-01 10:10:00 +0000" endDate="2026-01-01 10:10:00 +0000" value="130"></Record>
+<Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Test" unit="count/min" startDate="2026-01-01 12:00:00 +0000" endDate="2026-01-01 12:00:00 +0000" value="65"></Record>
+</HealthData>
+XML);
+
+$matched = HrImport::matchFromAppleHealthXml($hrXmlPath, [
+    ['id' => 'sess-hr-1', 'started_at' => '2026-01-01T10:00:00Z', 'ended_at' => '2026-01-01T10:15:00Z'],
+]);
+check('HrImport matches only samples inside the session window', count($matched) === 2, $failures);
+check('HrImport excludes a sample before the window', !in_array(70, array_column($matched, 'bpm'), true), $failures);
+check('HrImport excludes a sample after the window', !in_array(65, array_column($matched, 'bpm'), true), $failures);
+check('HrImport ignores non-HeartRate record types', !in_array(30, array_column($matched, 'bpm'), true), $failures);
+check('HrImport tags matched samples with the session id', $matched[0]['session_id'] === 'sess-hr-1', $failures);
+@unlink($hrXmlPath);
+
+echo "HrRepository\n";
+$hrRepo = new HrRepository();
+$insertedCount = $hrRepo->insertMatched([
+    ['session_id' => 'sess-hr-1', 'ts' => '2026-01-01T10:05:00Z', 'bpm' => 120],
+    ['session_id' => 'sess-hr-1', 'ts' => '2026-01-01T10:10:00Z', 'bpm' => 130],
+]);
+check('HrRepository::insertMatched inserts new samples', $insertedCount === 2, $failures);
+
+$dupeInserted = $hrRepo->insertMatched([
+    ['session_id' => 'sess-hr-1', 'ts' => '2026-01-01T10:05:00Z', 'bpm' => 120],
+    ['session_id' => 'sess-hr-1', 'ts' => '2026-01-01T10:20:00Z', 'bpm' => 90],
+]);
+check('HrRepository::insertMatched dedupes by (session_id, ts)', $dupeInserted === 1, $failures);
+
+echo "BodyMeasurementRepository\n";
+$bmRepo = new BodyMeasurementRepository();
+$bm = $bmRepo->upsert(['id' => 'bm-1', 'measured_at' => '2026-01-01', 'site' => 'waist', 'value_cm' => 85.5, 'updated_at' => '2026-01-01T10:00:00Z']);
+check('BodyMeasurementRepository::upsert inserts', $bm['id'] === 'bm-1' && (float) $bm['value_cm'] === 85.5, $failures);
+check('BodyMeasurementRepository::find returns the row', $bmRepo->find('bm-1')['site'] === 'waist', $failures);
+
+$bmRepo->upsert(['id' => 'bm-2', 'measured_at' => '2026-01-02', 'site' => 'chest', 'value_cm' => 102.0, 'updated_at' => '2026-01-02T10:00:00Z']);
+check('BodyMeasurementRepository::recent filters by site', count($bmRepo->recent('waist')) === 1, $failures);
+check('BodyMeasurementRepository::recent without a site returns all', count($bmRepo->recent(null)) === 2, $failures);
+
+echo "BackupRepository\n";
+$backupRepo = new BackupRepository();
+$fedbExercise = $exRepo->create(['name' => 'Test FEDB Exercise', 'source' => 'fedb', 'muscles' => []]);
+$customExercise = $exRepo->create(['name' => 'Test Custom Exercise', 'source' => 'custom', 'muscles' => []]);
+
+$exported = $backupRepo->exportAll();
+check('BackupRepository::exportAll excludes fedb exercises', !in_array($fedbExercise['id'], array_column($exported['exercises'], 'id'), true), $failures);
+check('BackupRepository::exportAll includes custom exercises', in_array($customExercise['id'], array_column($exported['exercises'], 'id'), true), $failures);
+check('BackupRepository::exportAll includes settings', count($exported['settings']) > 0, $failures);
+check('BackupRepository::exportAll includes bia_values from earlier fixtures', count($exported['bia_values']) >= 2, $failures);
+
+// Roundtrip into a fresh throwaway DB: everything exported must land via
+// importAll(), and re-importing the identical payload must be a safe no-op
+// (idempotent restore -- the same guarantee CLAUDE.md §4 asks of live sync).
+$restoreDbPath = sys_get_temp_dir() . '/gym_tracker_test_restore_' . uniqid() . '.db';
+Db::setOverrides(['sqlite_path' => $restoreDbPath]);
+$restorePdo = Db::connection();
+foreach (array_filter(array_map('trim', explode(';', $schema))) as $statement) {
+    $restorePdo->exec($statement);
+}
+
+$restoreBackupRepo = new BackupRepository($restorePdo);
+$importSummary = $restoreBackupRepo->importAll($exported);
+check('BackupRepository::importAll inserts the custom exercise', $importSummary['exercises']['inserted'] >= 1, $failures);
+check('BackupRepository::importAll inserts settings', $importSummary['settings']['inserted'] > 0, $failures);
+
+$restoredCustom = $restorePdo->prepare('SELECT id FROM exercises WHERE id = ?');
+$restoredCustom->execute([$customExercise['id']]);
+check('BackupRepository::importAll roundtrip: custom exercise exists in the restored DB', $restoredCustom->fetch() !== false, $failures);
+
+$restoredFedb = $restorePdo->prepare('SELECT id FROM exercises WHERE id = ?');
+$restoredFedb->execute([$fedbExercise['id']]);
+check('BackupRepository::importAll roundtrip: fedb exercise was never exported, so is absent', $restoredFedb->fetch() === false, $failures);
+
+$reimportSummary = $restoreBackupRepo->importAll($exported);
+check('BackupRepository::importAll re-import inserts nothing new (idempotent)', $reimportSummary['exercises']['inserted'] === 0, $failures);
+
+@unlink($restoreDbPath);
+Db::setOverrides(['sqlite_path' => $dbPath]);
 
 @unlink($dbPath);
 

@@ -13,7 +13,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     credentials: 'include',
     headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      // FormData bodies (file uploads) must NOT get a Content-Type header
+      // here -- the browser sets its own multipart boundary automatically.
+      ...(options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   })
@@ -44,4 +46,12 @@ export const api = {
   put: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'PUT', body: body !== undefined ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  // multipart/form-data upload (BIA/HR/backup file imports) -- deliberately
+  // bypasses request()'s JSON Content-Type default so the browser sets its
+  // own multipart boundary header.
+  upload: <T>(path: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return request<T>(path, { method: 'POST', body: form })
+  },
 }
