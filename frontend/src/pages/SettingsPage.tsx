@@ -17,6 +17,7 @@ import type {
   TrainingMode,
 } from '@/types'
 import { REGION_LABELS } from '@/lib/muscleColors'
+import { buildInfo, formatBuildTime } from '@/lib/buildInfo'
 import { PageHeader } from '@/components/PageHeader'
 import { NumberField } from '@/components/NumberField'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -287,6 +288,7 @@ export function SettingsPage() {
       <HeartRateCard />
       <BackupCard />
       <ExportCard />
+      <AboutCard />
     </>
   )
 }
@@ -736,6 +738,36 @@ function ExportCard() {
               </Button>
             </Link>
           </div>
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// Which build is running. Baked in by deploy/deploy.sh; `dev` means this is
+// a local build, not a deployed release. The build id is also the folder
+// name of the backup taken right before that deploy (backups/<id>/).
+function AboutCard() {
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">About</div>
+      <Card>
+        <CardContent className="flex flex-col gap-2 py-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] text-foreground/80">Build</span>
+            <Badge variant="secondary">{buildInfo.id}</Badge>
+          </div>
+          {buildInfo.isRelease && (
+            <div className="flex items-center justify-between">
+              <span className="text-[13px] text-foreground/80">Deployed</span>
+              <span className="text-[12px] text-muted-foreground">{formatBuildTime(buildInfo.builtAt)}</span>
+            </div>
+          )}
+          <p className="text-[12px] text-muted-foreground">
+            {buildInfo.isRelease
+              ? `Commit ${buildInfo.commit}. The same id names the backup taken before this deploy.`
+              : 'Local build \u2014 deployed releases show a dated build id here.'}
+          </p>
         </CardContent>
       </Card>
     </>

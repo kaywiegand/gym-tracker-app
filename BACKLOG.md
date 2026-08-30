@@ -18,33 +18,21 @@ Prio: `1` = hoch · `2` = mittel · `3` = niedrig
 
 ---
 
-## Naming-Konvention für Exercises
+## Naming-Konvention für Exercises — ✅ erledigt 2026-08-30
 
-Kay-Vorschlag: einheitliches Namensschema `Muskel_Übung_Hilfsmittel_Variante`
-(z.B. "Decline Bench Press" → `Chest_Press_Bench_Decline` intern, "Chest
-Press Bench Decline" als App-Anzeigename) statt der oft chaotischen
-FEDB-Originalnamen ("Zottman Preacher Curl", "Conan's Wheel", ...).
+Umgesetzt als Struktur-Felder statt Freitext-Namen: `movement` + `variant`
+(+ `display_alias` für den gängigen Namen) auf `exercises`; der Anzeigename
+wird daraus plus primärem Muskel und Equipment **berechnet**
+(`api/lib/ExerciseNaming.php`) — nie getippt, damit keine zwei Schreibweisen
+derselben Übung entstehen können.
 
-**Analyse 2026-08-14** (Trockenlauf gegen alle 873 FEDB-Namen, nichts an
-DB/Code verändert): Muskel lässt sich sauber aus der bestehenden
-primary-muscle-Zuordnung ableiten. Übung (Press/Curl/Squat/...) und
-Variante (Incline/Seated/...) stehen aber nirgends strukturiert in den
-Daten, nur im freien Namenstext — automatische Ableitung per
-Keyword-Matching auf den Originalnamen ergab:
-- 176/873 (20%) ohne erkennbares Bewegungs-Wort → nicht automatisch ableitbar
-- 127 von 429 generierten Namen kollidieren — unterschiedliche Übungen
-  landen auf demselben Standard-Namen (z.B. "Barbell Curl", "Finger Curls",
-  "Palms-Down Wrist Curl Over A Bench" und "Palms-Up Barbell Wrist Curl
-  Over A Bench" würden alle zu `arms_curl_barbell`)
-
-Kay-Entscheidung: nicht auf alle 873 anwenden (würde an >100 Stellen echte
-Informationsverluste erzeugen, nicht nur Kosmetik).
-
-| # | Beschreibung | Prio |
-| :--- | :--- | :--- |
-| 7 | **Naming-Konvention organisch statt komplett** — Neues Feld `standardized_name` auf `exercises` (nullable, Fallback auf FEDB `name` solange leer). Nur für Übungen pflegen, die tatsächlich in eigenen Workouts verwendet werden (typischerweise 15–40 statt 873) — direkt im Exercise-Editor korrigierbar, Kollisionen fallen dort sofort auf statt unbemerkt in der ganzen Bibliothek zu stecken. Muskel-Teil aus der bestehenden Region-Zuordnung, Übung/Hilfsmittel/Variante manuell oder mit Vorschlag aus dem bestehenden Keyword-Parser (Script lag nur im Scratchpad, nicht committed — bei Bedarf neu bauen). | 2 |
-
----
+Kein Massen-Rename (die Analyse vom 2026-08-14 hatte 176 nicht ableitbare
+Namen und 127 Kollisionen ergeben). Stattdessen: 123 Übungen per Seed
+vorkuratiert (`db/seed/exercise_naming.php`) — Standard-Compounds plus
+gängige Isolationsübungen, kollisionsfrei geprüft. Der Rest bleibt unkuratiert mit
+Originalnamen und wird beim ersten Verwenden im Editor kuratiert. Die
+Exercises-Liste zeigt per Default nur kuratierte Übungen ("My library"),
+Toggle auf "All exercises" für die vollen 873.
 
 ## Aus Stufe 4 zurückgestellt
 

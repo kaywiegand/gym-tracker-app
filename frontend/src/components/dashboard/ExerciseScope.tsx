@@ -96,8 +96,8 @@ export function ExerciseScope() {
               setResults([])
             }}
           >
-            <div className="text-[14px] font-semibold">{r.name}</div>
-            <div className="text-[11.5px] text-muted-foreground">{[r.primary_muscle, r.equipment].filter(Boolean).join(' · ')}</div>
+            <div className="text-[14px] font-semibold">{r.display_name}</div>
+            <div className="text-[11.5px] text-muted-foreground">{[r.display_subtitle, r.equipment].filter(Boolean).join(' · ')}</div>
           </Card>
         ))}
       </div>
@@ -117,7 +117,7 @@ export function ExerciseScope() {
         className="flex w-full items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-left"
         onClick={() => setSelected(null)}
       >
-        <span className="text-[14px] font-bold">{selected.name}</span>
+        <span className="text-[14px] font-bold">{selected.display_name}</span>
         <span className="text-[12px] text-muted-foreground">change ›</span>
       </button>
 

@@ -51,8 +51,34 @@ try {
     // already present
 }
 
+foreach ([
+    'exercises' => [
+        'variant' => 'TEXT',
+        'display_alias' => 'TEXT',
+        'is_curated' => 'INTEGER DEFAULT 0',
+    ],
+] as $table => $columns) {
+    foreach ($columns as $column => $type) {
+        try {
+            $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$type}");
+            echo "   added {$table}.{$column}\n";
+        } catch (PDOException $e) {
+            // already present
+        }
+    }
+}
+
+// One-time cleanup for installs seeded before movement carried meaning: the
+// old FEDB import copied the exercise name into movement. Movement now marks
+// an exercise as curated, so those copies have to go -- a hand-curated
+// movement is a single word and never equals the full source name.
+$cleared = $pdo->exec('UPDATE exercises SET movement = NULL WHERE movement = name');
+if ($cleared > 0) {
+    echo "   cleared {$cleared} copied movement value(s)\n";
+}
+
 $seedDir = __DIR__ . '/seed';
-$seedOrder = ['muscles.php', 'muscle_volume_targets.php', 'training_modes.php', 'settings.php', 'exercises.php', 'workouts.php'];
+$seedOrder = ['muscles.php', 'muscle_volume_targets.php', 'training_modes.php', 'settings.php', 'exercises.php', 'exercise_naming.php', 'workouts.php'];
 foreach ($seedOrder as $file) {
     $path = $seedDir . '/' . $file;
     if (!is_file($path)) {

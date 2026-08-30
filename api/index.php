@@ -51,6 +51,10 @@ try {
         handleListExercises();
     } elseif ($method === 'POST' && $path === '/exercises') {
         handleCreateExercise();
+    // Must stay above the two-segment GET below, which would otherwise treat
+    // "naming-vocabulary" as an exercise id.
+    } elseif ($method === 'GET' && $path === '/exercises/naming-vocabulary') {
+        handleExerciseNamingVocabulary();
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'last-sets') {
         handleLastSetsForExercise($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'history') {

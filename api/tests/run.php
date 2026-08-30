@@ -566,6 +566,123 @@ check('BackupRepository::importAll counts the revived row as updated, not insert
 @unlink($restoreDbPath);
 Db::setOverrides(['sqlite_path' => $dbPath]);
 
+// --- Exercise naming (structured display names) ------------------------
+// The whole point of the scheme: the name is derived from four parts, never
+// typed, so two spellings of the same exercise cannot coexist.
+check(
+    'ExerciseNaming builds <muscle> <movement> <equipment> <variant>',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => 'Press',
+        'equipment' => 'barbell', 'variant' => 'Incline', 'name' => 'Barbell Incline Bench Press - Medium Grip',
+    ]) === 'Chest Press Barbell Incline',
+    $failures
+);
+check(
+    'ExerciseNaming omits a missing variant instead of leaving a gap',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => 'Press',
+        'equipment' => 'barbell', 'variant' => null, 'name' => 'x',
+    ]) === 'Chest Press Barbell',
+    $failures
+);
+check(
+    'ExerciseNaming drops the equipment part for "other"',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => 'Press',
+        'equipment' => 'other', 'variant' => null, 'name' => 'x',
+    ]) === 'Chest Press',
+    $failures
+);
+check(
+    'ExerciseNaming drops a variant that only repeats the equipment',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Lats', 'movement' => 'Row',
+        'equipment' => 'machine', 'variant' => 'Machine', 'name' => 'x',
+    ]) === 'Lats Row Machine',
+    $failures
+);
+check(
+    'ExerciseNaming drops a variant that only repeats the muscle',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Lower Back', 'movement' => 'Extension',
+        'equipment' => 'body only', 'variant' => 'lower back', 'name' => 'x',
+    ]) === 'Lower Back Extension Bodyweight',
+    $failures
+);
+check(
+    'ExerciseNaming falls back to the source name without a movement',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => null,
+        'equipment' => 'barbell', 'name' => "Conan's Wheel",
+    ]) === "Conan's Wheel",
+    $failures
+);
+check(
+    'ExerciseNaming::decorate leaves the stored alias untouched',
+    ExerciseNaming::decorate(['name' => 'Barbell Curl', 'display_alias' => null])['display_alias'] === null,
+    $failures
+);
+check(
+    'ExerciseNaming::decorate resolves the subtitle to the source name',
+    ExerciseNaming::decorate(['name' => 'Barbell Curl', 'display_alias' => null])['display_subtitle'] === 'Barbell Curl',
+    $failures
+);
+
+$namedId = Uuid::v4();
+$exRepo->create([
+    'id' => $namedId, 'name' => 'Source Name', 'movement' => 'Press', 'variant' => 'Incline',
+    'display_alias' => 'Bench Press', 'equipment' => 'barbell', 'mechanic' => 'compound',
+    'muscles' => [['muscle_id' => 1, 'role' => 'primary', 'weight' => 1.0]],
+]);
+$named = $exRepo->find($namedId);
+check('create stores the naming parts', $named['movement'] === 'Press' && $named['variant'] === 'Incline', $failures);
+check('create marks an exercise with a movement as curated', (int) $named['is_curated'] === 1, $failures);
+check('find assembles the structured display name', $named['display_name'] === 'Chest Press Barbell Incline', $failures);
+
+// Regression: update() used to read the DECORATED row, so an update that
+// didn't send display_alias persisted the resolved source name into it.
+$plainId = Uuid::v4();
+$exRepo->create([
+    'id' => $plainId, 'name' => 'Plain Source Name', 'equipment' => 'barbell',
+    'muscles' => [['muscle_id' => 1, 'role' => 'primary', 'weight' => 1.0]],
+]);
+check('an exercise without a movement is not curated', (int) $exRepo->find($plainId)['is_curated'] === 0, $failures);
+$exRepo->update($plainId, ['equipment' => 'dumbbell']);
+$plainRaw = (new PDO('sqlite:' . $dbPath))->query("SELECT display_alias FROM exercises WHERE id = '{$plainId}'")->fetch();
+check('update does not write the source name into display_alias', $plainRaw['display_alias'] === null, $failures);
+
+// Curating in place is how the library gets cleaned up -- no duplicate row.
+$exRepo->update($plainId, ['movement' => 'Row', 'variant' => 'Bent-Over', 'display_alias' => 'Barbell Row']);
+$curated = $exRepo->find($plainId);
+check('update curates an existing exercise in place', (int) $curated['is_curated'] === 1, $failures);
+check('curated in place gets the structured name', $curated['display_name'] === 'Chest Row Dumbbell Bent-Over', $failures);
+
+// Clearing the movement has to un-curate: without it there is no structured
+// name to show, so leaving is_curated = 1 would list a blank-named exercise.
+$exRepo->update($plainId, ['movement' => '']);
+$uncurated = $exRepo->find($plainId);
+check('clearing the movement un-curates the exercise', (int) $uncurated['is_curated'] === 0, $failures);
+check('un-curated falls back to the source name', $uncurated['display_name'] === 'Plain Source Name', $failures);
+
+check('list(curatedOnly) excludes uncurated exercises',
+    !in_array($plainId, array_column($exRepo->list(null, null, null, true), 'id'), true), $failures);
+check('list(curatedOnly) includes curated ones',
+    in_array($namedId, array_column($exRepo->list(null, null, null, true), 'id'), true), $failures);
+check('list without the flag still returns everything',
+    in_array($plainId, array_column($exRepo->list(null, null, null), 'id'), true), $failures);
+
+// Search must find the same exercise by any of its three names.
+foreach (['Source Name' => 'source name', 'Bench Press' => 'alias', 'Incline' => 'variant', 'Press' => 'movement'] as $term => $what) {
+    check(
+        "search finds a curated exercise by its {$what}",
+        in_array($namedId, array_column($exRepo->list($term, null, null), 'id'), true),
+        $failures
+    );
+}
+
+check('movements() lists distinct movements in use', in_array('Press', $exRepo->movements(), true), $failures);
+check('variants() lists distinct variants in use', in_array('Incline', $exRepo->variants(), true), $failures);
+
 @unlink($dbPath);
 
 if ($failures) {

@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# One-command deploy upload via lftp (mirror -R = local -> remote, whole
-# tree, no clicking through a browser file manager). Run this yourself --
-# it reads credentials from environment variables you set in your OWN
-# shell, never pasted into Claude. Example:
+# Raw upload of deploy-upload/ via lftp. NOT the normal path -- use
+# deploy/deploy.sh instead, which takes a backup first, bakes in a build id
+# and assembles deploy-upload/ safely. This script is only for the very
+# first install on an empty host (nothing to back up yet), or to re-push an
+# already-assembled tree by hand.
+#
+# Reads credentials from environment variables you set in your OWN shell,
+# never pasted into Claude. Example:
 #
 #   export GYM_FTP_HOST='ftp://ftp.example.com'
 #   export GYM_FTP_USER='your-ftp-user'
@@ -12,8 +16,8 @@ set -euo pipefail
 #   export GYM_FTP_PASS
 #   ./deploy/upload.sh
 #
-# Uploads deploy-upload/ (rebuild it first if the frontend changed -- see
-# README's Deploy section) to the FTP root. NOTE: this assumes the FTP
+# Uploads deploy-upload/ (assemble it with 'deploy/deploy.sh --dry-run'
+# first) to the FTP root. NOTE: this assumes the FTP
 # user is already chrooted to public_html/gym-tracker/ (true for Kay's
 # account) -- if your FTP user's root is the whole public_html or the
 # server root instead, change the remote target below to the real
@@ -26,7 +30,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [ ! -d deploy-upload ]; then
-    echo "deploy-upload/ not found -- run 'cd frontend && npm run build' first, then re-assemble it." >&2
+    echo "deploy-upload/ not found -- run './deploy/deploy.sh --dry-run' first to assemble it." >&2
     exit 1
 fi
 

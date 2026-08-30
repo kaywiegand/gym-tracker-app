@@ -138,6 +138,38 @@ Alles unter Settings, im selben Bereich wie Körpergewicht:
   (CLAUDE.md §3/§12) — `window.print()` im Browser, "Als PDF speichern" im
   Druckdialog erledigt den Rest.
 
+## Übungs-Namen (Naming-Konvention)
+
+Die Namen aus der Free Exercise DB sind uneinheitlich („Barbell Bench Press -
+Medium Grip", „Dumbbell Bench Press"). Statt sie umzuschreiben, bekommt jede
+Übung vier Struktur-Teile, aus denen der Anzeigename **berechnet** wird:
+
+```
+<primärer Muskel> <movement> <equipment> <variant>
+Chest              Press      Barbell     Incline   ->  "Chest Press Barbell Incline"
+```
+
+- Muskel und Equipment stehen schon in den Daten — nur `movement` und
+  `variant` werden getippt, im Exercise-Editor mit Vorschlagsliste aus den
+  bereits vergebenen Werten.
+- `display_alias` hält den gängigen Namen („Incline Bench Press") und steht
+  als zweite Zeile darunter. Die Suche trifft **beide** plus den Originalnamen.
+- Weil der Name berechnet wird, kann keine zweite Schreibweise derselben Übung
+  entstehen — Kollisionen fallen sofort auf.
+- Eine Übung gilt als **kuratiert**, sobald sie ein `movement` hat. Die
+  Exercises-Liste zeigt per Default nur diese („My library"); der Toggle
+  „All exercises" blendet die vollen 873 ein. Kuratiert wird beim ersten
+  Verwenden, direkt in der Bibliothek — kein Duplikat.
+- 123 Übungen sind vorkuratiert (`db/seed/exercise_naming.php`): die
+  Standard-Compounds plus die gängigen Isolationsübungen, über alle sechs
+  Regionen (Chest 20 · Back 22 · Shoulders 17 · Arms 20 · Legs 30 · Core 14).
+  Bewusst kein Massen-Rename aller 873: ein Trockenlauf ergab 176 ohne
+  ableitbares Bewegungswort und 127 Kollisionen.
+
+Logik in `api/lib/ExerciseNaming.php` (eine Stelle, getestet in
+`api/tests/run.php`). Die Datenquelle bleibt austauschbar — sie muss nur
+Muskel, Equipment und einen Originalnamen liefern.
+
 ## Production Build
 
 ```bash
@@ -148,57 +180,120 @@ npm run build
 Erzeugt statische Dateien in `frontend/dist/` (inkl. PWA-Manifest +
 Service-Worker-Precache).
 
-## Deploy (Hetzner Webhosting, PHP + statisch, kein Node/Root)
+## Deploy (Hetzner Webhosting — FTP, kein SSH)
 
-Kein SSH auf Level-1-Webhosting → alles per FTP, Migration per
-Browser-Trigger statt CLI. `deploy/` enthält zwei Einmal-Skripte dafür,
-keins davon ist Teil der laufenden App (nach Gebrauch löschen).
+### Einmal einrichten: Zugangsdaten
 
-**Datei-Upload:** entweder manuell per FTP-Client (FileZilla, Cyberduck —
-ein Web-Browser-Filemanager erzwingt oft Einzeldateien, ein echter Client
-kann ganze Ordner in einem Rutsch), oder mit `deploy/upload.sh`
-(`lftp`-basiert, `brew install lftp` falls nicht vorhanden). Das Skript
-liest die FTP-Zugangsdaten aus Umgebungsvariablen, die *im eigenen*
-Terminal gesetzt werden — nie in einen Chat einfügen:
+`deploy/env` anlegen (Vorlage: `deploy/env.example`) und ausfüllen:
 
-```bash
-export GYM_FTP_HOST=ftp://ftp.example.com   # dein Hetzner-FTP-Host
-export GYM_FTP_USER=your-ftp-user
-read -s GYM_FTP_PASS && export GYM_FTP_PASS         # Eingabe unsichtbar, nicht in der History
-./deploy/upload.sh
+```
+GYM_FTP_HOST=ftp://ftp.example.com
+GYM_FTP_USER=your-ftp-user
+GYM_FTP_PASS=<FTP-Passwort>
 ```
 
-Lädt `deploy-upload/` (siehe Schritt 1–4 unten, wie der Ordner entsteht)
-komplett hoch. Kein `--delete` — ein Re-Deploy würde sonst `db/fitness.db`
-und alles in `uploads/` auf dem Server löschen, da beides in
-`deploy-upload/` bewusst fehlt.
+Gitignored, `chmod 600`, bleibt lokal. Beide Scripts lesen die Datei selbst —
+kein `export` nötig. Gesetzte Umgebungsvariablen haben Vorrang, falls man
+einmalig etwas überschreiben will.
 
-1. `deploy-upload/` lokal zusammenstellen: Inhalt von `frontend/dist/`
-   (nach `cd frontend && npm run build`) + `api/` (ohne `api/tests/` — das
-   wäre sonst direkt über eine URL aufrufbar, `.htaccess` leitet nur
-   nicht-existierende Pfade um) + `db/` (ohne `fitness.db` — entsteht erst
-   durch die Migration) + ein leeres `uploads/`-Verzeichnis + der ganze
-   `deploy/`-Ordner, alles auf einer Ebene.
-2. Hochladen (Skript oder manuell) nach `/public_html/<zielordner>/`.
-3. `https://<domain>/deploy/check-env.php` im Browser aufrufen. Zeigt
-   PHP-Version, ob `PDO_SQLite` oder `PDO_MySQL` verfügbar ist, und ob der
-   Docroot beschreibbar ist.
-4. **Falls `pdo_sqlite` fehlt:** `api/config.local.php` (gitignored, Vorlage
-   in `api/config.php`) mit `driver => 'mysql'` und den Zugangsdaten der
-   MySQL-DB aus dem Hosting-Panel anlegen, dann diese eine Datei nachladen
-   — der Repository-Layer ist dafür bereits vorbereitet, `schema.sql` ist
-   portables ANSI-SQL.
-5. `https://<domain>/deploy/run-migration.php?token=<Token aus der Datei>&password=<gewünschtes App-Passwort>`
-   im Browser aufrufen. Läuft `db/migrate.php` serverseitig aus (Schema +
-   Seeds + Passwort-Hash). Idempotent, aber der Token ist Einmalgebrauch —
-   **danach den kompletten `deploy/`-Ordner sofort per FTP löschen**, nie
-   live stehen lassen.
-6. Docroot muss `api/.htaccess` respektieren (mod_rewrite) — leitet alle
-   `/api/*`-Requests, die keine echte Datei sind, an `api/index.php` weiter.
-   Test: `https://<domain>/api/settings` sollte `{"error":"Unauthorized"}`
-   liefern (401), nicht 404 — sonst greift das Rewrite nicht.
-7. `/uploads` muss vom Webserver beschreibbar sein, wird aber nicht mit
-   Public-Domain-Assets vorbefüllt (private Bilder, s. `CLAUDE.md` §2).
+`lftp` wird gebraucht: `brew install lftp`.
+
+### Deployen: ein Befehl
+
+```bash
+./deploy/deploy.sh "was sich geändert hat"
+```
+
+Das ist der einzige Weg zu deployen. Nichts von Hand kopieren.
+
+### Was das Script tut — immer diese 5 Schritte
+
+| # | Schritt | Was passiert |
+| :--- | :--- | :--- |
+| 1 | **Build-ID** | aus Git-Commit + Zeitstempel, z.B. `20260830-1028-b237d66` |
+| 2 | **Backup** | Live-DB + `uploads/` von Hetzner nach `backups/<build-id>/`. **Schlägt das fehl, bricht der Deploy ab.** |
+| 3 | **Build** | `frontend/dist/`, mit der Build-ID fest eingebacken |
+| 4 | **Assemble** | `deploy-upload/` wird komplett neu gebaut — aus einer festen Liste |
+| 5 | **Upload** | `deploy-upload/` → FTP-Root |
+
+Danach schreibt es eine Zeile in `DEPLOYMENTS.md`.
+
+**Flags:**
+
+- `--dry-run` — Schritt 1–4 ohne Upload und ohne Backup. Zum Prüfen von `deploy-upload/`.
+- `--with-migration` — nur nötig wenn `db/schema.sql` sich geändert hat (siehe unten).
+
+### Schutz des Datenbestands — 4 Regeln
+
+Die Daten sind das Wertvolle, nicht der Code. Vier Mechanismen, unabhängig voneinander:
+
+| Regel | Wo |
+| :--- | :--- |
+| **Vorher immer ein Backup** — Live-DB + Bilder werden gezogen, geprüft (SQLite-Integritätscheck + Zeilenzahlen) und erst dann geht es weiter | `deploy/backup.sh` |
+| **Kein `--delete` beim Upload** — sonst würde jeder Deploy die Live-DB und alle Bilder auf dem Server löschen | `deploy/deploy.sh` |
+| **Nie eine DB im Upload** — `deploy-upload/` wird aus einer Whitelist gebaut, `*.db` ist ausgeschlossen; direkt vor dem Upload prüft das Script nochmal und bricht ab wenn doch eine drin liegt | `deploy/deploy.sh` |
+| **Migration ist idempotent** — `CREATE TABLE IF NOT EXISTS`, Seeds prüfen vorher was schon da ist | `db/migrate.php` |
+
+Was auf dem Server **nie** angefasst wird: `db/fitness.db` und `uploads/`.
+
+Backup allein ziehen, ohne Deploy:
+
+```bash
+./deploy/backup.sh
+```
+
+`backups/` ist gitignored — Nutzerdaten gehören nicht ins Repo.
+
+### Build-ID
+
+Jeder Deploy bekommt eine ID: `<datum>-<uhrzeit>-<commit>`, z.B. `20260830-1028-b237d66`.
+
+Sie steht an drei Stellen:
+
+- **In der App:** Settings → About
+- **Auf dem Server:** `https://<domain>/build.json`
+- **Im Log:** `DEPLOYMENTS.md`
+
+Der Backup-Ordner heißt genauso — zu jedem Build gehört exakt ein Backup.
+
+Ein lokaler Build (`npm run build`) hat keine Build-ID, Settings zeigt dann `dev`.
+Ein Deploy mit uncommitteten Änderungen bekommt `-dirty` angehängt.
+
+### Deployment-Changelog
+
+`DEPLOYMENTS.md` — eine Zeile pro Deploy, vom Script geschrieben:
+Build-ID, Commit, Zeitpunkt, Backup-Ordner, Notiz. Die Notiz ist das Argument
+von `deploy.sh` — deshalb immer eine mitgeben.
+
+### Wenn sich das Schema geändert hat
+
+`db/schema.sql` geändert → Migration muss auf dem Server laufen:
+
+```bash
+./deploy/deploy.sh --with-migration "neue Spalte X"
+```
+
+Das Script lädt `deploy/run-migration.php` mit einem **frisch erzeugten** Token
+mit hoch, zeigt die URL, wartet — und **löscht die Setup-Scripts danach
+automatisch wieder vom Server**. Ohne dieses Flag liegt `deploy/` nie auf dem
+Server (die Datei kann mit ihrem Token Migrationen auslösen, sie darf dort
+nicht dauerhaft stehen).
+
+### Erst-Installation auf einem leeren Host
+
+1. `./deploy/deploy.sh --with-migration "initial"` — Backup-Schritt schlägt fehl,
+   da noch keine DB da ist. Dann einmalig `./deploy/deploy.sh --dry-run` und den
+   Upload von Hand (`deploy/upload.sh`).
+2. `https://<domain>/deploy/check-env.php` — zeigt PHP-Version, ob `PDO_SQLite`
+   oder `PDO_MySQL` da ist, ob der Docroot beschreibbar ist.
+3. Falls `pdo_sqlite` fehlt: `api/config.local.php` (gitignored, Vorlage in
+   `api/config.php`) mit `driver => 'mysql'` + Zugangsdaten aus dem Hosting-Panel
+   anlegen und **einzeln** hochladen — `deploy.sh` schließt diese Datei bewusst
+   vom Upload aus.
+4. Migration über die vom Script gezeigte URL laufen lassen.
+5. Prüfen: `https://<domain>/api/settings` muss `{"error":"Unauthorized"}` (401)
+   liefern, nicht 404 — sonst greift das `mod_rewrite` aus `api/.htaccess` nicht.
+
 
 ## Struktur
 

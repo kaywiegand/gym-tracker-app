@@ -9,7 +9,23 @@ function handleListExercises(): void
         isset($_GET['q']) ? (string) $_GET['q'] : null,
         isset($_GET['region']) ? (string) $_GET['region'] : null,
         isset($_GET['mechanic']) ? (string) $_GET['mechanic'] : null,
+        // Default is the full library so every existing caller (workout
+        // picker, tracking) keeps seeing everything; the Exercises screen
+        // opts into the curated subset explicitly.
+        isset($_GET['curated']) && $_GET['curated'] === '1',
     ));
+}
+
+// Feeds the editor's movement/variant comboboxes with the values already in
+// use, so nobody creates a second spelling of an existing movement.
+function handleExerciseNamingVocabulary(): void
+{
+    Auth::require();
+    $repo = new ExerciseRepository();
+    Http::respond([
+        'movements' => $repo->movements(),
+        'variants' => $repo->variants(),
+    ]);
 }
 
 function handleGetExercise(string $id): void

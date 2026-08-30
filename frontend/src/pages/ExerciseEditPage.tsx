@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '@/lib/api'
-import type { Exercise } from '@/types'
+import type { Exercise, ExerciseNamingVocabulary } from '@/types'
 import { PageHeader } from '@/components/PageHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { NumberField } from '@/components/NumberField'
@@ -13,6 +13,11 @@ import { Button } from '@/components/ui/button'
 
 type Mechanic = 'compound' | 'isolation'
 
+// Curating an exercise = giving it a movement (and optionally a variant).
+// The muscle and the equipment already exist in the data, so the structured
+// name is assembled from all four -- never typed. That is what keeps two
+// spellings of the same exercise from existing side by side.
+//
 // Only the scalar fields are editable here -- the duplicated copy's muscle
 // assignments carry over as-is (see plan §4). A full primary/secondary
 // muscle re-assignment editor is out of scope for Stage 1.
@@ -21,6 +26,10 @@ export function ExerciseEditPage() {
   const navigate = useNavigate()
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [name, setName] = useState('')
+  const [movement, setMovement] = useState('')
+  const [variant, setVariant] = useState('')
+  const [alias, setAlias] = useState('')
+  const [vocabulary, setVocabulary] = useState<ExerciseNamingVocabulary>({ movements: [], variants: [] })
   const [equipment, setEquipment] = useState('')
   const [category, setCategory] = useState('')
   const [mechanic, setMechanic] = useState<Mechanic>('compound')
@@ -32,12 +41,29 @@ export function ExerciseEditPage() {
     api.get<Exercise>(`/exercises/${id}`).then((ex) => {
       setExercise(ex)
       setName(ex.name)
+      setMovement(ex.movement ?? '')
+      setVariant(ex.variant ?? '')
+      setAlias(ex.display_alias ?? '')
       setEquipment(ex.equipment ?? '')
       setCategory(ex.category ?? '')
       setMechanic(ex.mechanic === 'isolation' ? 'isolation' : 'compound')
       setIncrement(ex.default_increment_kg ?? 2.5)
     })
   }, [id])
+
+  useEffect(() => {
+    api.get<ExerciseNamingVocabulary>('/exercises/naming-vocabulary').then(setVocabulary)
+  }, [])
+
+  // Mirrors ExerciseNaming::displayName() on the server so the preview below
+  // updates while typing. The server stays the authority -- this only shows
+  // what the saved name will be.
+  const previewName =
+    movement.trim() === ''
+      ? name
+      : [exercise?.primary_muscle ?? '', movement.trim(), equipmentLabel(equipment), variant.trim()]
+          .filter((p) => p !== '')
+          .join(' ')
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -46,6 +72,9 @@ export function ExerciseEditPage() {
     try {
       await api.put(`/exercises/${id}`, {
         name,
+        movement: movement.trim() || null,
+        variant: variant.trim() || null,
+        display_alias: alias.trim() || null,
         equipment: equipment || null,
         category: category || null,
         mechanic,
@@ -68,13 +97,78 @@ export function ExerciseEditPage() {
 
   return (
     <>
-      <PageHeader title="Edit exercise" subtitle="Your copy" showThemeToggle={false} />
+      <PageHeader
+        title="Edit exercise"
+        subtitle={exercise.source === 'custom' ? 'Your copy' : `Library entry · ${exercise.name}`}
+        showThemeToggle={false}
+      />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ex-name">Name</Label>
           <Input id="ex-name" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
+
+        <Card>
+          <CardContent className="flex flex-col gap-3 py-1">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Naming</div>
+
+            <div className="flex gap-2">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor="ex-movement">Movement</Label>
+                <Input
+                  id="ex-movement"
+                  list="movement-options"
+                  placeholder="Press, Row, Curl…"
+                  value={movement}
+                  onChange={(e) => setMovement(e.target.value)}
+                />
+                <datalist id="movement-options">
+                  {vocabulary.movements.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label htmlFor="ex-variant">Variant</Label>
+                <Input
+                  id="ex-variant"
+                  list="variant-options"
+                  placeholder="Incline, Seated…"
+                  value={variant}
+                  onChange={(e) => setVariant(e.target.value)}
+                />
+                <datalist id="variant-options">
+                  {vocabulary.variants.map((v) => (
+                    <option key={v} value={v} />
+                  ))}
+                </datalist>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="ex-alias">Common name</Label>
+              <Input
+                id="ex-alias"
+                placeholder={name}
+                value={alias}
+                onChange={(e) => setAlias(e.target.value)}
+              />
+            </div>
+
+            <div className="rounded-lg bg-muted/50 px-3 py-2">
+              <div className="text-[10.5px] uppercase tracking-wide text-muted-foreground">Shows up as</div>
+              <div className="mt-0.5 text-[14px] font-bold">{previewName}</div>
+              <div className="text-[11px] text-muted-foreground">{alias.trim() || name}</div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              {movement.trim() === ''
+                ? 'Without a movement this exercise keeps its source name and stays out of My library.'
+                : 'Muscle and equipment come from the data below — only movement and variant are typed.'}
+            </p>
+          </CardContent>
+        </Card>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="ex-equipment">Equipment</Label>
@@ -127,4 +221,27 @@ export function ExerciseEditPage() {
       </form>
     </>
   )
+}
+
+// Mirror of ExerciseNaming::EQUIPMENT_LABELS (api/lib/ExerciseNaming.php) --
+// only used for the live preview; the saved name is built server-side.
+const EQUIPMENT_LABELS: Record<string, string> = {
+  barbell: 'Barbell',
+  dumbbell: 'Dumbbell',
+  cable: 'Cable',
+  machine: 'Machine',
+  'body only': 'Bodyweight',
+  kettlebells: 'Kettlebell',
+  bands: 'Band',
+  'e-z curl bar': 'EZ-Bar',
+  'medicine ball': 'Medicine Ball',
+  'exercise ball': 'Exercise Ball',
+  'foam roll': 'Foam Roller',
+  other: '',
+}
+
+function equipmentLabel(equipment: string): string {
+  const key = equipment.trim().toLowerCase()
+  if (key === '') return ''
+  return EQUIPMENT_LABELS[key] ?? key.replace(/\b\w/g, (c) => c.toUpperCase())
 }

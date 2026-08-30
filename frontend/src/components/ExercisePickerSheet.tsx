@@ -57,7 +57,7 @@ export function ExercisePickerSheet({ open, onOpenChange, onPick, excludeIds }: 
                     className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2.5 text-left"
                     onClick={() => onPick(item)}
                   >
-                    <span className="text-[13px] font-semibold">{item.name}</span>
+                    <span className="text-[13px] font-semibold">{item.display_name}</span>
                     <span className="text-muted-foreground">›</span>
                   </button>
                 ))}

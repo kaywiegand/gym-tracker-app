@@ -51,7 +51,12 @@ return function (PDO $pdo, array $args): void {
             $insertExercise->execute([
                 ':id' => $id,
                 ':name' => $e['name'],
-                ':movement' => $e['name'],
+                // No movement on import: movement is the CURATED movement word
+                // (Press/Row/Curl), and having one is what marks an exercise as
+                // curated. Copying the source name in here would make all 873
+                // look curated. Filled in later by db/seed/exercise_naming.php
+                // or by hand in the editor.
+                ':movement' => null,
                 ':equipment' => $e['equipment'] ?? null,
                 ':mechanic' => $e['mechanic'] ?? null,
                 ':category' => $e['category'] ?? null,

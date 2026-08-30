@@ -25,3 +25,10 @@ api/config.local.php
 # deploy scripts, assembled fresh before each deploy -- not source, not
 # committed)
 /deploy-upload/
+
+# Live-Daten-Backups von Hetzner (vor jedem Deploy gezogen) — Nutzerdaten,
+# gehören nicht ins Repo
+/backups/
+
+# FTP-Zugangsdaten fürs Deployment — lokal, nie ins Git
+/deploy/env

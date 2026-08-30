@@ -25,16 +25,33 @@ export interface Muscle {
   sort: number
 }
 
-export interface ExerciseListItem {
-  id: string
+// Naming: `name` is the untouched source name (FEDB). `display_name` is the
+// structured name the server assembles from muscle + movement + equipment +
+// variant, and `display_subtitle` is the common gym name. Render those two --
+// never `name` directly. See api/lib/ExerciseNaming.php.
+export interface ExerciseNames {
   name: string
-  movement: string
+  movement: string | null
+  variant: string | null
+  display_alias: string | null
+  display_name: string
+  display_subtitle: string
+  is_curated: number
+}
+
+export interface ExerciseListItem extends ExerciseNames {
+  id: string
   equipment: string | null
   mechanic: string | null
   category: string | null
   default_increment_kg: number | null
   region: string | null
   primary_muscle: string | null
+}
+
+export interface ExerciseNamingVocabulary {
+  movements: string[]
+  variants: string[]
 }
 
 export interface ExerciseMuscle {
@@ -52,10 +69,9 @@ export interface ExerciseMedia {
   sort: number
 }
 
-export interface Exercise {
+export interface Exercise extends ExerciseNames {
   id: string
-  name: string
-  movement: string
+  primary_muscle: string | null
   equipment: string | null
   mechanic: string | null
   category: string | null

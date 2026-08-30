@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { regionLabel, REGION_BADGE_CLASS } from '@/lib/muscleColors'
 import type { Exercise, ExerciseHistoryEntry } from '@/types'
@@ -15,6 +16,7 @@ interface ExerciseDetailSheetProps {
 }
 
 export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicated }: ExerciseDetailSheetProps) {
+  const navigate = useNavigate()
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [duplicating, setDuplicating] = useState(false)
   const [history, setHistory] = useState<ExerciseHistoryEntry[] | null>(null)
@@ -44,15 +46,16 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
         ) : (
           <>
             <SheetHeader>
-              <SheetTitle className="text-[17px]">{exercise.name}</SheetTitle>
+              <SheetTitle className="text-[17px]">{exercise.display_name}</SheetTitle>
               <p className="text-[11px] text-muted-foreground">
-                {[primary[0]?.name_en, exercise.movement, exercise.equipment].filter(Boolean).join(' · ')}
+                {exercise.display_subtitle}
+                {exercise.is_curated ? '' : ' · not curated yet'}
               </p>
             </SheetHeader>
 
             <div className="px-4">
               {photo ? (
-                <img src={photo.path} alt={exercise.name} className="h-[140px] w-full rounded-xl object-cover" />
+                <img src={photo.path} alt={exercise.display_name} className="h-[140px] w-full rounded-xl object-cover" />
               ) : (
                 <div className="flex h-[120px] items-center justify-center rounded-xl border border-dashed border-border bg-secondary text-center text-[11.5px] text-muted-foreground">
                   No photo on file
@@ -98,13 +101,22 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
               </div>
             </div>
 
-            <div className="flex gap-2 p-4 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
+            <div className="flex flex-col gap-2 p-4 pt-2">
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+                {/* Curating edits the library entry itself -- that is the point:
+                    one exercise, one name. Duplicating is for a genuinely
+                    different variation, not for renaming. */}
+                <Button type="button" className="flex-1" onClick={() => navigate(`/exercises/${exercise.id}/edit`)}>
+                  {exercise.is_curated ? 'Edit name' : 'Curate name'}
+                </Button>
+              </div>
               <Button
                 type="button"
-                className="flex-1"
+                variant="outline"
+                size="sm"
                 disabled={duplicating}
                 onClick={async () => {
                   setDuplicating(true)
@@ -115,7 +127,7 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
                   }
                 }}
               >
-                {duplicating ? 'Duplicating…' : 'Duplicate & edit'}
+                {duplicating ? 'Duplicating…' : 'Duplicate as a new exercise'}
               </Button>
             </div>
           </>

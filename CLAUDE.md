@@ -80,10 +80,18 @@ CREATE TABLE muscles ( id INTEGER PRIMARY KEY, name_en TEXT, region TEXT, sort I
 -- ~17 FEDB-Muskeln; region ∈ chest/back/shoulders/arms/legs/core
 
 CREATE TABLE exercises (
-  id TEXT PRIMARY KEY, name TEXT, movement TEXT, equipment TEXT,
+  id TEXT PRIMARY KEY, name TEXT,     -- name = Originalname der Quelle, wird nie umgeschrieben
+  movement TEXT,                      -- Press | Row | Curl | ...  (gesetzt = kuratiert)
+  variant TEXT,                       -- Incline | Seated | ...    (optional)
+  display_alias TEXT,                 -- gängiger Name, z.B. "Bench Press"
+  is_curated INTEGER DEFAULT 0,
+  equipment TEXT,
   mechanic TEXT,                      -- compound | isolation
   category TEXT, default_increment_kg REAL, source TEXT, external_id TEXT,
   created_at TEXT, updated_at TEXT, deleted_at TEXT );
+-- Anzeigename wird BERECHNET, nie getippt (api/lib/ExerciseNaming.php):
+--   <primary muscle> <movement> <equipment> <variant>  ->  "Chest Press Barbell Incline"
+-- Muskel + Equipment kommen aus exercise_muscles / equipment, nicht doppelt gespeichert.
 
 CREATE TABLE exercise_muscles (
   exercise_id TEXT, muscle_id INT,

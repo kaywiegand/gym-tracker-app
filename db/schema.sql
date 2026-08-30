@@ -38,8 +38,11 @@ CREATE TABLE IF NOT EXISTS muscle_volume_targets (
 
 CREATE TABLE IF NOT EXISTS exercises (
   id TEXT PRIMARY KEY,
-  name TEXT,
-  movement TEXT,
+  name TEXT,                -- original name from the source (FEDB), never rewritten
+  movement TEXT,            -- Press | Curl | Row | Squat | ...  -- set = exercise is curated
+  variant TEXT,             -- Incline | Seated | Close-Grip | ... (optional)
+  display_alias TEXT,       -- the common gym name, e.g. "Bench Press"
+  is_curated INTEGER DEFAULT 0,
   equipment TEXT,
   mechanic TEXT,
   category TEXT,
