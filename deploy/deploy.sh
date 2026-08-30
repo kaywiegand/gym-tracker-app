@@ -159,10 +159,29 @@ EOF
 
 if [ "$WITH_MIGRATION" -eq 1 ]; then
     echo
-    echo "  Run the migration now, in a browser:"
-    echo "    https://<domain>/deploy/run-migration.php?token=$FRESH_TOKEN&password=<app-password>"
-    echo
-    read -r -p "  Press Enter once it finished -- the setup scripts get deleted from the server. "
+    if [ -n "${GYM_APP_URL:-}" ]; then
+        # Non-interactive path: call the trigger ourselves so a deploy never
+        # depends on somebody being at the keyboard, and the setup scripts are
+        # guaranteed to be removed in the same run.
+        MIGRATION_URL="${GYM_APP_URL%/}/deploy/run-migration.php?token=$FRESH_TOKEN"
+        echo "  Running migration: ${GYM_APP_URL%/}/deploy/run-migration.php"
+        MIGRATION_OUT=$(curl -fsSL --max-time 120 "$MIGRATION_URL" 2>&1) || MIGRATION_FAILED=1
+        echo "$MIGRATION_OUT" | sed 's/^/    /'
+        if [ -n "${MIGRATION_FAILED:-}" ]; then
+            echo "  !! Migration failed. The setup scripts are still on the server --" >&2
+            echo "     fix the cause, re-run, and do not leave them there." >&2
+        fi
+    else
+        echo "  Run the migration now, in a browser:"
+        echo "    ${GYM_APP_URL:-https://<domain>}/deploy/run-migration.php?token=$FRESH_TOKEN"
+        echo "    (add &password=<app-password> only if this install has none yet)"
+        echo
+        read -r -p "  Press Enter once it finished -- the setup scripts get deleted from the server. " || true
+    fi
+
+    # Always remove them, even after a failed migration -- a token-guarded
+    # migration trigger must not stay live. It gets re-uploaded with a fresh
+    # token on the next --with-migration run.
     lftp -u "$GYM_FTP_USER,$GYM_FTP_PASS" "$GYM_FTP_HOST" <<EOF
 set ftp:ssl-allow yes
 set ssl:verify-certificate no
@@ -172,6 +191,7 @@ rmdir deploy
 bye
 EOF
     echo "  Setup scripts removed from the server."
+    [ -z "${MIGRATION_FAILED:-}" ] || exit 1
 fi
 
 # ---- log -------------------------------------------------------------
