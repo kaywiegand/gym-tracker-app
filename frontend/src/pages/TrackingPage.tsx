@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { api } from '@/lib/api'
-import { findOpenSession, getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
+import { findOpenSessions, getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
 import { suggestNext, type Suggestion } from '@/lib/progression'
-import { playRestDoneSound } from '@/lib/sound'
+import { playRestDoneSound, primeAudio, vibrateRestDone } from '@/lib/sound'
+import { keepScreenAwake } from '@/lib/wakeLock'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
 import { useTrackingStore } from '@/store/useTrackingStore'
@@ -24,12 +25,32 @@ interface Summary {
   prExerciseNames: string[]
 }
 
+interface OpenSessionOption {
+  session: LocalSession
+  loggedSets: LocalSet[]
+}
+
 interface PendingResumeChoice {
   workout: Workout
   restSeconds: number
   lastSetsByExercise: Record<string, SetEntry[]>
-  openSession: LocalSession
-  loggedSets: LocalSet[]
+  openSessions: OpenSessionOption[]
+}
+
+// "Yesterday 18:42" reads faster than a raw timestamp when deciding which of
+// several unfinished sessions is the one you meant to continue.
+function formatSessionStart(iso: string): string {
+  const started = new Date(iso)
+  const today = new Date()
+  const sameDay = started.toDateString() === today.toDateString()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const wasYesterday = started.toDateString() === yesterday.toDateString()
+
+  const time = started.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  if (sameDay) return `Today ${time}`
+  if (wasYesterday) return `Yesterday ${time}`
+  return `${started.toLocaleDateString(undefined, { day: '2-digit', month: 'short' })} ${time}`
 }
 
 function formatClock(totalSeconds: number): string {
@@ -89,13 +110,16 @@ export function TrackingPage() {
       // closed / navigated away without "Finish workout") -- its sets are
       // already safe in IndexedDB, but starting fresh here would orphan it
       // under a new session id instead of letting the user continue it.
-      const openSession = await findOpenSession(wid)
+      const openSessions = await findOpenSessions(wid)
       if (cancelled) return
 
-      if (openSession) {
-        const loggedSets = await getSetsForSession(openSession.id)
+      if (openSessions.length > 0) {
+        const options: OpenSessionOption[] = []
+        for (const session of openSessions) {
+          options.push({ session, loggedSets: await getSetsForSession(session.id) })
+        }
         if (cancelled) return
-        setPendingChoice({ workout, restSeconds, lastSetsByExercise, openSession, loggedSets })
+        setPendingChoice({ workout, restSeconds, lastSetsByExercise, openSessions: options })
       } else {
         useTrackingStore.getState().start(workout, lastSetsByExercise, restSeconds)
       }
@@ -119,31 +143,63 @@ export function TrackingPage() {
     return () => clearInterval(timer)
   }, [])
 
+  // Screen stays on for the whole session -- between sets nobody is tapping,
+  // so the phone would lock and the rest timer would never be seen.
+  useEffect(() => keepScreenAwake(), [])
+
+  // iOS blocks audio until a context is unlocked inside a real user gesture.
+  // The rest beep fires from a timer, so it has to be primed by the first tap
+  // anywhere on this screen -- once per session is enough.
+  useEffect(() => {
+    const prime = () => primeAudio()
+    document.addEventListener('pointerdown', prime, { once: true })
+    return () => document.removeEventListener('pointerdown', prime)
+  }, [])
+
   const playedRestEndRef = useRef<number | null>(null)
   useEffect(() => {
     const restEndAt = store.restEndAt
     if (restEndAt !== null && restEndAt <= now && playedRestEndRef.current !== restEndAt) {
       playedRestEndRef.current = restEndAt
       playRestDoneSound()
+      vibrateRestDone()
     }
   }, [store.restEndAt, now])
 
-  function handleResume() {
+  function handleResume(option: OpenSessionOption) {
     if (!pendingChoice) return
-    const { workout, restSeconds, lastSetsByExercise, openSession, loggedSets } = pendingChoice
-    useTrackingStore.getState().resume(workout, openSession, loggedSets, lastSetsByExercise, restSeconds)
+    const { workout, restSeconds, lastSetsByExercise } = pendingChoice
+    useTrackingStore.getState().resume(workout, option.session, option.loggedSets, lastSetsByExercise, restSeconds)
     setPendingChoice(null)
   }
 
-  async function handleStartNew() {
+  // Starting fresh deliberately leaves the open sessions open. Closing them
+  // here was what made a real session look like it had vanished: one stray
+  // tap on "Start new" silently ended it and there was no way back to it.
+  // They stay listed until they are resumed or explicitly discarded.
+  function handleStartNew() {
     if (!pendingChoice) return
-    const { workout, restSeconds, lastSetsByExercise, openSession } = pendingChoice
-    // Close the abandoned session out honestly (it has real logged sets)
-    // instead of leaving it stuck open forever.
-    await putRow('sessions', { ...openSession, ended_at: openSession.updated_at, updated_at: nowIso(), synced: false })
-    pushPending()
+    const { workout, restSeconds, lastSetsByExercise } = pendingChoice
     useTrackingStore.getState().start(workout, lastSetsByExercise, restSeconds)
     setPendingChoice(null)
+  }
+
+  async function handleDiscard(option: OpenSessionOption) {
+    if (!pendingChoice) return
+    // Closed out, not deleted -- the logged sets stay in the history.
+    await putRow('sessions', {
+      ...option.session,
+      ended_at: option.session.updated_at,
+      updated_at: nowIso(),
+      synced: false,
+    })
+    pushPending()
+    const remaining = pendingChoice.openSessions.filter((o) => o.session.id !== option.session.id)
+    if (remaining.length === 0) {
+      handleStartNew()
+      return
+    }
+    setPendingChoice({ ...pendingChoice, openSessions: remaining })
   }
 
   if (loading) {
@@ -155,22 +211,47 @@ export function TrackingPage() {
   }
 
   if (pendingChoice) {
-    const loggedCount = pendingChoice.loggedSets.length
-    const minutesAgo = Math.max(0, Math.round((Date.now() - new Date(pendingChoice.openSession.started_at).getTime()) / 60000))
+    const count = pendingChoice.openSessions.length
     return (
       <TrackShell title={pendingChoice.workout.name} onBack={() => navigate('/workouts')}>
         <div className="mt-6 rounded-xl border border-border p-4">
-          <p className="text-[14.5px] font-bold">Unfinished session found</p>
-          <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Started {minutesAgo} min ago · {loggedCount} set{loggedCount === 1 ? '' : 's'} already logged. Nothing was lost —
-            resume where you left off, or start a new session.
+          <p className="text-[14.5px] font-bold">
+            {count === 1 ? 'Unfinished session' : `${count} unfinished sessions`}
           </p>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            Nothing was lost. Pick one up where you left off, or start a new one — the others stay here until you
+            resume or discard them.
+          </p>
+
           <div className="mt-3 flex flex-col gap-2">
-            <Button type="button" className="w-full" onClick={handleResume}>
-              Resume
-            </Button>
+            {pendingChoice.openSessions.map((option) => {
+              const loggedCount = option.loggedSets.length
+              return (
+                <div key={option.session.id} className="rounded-lg border border-border p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-bold">{formatSessionStart(option.session.started_at)}</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {loggedCount} set{loggedCount === 1 ? '' : 's'} logged
+                      </div>
+                    </div>
+                    <Button type="button" size="sm" onClick={() => handleResume(option)}>
+                      Resume
+                    </Button>
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-1.5 text-[11px] text-muted-foreground underline underline-offset-2"
+                    onClick={() => handleDiscard(option)}
+                  >
+                    Discard this one
+                  </button>
+                </div>
+              )
+            })}
+
             <Button type="button" variant="outline" className="w-full" onClick={handleStartNew}>
-              Start new
+              Start new session
             </Button>
           </div>
         </div>
@@ -224,9 +305,18 @@ export function TrackingPage() {
           style={{ width: `${totalSets ? (doneSets / totalSets) * 100 : 0}%` }}
         />
       </div>
-      <p className="mb-3 mt-1.5 text-[11px] text-muted-foreground">
-        {doneSets}/{totalSets} sets done
-      </p>
+      <div className="mb-3 mt-1.5 flex items-center justify-between">
+        <p className="text-[11px] text-muted-foreground">
+          {doneSets}/{totalSets} sets done
+        </p>
+        <button
+          type="button"
+          className="text-[11px] font-semibold text-muted-foreground underline underline-offset-2"
+          onClick={() => store.setAllOpen(!store.exercises.every((e) => e.open))}
+        >
+          {store.exercises.every((e) => e.open) ? 'Collapse all' : 'Expand all'}
+        </button>
+      </div>
 
       <div className="flex flex-col gap-2">
         {store.exercises.map((ex, exIndex) => {

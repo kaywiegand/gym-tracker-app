@@ -62,7 +62,7 @@ function buildExercises(
     return {
       workoutExerciseId: we.id,
       exerciseId: we.exercise_id,
-      exerciseName: we.exercise_name,
+      exerciseName: we.exercise_display_name,
       plannedSets: we.planned_sets,
       sets,
       open: i === 0,
@@ -89,6 +89,7 @@ interface TrackingState {
     restSeconds: number,
   ) => void
   toggleOpen: (exIndex: number) => void
+  setAllOpen: (open: boolean) => void
   updateDraft: (exIndex: number, setIndex: number, patch: Partial<Pick<DraftSet, 'weightKg' | 'reps'>>) => void
   applySuggestion: (exIndex: number, weightKg: number, reps: number) => void
   addSet: (exIndex: number) => void
@@ -163,10 +164,18 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     })
   },
 
+  // Each card opens and closes on its own. This used to behave like an
+  // accordion (open one = close the rest, and an open one could not be
+  // closed at all), which made it impossible to either see everything at
+  // once or collapse everything for an overview.
   toggleOpen: (exIndex) => {
     set((state) => ({
-      exercises: state.exercises.map((e, i) => ({ ...e, open: i === exIndex })),
+      exercises: state.exercises.map((e, i) => (i === exIndex ? { ...e, open: !e.open } : e)),
     }))
+  },
+
+  setAllOpen: (open) => {
+    set((state) => ({ exercises: state.exercises.map((e) => ({ ...e, open })) }))
   },
 
   updateDraft: (exIndex, setIndex, patch) => {

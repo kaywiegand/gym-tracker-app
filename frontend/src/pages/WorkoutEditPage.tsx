@@ -51,7 +51,7 @@ export function WorkoutEditPage() {
         w.exercises.map((e) => ({
           tempId: e.id,
           exercise_id: e.exercise_id,
-          exercise_name: e.exercise_name,
+          exercise_name: e.exercise_display_name,
           planned_sets: e.planned_sets,
           rep_low_override: e.rep_low_override,
           rep_high_override: e.rep_high_override,
@@ -69,7 +69,7 @@ export function WorkoutEditPage() {
       {
         tempId: crypto.randomUUID(),
         exercise_id: ex.id,
-        exercise_name: ex.name,
+        exercise_name: ex.display_name,
         planned_sets: 3,
         rep_low_override: null,
         rep_high_override: null,

@@ -40,6 +40,76 @@ final class ExerciseNaming
         return self::EQUIPMENT_LABELS[$key] ?? ucwords($key);
     }
 
+    // Movement words recognised in a source name, longest/most specific first
+    // (a "Face Pull" must not be read as a "Pull", "Push-Up" not as "Press").
+    // Only used when nobody has curated the exercise by hand -- it gives every
+    // exercise a structured first line instead of falling back to the raw
+    // source name, which is what made the library read as a mixed bag.
+    private const MOVEMENT_PATTERNS = [
+        'Good Morning' => ['good morning'],
+        'Face Pull' => ['face pull'],
+        'Pull-Through' => ['pull through', 'pull-through'],
+        'Upright Row' => ['upright row'],
+        'Push-Up' => ['push-up', 'push up', 'pushup', 'pressup', 'press-up'],
+        'Pull-Up' => ['pull-up', 'pull up', 'pullup', 'chin-up', 'chin up', 'chinup'],
+        'Pulldown' => ['pulldown', 'pull-down', 'pull down'],
+        'Pushdown' => ['pushdown', 'push-down', 'push down'],
+        'Sit-Up' => ['sit-up', 'sit up', 'situp'],
+        'Step-Up' => ['step-up', 'step up', 'step ups'],
+        'Rollout' => ['rollout', 'roll-out', 'roll out'],
+        'Deadlift' => ['deadlift', 'dead lift'],
+        'Kickback' => ['kickback', 'kick-back'],
+        'Pullover' => ['pullover', 'pull-over'],
+        'Shrug' => ['shrug'],
+        'Squat' => ['squat'],
+        'Lunge' => ['lunge'],
+        'Bridge' => ['bridge'],
+        'Thruster' => ['thruster'],
+        'Snatch' => ['snatch'],
+        'Clean' => ['clean'],
+        'Jerk' => ['jerk'],
+        'Crunch' => ['crunch'],
+        'Twist' => ['twist'],
+        'Chop' => ['wood chop', 'chop'],
+        'Plank' => ['plank'],
+        'Dip' => ['dip'],
+        'Fly' => ['flye', 'fly', 'crossover', 'cross-over'],
+        'Extension' => ['extension', 'hyperextension', 'skullcrusher', 'skull crusher', 'overhead triceps', 'triceps'],
+        'Rotation' => ['rotation', 'pronation', 'supination', 'circles', 'rotations'],
+        'Squeeze' => ['pinch', 'squeeze', 'gripper'],
+        'Roll' => ['roller', '-smr', 'foam roll'],
+        'Curl' => ['curl'],
+        'Raise' => ['raise', 'lateral'],
+        'Row' => ['row'],
+        'Press' => ['press', 'bench'],
+        'Stretch' => ['stretch'],
+        'Hold' => ['hold', 'isometric'],
+        'Carry' => ['carry', 'walk'],
+        'Throw' => ['throw', 'toss'],
+        'Jump' => ['jump', 'hop'],
+        'Sprint' => ['sprint', 'run'],
+    ];
+
+    // Best-effort movement for an exercise nobody curated. Deliberately a
+    // guess: the hand-curated value always wins, and this never sets
+    // is_curated -- it only stops the display name from falling back to the
+    // raw source name.
+    public static function inferMovement(?string $sourceName): ?string
+    {
+        $name = strtolower(trim((string) $sourceName));
+        if ($name === '') {
+            return null;
+        }
+        foreach (self::MOVEMENT_PATTERNS as $movement => $needles) {
+            foreach ($needles as $needle) {
+                if (str_contains($name, $needle)) {
+                    return $movement;
+                }
+            }
+        }
+        return null;
+    }
+
     public static function isCurated(array $row): bool
     {
         return trim((string) ($row['movement'] ?? '')) !== '';
@@ -49,6 +119,12 @@ final class ExerciseNaming
     public static function displayName(array $row): string
     {
         $movement = trim((string) ($row['movement'] ?? ''));
+        if ($movement === '') {
+            // Not curated -- guess the movement so this still reads as a
+            // structured name. Only a name we truly cannot structure keeps
+            // the raw source name.
+            $movement = (string) (self::inferMovement($row['name'] ?? null) ?? '');
+        }
         if ($movement === '') {
             return (string) ($row['name'] ?? '');
         }
@@ -96,5 +172,40 @@ final class ExerciseNaming
     public static function decorateAll(array $rows): array
     {
         return array_map([self::class, 'decorate'], $rows);
+    }
+
+    // SQL for the columns a joined query needs so its rows can be decorated.
+    // Used wherever an exercise is read through a JOIN (workout contents,
+    // export) -- selecting e.name alone there was what made the same exercise
+    // show up under two different names in two different screens.
+    public static function selectColumns(string $alias = 'e', string $prefix = 'exercise_'): string
+    {
+        return "{$alias}.name AS {$prefix}name,
+                {$alias}.movement AS {$prefix}movement,
+                {$alias}.variant AS {$prefix}variant,
+                {$alias}.display_alias AS {$prefix}display_alias,
+                {$alias}.is_curated AS {$prefix}is_curated,
+                {$alias}.equipment AS {$prefix}equipment,
+                (SELECT mu.name_en FROM exercise_muscles em JOIN muscles mu ON mu.id = em.muscle_id
+                 WHERE em.exercise_id = {$alias}.id AND em.role = 'primary'
+                 ORDER BY mu.sort LIMIT 1) AS {$prefix}primary_muscle";
+    }
+
+    // Decorates a joined row whose exercise columns carry a prefix, adding
+    // <prefix>display_name and <prefix>display_subtitle.
+    public static function decorateJoined(array $row, string $prefix = 'exercise_'): array
+    {
+        $inner = [];
+        foreach (['name', 'movement', 'variant', 'display_alias', 'is_curated', 'equipment', 'primary_muscle'] as $key) {
+            $inner[$key] = $row[$prefix . $key] ?? null;
+        }
+        $row[$prefix . 'display_name'] = self::displayName($inner);
+        $row[$prefix . 'display_subtitle'] = self::displayAlias($inner);
+        return $row;
+    }
+
+    public static function decorateAllJoined(array $rows, string $prefix = 'exercise_'): array
+    {
+        return array_map(static fn ($r) => self::decorateJoined($r, $prefix), $rows);
     }
 }

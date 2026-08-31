@@ -617,6 +617,37 @@ check(
     ]) === "Conan's Wheel",
     $failures
 );
+// Inferred movement: every exercise gets a structured first line, not just
+// the hand-curated ones. A raw source name leaking through into the workout
+// screen while the picker showed a structured one was the actual complaint.
+check(
+    'ExerciseNaming infers a movement from an uncurated source name',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => null,
+        'equipment' => 'dumbbell', 'name' => 'Decline Dumbbell Flyes',
+    ]) === 'Chest Fly Dumbbell',
+    $failures
+);
+check(
+    'a curated movement always beats the inferred one',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => 'Press',
+        'equipment' => 'dumbbell', 'name' => 'Decline Dumbbell Flyes',
+    ]) === 'Chest Press Dumbbell',
+    $failures
+);
+check(
+    'inference prefers the specific movement over the generic one',
+    ExerciseNaming::inferMovement('Face Pull') === 'Face Pull'
+        && ExerciseNaming::inferMovement('Wide-Grip Lat Pulldown') === 'Pulldown'
+        && ExerciseNaming::inferMovement('Incline Push-Up') === 'Push-Up',
+    $failures
+);
+check(
+    'inference returns null when no movement word is present',
+    ExerciseNaming::inferMovement('Conan\'s Wheel') === null,
+    $failures
+);
 check(
     'ExerciseNaming::decorate leaves the stored alias untouched',
     ExerciseNaming::decorate(['name' => 'Barbell Curl', 'display_alias' => null])['display_alias'] === null,
@@ -679,6 +710,21 @@ foreach (['Source Name' => 'source name', 'Bench Press' => 'alias', 'Incline' =>
         $failures
     );
 }
+
+// A joined read (workout contents, CSV export) has to produce exactly the
+// same name as the library read -- them disagreeing is what made one exercise
+// appear under two names in two screens.
+$joined = ExerciseNaming::decorateJoined([
+    'exercise_name' => 'Source Name', 'exercise_movement' => 'Press', 'exercise_variant' => 'Incline',
+    'exercise_display_alias' => 'Bench Press', 'exercise_is_curated' => 1,
+    'exercise_equipment' => 'barbell', 'exercise_primary_muscle' => 'Chest',
+]);
+check(
+    'decorateJoined produces the same name as the library read',
+    $joined['exercise_display_name'] === $exRepo->find($namedId)['display_name'],
+    $failures
+);
+check('decorateJoined carries the alias through', $joined['exercise_display_subtitle'] === 'Bench Press', $failures);
 
 check('movements() lists distinct movements in use', in_array('Press', $exRepo->movements(), true), $failures);
 check('variants() lists distinct variants in use', in_array('Incline', $exRepo->variants(), true), $failures);

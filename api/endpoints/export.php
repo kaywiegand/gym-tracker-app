@@ -20,7 +20,7 @@ function handleExportTrainingLog(): void
         fputcsv($out, [
             substr((string) $row['performed_at'], 0, 10),
             $row['workout_name'] ?? '',
-            $row['exercise_name'],
+            $row['exercise_display_name'],
             ((int) $row['set_index']) + 1,
             $row['weight_kg'],
             $row['reps'],

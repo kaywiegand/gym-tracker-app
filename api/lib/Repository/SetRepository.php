@@ -228,15 +228,15 @@ final class SetRepository extends BaseRepository
     // (defensive, not expected in practice).
     public function exportRows(): array
     {
-        return $this->fetchAll(
+        return ExerciseNaming::decorateAllJoined($this->fetchAll(
             'SELECT s.performed_at, s.set_index, s.weight_kg, s.reps, s.is_warmup,
-                    e.name AS exercise_name, w.name AS workout_name
+                    ' . ExerciseNaming::selectColumns() . ', w.name AS workout_name
              FROM sets s
              JOIN exercises e ON e.id = s.exercise_id
              LEFT JOIN sessions sess ON sess.id = s.session_id
              LEFT JOIN workouts w ON w.id = sess.workout_id
              WHERE s.deleted_at IS NULL
              ORDER BY s.performed_at ASC, s.set_index ASC'
-        );
+        ));
     }
 }

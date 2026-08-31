@@ -40,6 +40,18 @@ export function NumberField({
           const parsed = parseFloat(e.target.value.replace(',', '.'))
           onChange(Number.isNaN(parsed) ? 0 : parsed)
         }}
+        // Select the current value on focus so the first keypress REPLACES it.
+        // Without this the caret lands before the existing number and typing
+        // "1" over a "0" gives "10" -- constant friction when logging sets.
+        // requestAnimationFrame: iOS Safari places its own caret after the
+        // focus handler, which would undo a synchronous select().
+        onFocus={(e) => {
+          const input = e.currentTarget
+          requestAnimationFrame(() => input.select())
+        }}
+        // A tap inside an already-focused field re-selects too -- iOS does not
+        // fire focus again, so without this a second tap only moves the caret.
+        onClick={(e) => e.currentTarget.select()}
         onBlur={onBlur}
         className="w-full bg-transparent px-2 py-2 text-center text-[15px] font-bold tabular-nums outline-none focus:bg-brand-accent/15 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         {...rest}

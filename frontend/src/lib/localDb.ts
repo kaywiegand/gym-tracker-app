@@ -65,11 +65,19 @@ export async function getUnsynced<T extends { synced: boolean }>(store: StoreNam
 // Sets are already durable in IndexedDB the moment they're logged (CLAUDE.md
 // §2) -- this just finds the session so the UI can offer to resume it
 // instead of silently orphaning it under a brand new session id.
-export async function findOpenSession(workoutId: string): Promise<LocalSession | undefined> {
+// ALL unfinished sessions for a workout, newest first -- not just the newest
+// one. More than one can pile up (leave the app mid-session, come back,
+// accidentally start over), and each of them holds real logged sets. Showing
+// only the newest made the older ones invisible and unreachable.
+export async function findOpenSessions(workoutId: string): Promise<LocalSession[]> {
   const sessions = await getAllRows<LocalSession>('sessions')
   return sessions
     .filter((s) => s.workout_id === workoutId && s.ended_at === null && s.deleted_at === null)
-    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0]
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+}
+
+export async function findOpenSession(workoutId: string): Promise<LocalSession | undefined> {
+  return (await findOpenSessions(workoutId))[0]
 }
 
 export async function getSetsForSession(sessionId: string): Promise<LocalSet[]> {

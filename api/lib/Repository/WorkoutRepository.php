@@ -29,8 +29,10 @@ final class WorkoutRepository extends BaseRepository
             return null;
         }
 
-        $workout['exercises'] = $this->fetchAll(
-            "SELECT we.id, we.exercise_id, e.name AS exercise_name,
+        // Naming columns, not just e.name: the workout has to call an exercise
+        // exactly what the library and the picker call it.
+        $workout['exercises'] = ExerciseNaming::decorateAllJoined($this->fetchAll(
+            "SELECT we.id, we.exercise_id, " . ExerciseNaming::selectColumns() . ",
                 (SELECT mu.region FROM exercise_muscles em JOIN muscles mu ON mu.id = em.muscle_id
                  WHERE em.exercise_id = e.id AND em.role = 'primary' ORDER BY mu.sort LIMIT 1) AS region,
                 we.position, we.planned_sets, we.rep_low_override, we.rep_high_override, we.increment_override_kg,
@@ -40,7 +42,7 @@ final class WorkoutRepository extends BaseRepository
              WHERE we.workout_id = ? AND we.deleted_at IS NULL
              ORDER BY we.position",
             [$id]
-        );
+        ));
 
         return $workout;
     }

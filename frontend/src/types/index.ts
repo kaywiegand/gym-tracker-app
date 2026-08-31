@@ -99,7 +99,11 @@ export interface WorkoutListItem {
 export interface WorkoutExercise {
   id: string
   exercise_id: string
+  // Render exercise_display_name -- exercise_name is the raw source name and
+  // exists only as the fallback the server already applied.
   exercise_name: string
+  exercise_display_name: string
+  exercise_display_subtitle: string
   region: string | null
   position: number
   planned_sets: number
