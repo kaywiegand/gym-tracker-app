@@ -726,6 +726,53 @@ check(
 );
 check('decorateJoined carries the alias through', $joined['exercise_display_subtitle'] === 'Bench Press', $failures);
 
+// Search has to match what the user SEES. The display name is assembled in
+// PHP with relabelled muscle/equipment words, so no column ever contains the
+// string being typed -- "abs rotation" has to find an exercise stored as
+// "Torso Rotation" on the Abdominals muscle.
+check(
+    'ExerciseNaming shortens the anatomical muscle name',
+    ExerciseNaming::muscleLabel('Abdominals') === 'Abs' && ExerciseNaming::muscleLabel('Quadriceps') === 'Quads',
+    $failures
+);
+check(
+    'muscleLabel leaves an already-short muscle alone',
+    ExerciseNaming::muscleLabel('Chest') === 'Chest',
+    $failures
+);
+
+$rotationId = Uuid::v4();
+$exRepo->create([
+    'id' => $rotationId, 'name' => 'Torso Rotation', 'equipment' => 'cable',
+    'muscles' => [['muscle_id' => 1, 'role' => 'primary', 'weight' => 1.0]],
+]);
+$rotationName = $exRepo->find($rotationId)['display_name'];
+check('an uncurated exercise still gets a structured name', $rotationName === 'Chest Rotation Cable', $failures);
+
+$idsFor = static fn (string $q) => array_column($exRepo->list($q, null, null), 'id');
+check('search matches the assembled display name', in_array($rotationId, $idsFor('chest rotation'), true), $failures);
+check('search terms may be given in any order', in_array($rotationId, $idsFor('cable rotation chest'), true), $failures);
+check('every search term must match', !in_array($rotationId, $idsFor('chest rotation barbell'), true), $failures);
+check('search still finds by the source name', in_array($rotationId, $idsFor('torso'), true), $failures);
+
+// Regression: a plain substring match made "rdl" hit "Hurdle Hops".
+check(
+    'search matches at word starts, not mid-word',
+    !in_array($rotationId, $idsFor('otation'), true) && in_array($rotationId, $idsFor('rotation'), true),
+    $failures
+);
+$hyphenId = Uuid::v4();
+$exRepo->create([
+    'id' => $hyphenId, 'name' => 'Close Grip Source', 'movement' => 'Press', 'variant' => 'Close-Grip',
+    'equipment' => 'barbell',
+    'muscles' => [['muscle_id' => 1, 'role' => 'primary', 'weight' => 1.0]],
+]);
+check(
+    'a hyphen counts as a word boundary',
+    in_array($hyphenId, $idsFor('grip'), true),
+    $failures
+);
+
 check('movements() lists distinct movements in use', in_array('Press', $exRepo->movements(), true), $failures);
 check('variants() lists distinct variants in use', in_array('Incline', $exRepo->variants(), true), $failures);
 

@@ -31,6 +31,24 @@ final class ExerciseNaming
         'other' => '',
     ];
 
+    // Gym shorthand for the muscle part. The source taxonomy is anatomical
+    // ("Abdominals", "Quadriceps"); nobody types that when looking for an
+    // exercise. Everything not listed here is already short enough.
+    private const MUSCLE_LABELS = [
+        'abdominals' => 'Abs',
+        'quadriceps' => 'Quads',
+        'middle back' => 'Mid Back',
+    ];
+
+    public static function muscleLabel(?string $muscle): string
+    {
+        $muscle = trim((string) ($muscle ?? ''));
+        if ($muscle === '') {
+            return '';
+        }
+        return self::MUSCLE_LABELS[strtolower($muscle)] ?? $muscle;
+    }
+
     public static function equipmentLabel(?string $equipment): string
     {
         if ($equipment === null || trim($equipment) === '') {
@@ -84,7 +102,22 @@ final class ExerciseNaming
         'Press' => ['press', 'bench'],
         'Stretch' => ['stretch'],
         'Hold' => ['hold', 'isometric'],
-        'Carry' => ['carry', 'walk'],
+        'Carry' => ['carry', 'walk', 'farmer'],
+        'Muscle-Up' => ['muscle up', 'muscle-up'],
+        'High Pull' => ['high pull'],
+        'Side Bend' => ['side bend'],
+        'Hip Thrust' => ['hip thrust', 'hip lift'],
+        'Rack Pull' => ['rack pull'],
+        'Push' => ['sled push', 'push'],
+        'Drag' => ['drag', 'sled'],
+        'Flip' => ['tire flip', 'flip'],
+        'Crawl' => ['crawl'],
+        'Climb' => ['climb'],
+        'Swing' => ['swing'],
+        'Slam' => ['slam'],
+        'Pass' => ['pass', 'chest push'],
+        'Cycle' => ['bicycl', 'bike', 'elliptical', 'treadmill', 'stairmaster', 'step mill'],
+        'Load' => ['load', 'stone'],
         'Throw' => ['throw', 'toss'],
         'Jump' => ['jump', 'hop'],
         'Sprint' => ['sprint', 'run'],
@@ -129,7 +162,7 @@ final class ExerciseNaming
             return (string) ($row['name'] ?? '');
         }
 
-        $muscle = trim((string) ($row['primary_muscle'] ?? ''));
+        $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
         $equipment = self::equipmentLabel($row['equipment'] ?? null);
         $variant = trim((string) ($row['variant'] ?? ''));
 

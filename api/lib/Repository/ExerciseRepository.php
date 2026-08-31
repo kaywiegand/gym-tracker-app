@@ -38,21 +38,58 @@ final class ExerciseRepository extends BaseRepository
             $sql .= ' AND t.mechanic = :mechanic';
             $params['mechanic'] = strtolower($mechanic);
         }
-        if ($q !== null && trim($q) !== '') {
-            // Search hits all three names at once: the structured parts, the
-            // common alias, and the original source name -- typing "bench",
-            // "chest press" or "incline" all have to find the same exercise.
-            $sql .= ' AND (t.name LIKE :q OR t.display_alias LIKE :q OR t.movement LIKE :q
-                           OR t.variant LIKE :q OR t.primary_muscle LIKE :q)';
-            $params['q'] = '%' . $q . '%';
-        }
+        // NOTE: `q` is deliberately NOT filtered here. The display name is
+        // assembled in PHP (and its muscle/equipment words are relabelled on
+        // the way), so SQL cannot match what the user actually sees -- a
+        // search for "abs rotation cable" has to hit "Abs Rotation Cable"
+        // even though no column contains that string. Filtering happens
+        // below, after decoration.
         // Sort in the display name's own reading order: muscle -> movement ->
         // equipment -> variant. Sorting by movement first would scatter one
         // muscle's exercises across the group even though every row starts
         // with that muscle. Uncurated rows sort last, by their source name.
         $sql .= ' ORDER BY t.region, t.movement IS NULL, t.primary_muscle, t.movement, t.equipment, t.variant, t.name';
 
-        return ExerciseNaming::decorateAll($this->fetchAll($sql, $params));
+        $rows = ExerciseNaming::decorateAll($this->fetchAll($sql, $params));
+
+        return $q === null || trim($q) === '' ? $rows : self::filterByQuery($rows, $q);
+    }
+
+    // Every word of the query must appear somewhere in the exercise: the
+    // structured display name, the common name, or the original source name.
+    // Word-wise rather than as one substring, so the parts can be typed in
+    // any order -- "cable abs rotation" finds the same thing as
+    // "abs rotation cable".
+    private static function filterByQuery(array $rows, string $q): array
+    {
+        $terms = preg_split('/\s+/', mb_strtolower(trim($q)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($terms === []) {
+            return $rows;
+        }
+
+        $matched = array_values(array_filter($rows, static function (array $row) use ($terms): bool {
+            $haystack = mb_strtolower(implode(' ', array_filter([
+                $row['display_name'] ?? '',
+                $row['display_subtitle'] ?? '',
+                $row['name'] ?? '',
+                $row['equipment'] ?? '',
+            ])));
+            foreach ($terms as $term) {
+                // Word START, not any substring: "rdl" must find "RDL" but
+                // not "Hurdle Hops". Hyphens count as boundaries so "grip"
+                // still finds "Close-Grip".
+                if (preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($term, '/') . '/u', $haystack) !== 1) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+
+        // Curated exercises first -- their names were checked by hand, so
+        // they are the ones worth offering before an inferred guess.
+        usort($matched, static fn ($a, $b) => ((int) ($b['is_curated'] ?? 0)) <=> ((int) ($a['is_curated'] ?? 0)));
+
+        return $matched;
     }
 
     // Distinct movement values already in use -- feeds the editor's combobox
