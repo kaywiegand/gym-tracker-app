@@ -200,7 +200,19 @@ Ziel: Man kann Übungen durchsuchen/filtern, Workouts mit Modus + Übungen (gepl
 
 **Danach stoppen** und Stufe 1 gemeinsam testen, bevor Stufe 2 (Tracking + Offline-Sync) beginnt.
 
-## 12. Konventionen
+## 12. Deploy — nur nach Freigabe
+
+Deployen ist **nie** Teil einer Aufgabe. Ablauf immer:
+
+1. Änderung fertigstellen und verifizieren (Tests, Build)
+2. **Stoppen und Kay zeigen, was sich geändert hat**
+3. Kay gibt frei
+4. Erst dann `deploy/deploy.sh`
+
+`deploy/deploy.sh` läuft nur, wenn Kay es ausdrücklich sagt. Gleiches gilt
+für Commits: erst zeigen, dann committen.
+
+## 13. Konventionen
 
 - TypeScript strict; kleine, fokussierte Module; sprechende Namen. Keine unnötigen Dependencies (shared-hosting-tauglich halten).
 - Kleine Commits mit klarer Message. Einfache Tests für Engine-Logik (e1RM, Progression, Volumen) und die Sync-Upsert-Logik.
