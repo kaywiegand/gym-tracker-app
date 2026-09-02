@@ -216,6 +216,21 @@ IDs sind deterministisch (UUIDv5 über einen stabilen Schlüssel): ein zweiter
 Import aktualisiert dieselben Zeilen, statt Duplikate anzulegen. Bestehende
 Workouts und Sessions bleiben erhalten.
 
+## Doppelte Titel zusammenführen
+
+Der Nomenklatur-Titel ist die Identität einer Übung: zwei Zeilen, die auf
+denselben Titel fallen, sind dieselbe Übung. `inferVariant()` verhindert das
+meiste, ein Rest bleibt (Übungen, die sich nur im Griff unterscheiden).
+
+```bash
+php scripts/merge-duplicate-exercises.php db/fitness.db /tmp/merge.json
+```
+
+Erzeugt eine Backup-Restore-Datei, die Sätze und Workout-Einträge auf die
+überlebende Zeile umhängt und die anderen soft-löscht. Überlebende je Gruppe:
+kuratiert vor meisten Sätzen vor ältester. IDs bleiben, ein zweiter Lauf ist
+ein No-op.
+
 ## Production Build
 
 ```bash
