@@ -15,6 +15,14 @@ function handleBiaTemplate(): void
     exit;
 }
 
+// Oldest-first, values inlined -- one request for the whole Body dashboard.
+function handleBiaSeries(): void
+{
+    Auth::require();
+    $limit = isset($_GET['limit']) ? max(1, min(200, (int) $_GET['limit'])) : 50;
+    Http::respond((new BiaRepository())->series($limit));
+}
+
 function handleBiaImport(): void
 {
     Auth::require();

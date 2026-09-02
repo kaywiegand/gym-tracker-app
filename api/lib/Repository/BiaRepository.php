@@ -73,6 +73,48 @@ final class BiaRepository extends BaseRepository
         );
     }
 
+    // Every measurement with all of its values in ONE query pair. The Body
+    // dashboard used to fetch the list and then one detail request per scan,
+    // and waited for all of them before painting anything -- 1+N round trips
+    // on a phone before the first pixel.
+    public function series(int $limit = 50): array
+    {
+        $measurements = $this->fetchAll(
+            'SELECT id, measured_at, source, external_id, created_at FROM bia_measurements
+             WHERE deleted_at IS NULL ORDER BY measured_at ASC LIMIT ' . (int) $limit
+        );
+        if ($measurements === []) {
+            return [];
+        }
+
+        $ids = array_column($measurements, 'id');
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $values = $this->fetchAll(
+            'SELECT measurement_id, category, subcategory, metric, value_num, value_text
+             FROM bia_values WHERE measurement_id IN (' . $placeholders . ')
+             ORDER BY measurement_id, category, subcategory, metric',
+            $ids
+        );
+
+        $byMeasurement = [];
+        foreach ($values as $v) {
+            $byMeasurement[$v['measurement_id']][] = [
+                'category' => $v['category'],
+                'subcategory' => $v['subcategory'],
+                'metric' => $v['metric'],
+                'value_num' => $v['value_num'],
+                'value_text' => $v['value_text'],
+            ];
+        }
+
+        foreach ($measurements as &$m) {
+            $m['values'] = $byMeasurement[$m['id']] ?? [];
+        }
+        unset($m);
+
+        return $measurements;
+    }
+
     public function latest(): ?array
     {
         $measurement = $this->fetchOne(

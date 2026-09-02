@@ -14,9 +14,12 @@ interface MuscleBodyMapProps {
 export function MuscleBodyMap({ regions }: MuscleBodyMapProps) {
   const byRegion = new Map(regions.map((r) => [r.region, r]))
 
-  const fill = (region: string | null): string => {
-    if (region === null) return 'var(--secondary)'
-    const r = byRegion.get(region)
+  const fill = (p: { region: string | null; base?: true }): string => {
+    // The base silhouette is the page background: the body reads as its
+    // muscle segments, not as one big coloured shape behind them.
+    if (p.base) return 'var(--background)'
+    if (p.region === null) return 'var(--secondary)'
+    const r = byRegion.get(p.region)
     if (!r) return 'var(--secondary)'
     return STATUS_FILL_VAR[statusFor(r.this_week.sets, r.mev, r.mav, r.mrv)]
   }
@@ -27,7 +30,7 @@ export function MuscleBodyMap({ regions }: MuscleBodyMapProps) {
           way the source drawing's outline did, without carrying its colour. */}
       <g transform={f.transform} stroke="var(--background)" strokeWidth={2} strokeLinejoin="round">
         {f.paths.map((p, i) => (
-          <path key={i} d={p.d} fill={fill(p.region)} />
+          <path key={i} d={p.d} fill={fill(p)} />
         ))}
       </g>
     </svg>

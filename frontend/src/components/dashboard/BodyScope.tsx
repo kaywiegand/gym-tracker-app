@@ -1,38 +1,82 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
-import { RANGE_OPTIONS, type DashboardRange } from '@/lib/dashboardRanges'
-import { BIA_KPI_METRICS, pickBiaKpi } from '@/lib/biaMetrics'
-import type { BiaMeasurement, BiaMeasurementDetail } from '@/types'
+import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import {
+  BIA_BANDED_METRICS,
+  pickBanded,
+  pickBiaKpi,
+  type BiaKpiKey,
+  type SegmentKind,
+} from '@/lib/biaMetrics'
+import type { BiaSeriesEntry } from '@/types'
 import { FilterChips } from '@/components/FilterChips'
+import { SegmentedControl } from '@/components/SegmentedControl'
+import { FitScoreGauge } from '@/components/FitScoreGauge'
 import { KpiTile } from '@/components/KpiTile'
+import { BiaRangeBar } from '@/components/BiaRangeBar'
+import { BiaBandBar, type ScaleBand } from '@/components/BiaBandBar'
+import { BiaSegmentBody } from '@/components/BiaSegmentBody'
+import { BiaTrendChart, type BiaTrendPoint } from '@/components/BiaTrendChart'
 import { BiaMeasurementDetailSheet } from '@/components/BiaMeasurementDetailSheet'
 import { Card } from '@/components/ui/card'
 
-// The date range switch doesn't filter anything here yet -- BIA scans are
-// sparse (a handful a year, not weekly like training data), so slicing by
-// 3M/6M/12M would usually just hide most of the little history there is.
-// Kept for UI consistency with the other three scopes per the Stage-4
-// unification request; wiring it up is a Backlog item if scan frequency
-// ever grows enough to matter.
+// The categories the scan sheet itself ticks (Untergewicht / Normal /
+// Übergewicht / Fettleibig), on the standard WHO thresholds.
+const BMI_BANDS: ScaleBand[] = [
+  { to: 18.5, label: 'Under', tone: 'warn' },
+  { to: 25, label: 'Normal', tone: 'good' },
+  { to: 30, label: 'Over', tone: 'warn' },
+  { to: 40, label: 'Obese', tone: 'crit' },
+]
+
+// Secondary figures as tiles with their own trend line.
+//
+// These carried a different muscle-group colour each, which was wrong twice
+// over: those hues mean a body region everywhere else in the app, and a green
+// line next to a worsening number reads as approval. Per CLAUDE.md §7 colour
+// is either data or status, never decoration -- so every sparkline now uses
+// one neutral hue, and the only coloured thing is the change, tinted by
+// whether it moved in the good direction.
+//
+// `better` says which way is good. 'none' = no meaningful direction (the
+// device's own control target), so the delta stays neutral rather than
+// pretending a smaller number is an achievement.
+type Direction = 'up' | 'down' | 'none'
+
+const DETAIL_TILES: { key: BiaKpiKey; label: string; unit?: string; decimals: number; better: Direction; hint: string }[] = [
+  { key: 'leanMass', label: 'Lean mass', unit: 'kg', decimals: 1, better: 'up', hint: 'higher is better' },
+  { key: 'softLeanMass', label: 'Soft lean mass', unit: 'kg', decimals: 1, better: 'up', hint: 'higher is better' },
+  { key: 'bmr', label: 'BMR', unit: 'kcal', decimals: 0, better: 'up', hint: 'higher is better' },
+  { key: 'waistHip', label: 'Waist–hip', decimals: 2, better: 'down', hint: 'lower is better' },
+  { key: 'obesityRate', label: 'Obesity rate', unit: '%', decimals: 1, better: 'down', hint: 'lower is better' },
+  // The device calls these "Fett/Muskel Kontrolle" -- the recommended change
+  // to reach its target weight. "Control" says nothing; what it means is how
+  // much to lose or gain, so it is labelled as the target it is.
+  { key: 'fatControl', label: 'Fat target', unit: 'kg', decimals: 1, better: 'none', hint: 'change to reach target' },
+  { key: 'muscleControl', label: 'Muscle target', unit: 'kg', decimals: 1, better: 'none', hint: 'change to reach target' },
+]
+
 export function BodyScope() {
-  const [range, setRange] = useState<DashboardRange>('3M')
-  const [measurements, setMeasurements] = useState<BiaMeasurement[]>([])
-  const [details, setDetails] = useState<Record<string, BiaMeasurementDetail>>({})
+  const [range, setRange] = useState<DashboardRange>('12M')
+  const [segmentKind, setSegmentKind] = useState<SegmentKind>('muscle')
+  const [scans, setScans] = useState<BiaSeriesEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [openMeasurementId, setOpenMeasurementId] = useState<string | null>(null)
 
+  // One request for everything. This used to be the measurement list plus one
+  // detail request per scan, all awaited before the first paint.
   useEffect(() => {
     api
-      .get<BiaMeasurement[]>('/bia/measurements?limit=20')
-      .then(async (rows) => {
-        setMeasurements(rows)
-        const entries = await Promise.all(
-          rows.map(async (row) => [row.id, await api.get<BiaMeasurementDetail>(`/bia/measurements/${row.id}`)] as const)
-        )
-        setDetails(Object.fromEntries(entries))
-      })
+      .get<BiaSeriesEntry[]>('/bia/series')
+      .then(setScans)
       .finally(() => setLoading(false))
   }, [])
+
+  const inRange = useMemo(() => {
+    if (range === 'All') return scans
+    const cutoff = Date.now() - RANGE_WEEKS[range] * 7 * 24 * 3600 * 1000
+    return scans.filter((s) => new Date(s.measured_at).getTime() >= cutoff)
+  }, [scans, range])
 
   const rangeSwitch = (
     <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
@@ -47,7 +91,7 @@ export function BodyScope() {
     )
   }
 
-  if (measurements.length === 0) {
+  if (scans.length === 0) {
     return (
       <div className="flex flex-col gap-3">
         {rangeSwitch}
@@ -61,60 +105,140 @@ export function BodyScope() {
     )
   }
 
-  // Oldest first so sparklines read left-to-right, matching the other scopes.
-  const chronological = [...measurements].reverse()
-  const latest = chronological[chronological.length - 1]
-  const latestValues = details[latest.id]?.values ?? []
+  // The headline numbers always describe the newest scan IN RANGE; if the
+  // range excludes everything, fall back to the newest overall and say so
+  // rather than showing an empty screen.
+  const rangeEmpty = inRange.length === 0
+  const shown = rangeEmpty ? scans : inRange
+  const latest = shown[shown.length - 1]
+  const previous = shown.length > 1 ? shown[shown.length - 2] : null
 
-  const series = (key: keyof typeof BIA_KPI_METRICS) =>
-    chronological.map((m) => pickBiaKpi(details[m.id]?.values ?? [], key) ?? 0)
+  const kpi = (key: BiaKpiKey, from = latest) => pickBiaKpi(from.values, key)
+  const trend: BiaTrendPoint[] = shown.map((s) => ({
+    date: s.measured_at.slice(0, 10),
+    weight: pickBiaKpi(s.values, 'weight'),
+    muscle: pickBiaKpi(s.values, 'skeletalMuscleMass'),
+    fat: pickBiaKpi(s.values, 'fatMass'),
+    target: pickBiaKpi(s.values, 'targetWeight'),
+  }))
 
-  const weight = pickBiaKpi(latestValues, 'weight')
-  const skeletalMuscleMass = pickBiaKpi(latestValues, 'skeletalMuscleMass')
-  const bodyFatPercent = pickBiaKpi(latestValues, 'bodyFatPercent')
-  const visceralFat = pickBiaKpi(latestValues, 'visceralFat')
-  const fitnessScore = pickBiaKpi(latestValues, 'fitnessScore')
+  const delta = (key: BiaKpiKey) => {
+    if (!previous) return null
+    const now = kpi(key)
+    const before = kpi(key, previous)
+    return now === null || before === null ? null : now - before
+  }
+
+  const headline: { key: BiaKpiKey; label: string; unit: string; decimals: number; goodWhen: 'up' | 'down' }[] = [
+    { key: 'weight', label: 'Weight', unit: 'kg', decimals: 1, goodWhen: 'down' },
+    { key: 'skeletalMuscleMass', label: 'Muscle', unit: 'kg', decimals: 1, goodWhen: 'up' },
+    { key: 'bodyFatPercent', label: 'Body fat', unit: '%', decimals: 1, goodWhen: 'down' },
+    { key: 'visceralFat', label: 'Visceral', unit: '', decimals: 0, goodWhen: 'down' },
+  ]
 
   return (
     <div className="flex flex-col gap-3">
       {rangeSwitch}
 
-      <div className="grid grid-cols-2 gap-2">
-        <KpiTile label="Weight" value={weight !== null ? weight.toFixed(1) : '—'} unit="kg" sparkline={series('weight')} color="var(--brand-accent)" />
-        <KpiTile
-          label="Skeletal muscle"
-          value={skeletalMuscleMass !== null ? skeletalMuscleMass.toFixed(1) : '—'}
-          unit="kg"
-          sparkline={series('skeletalMuscleMass')}
-          color="var(--muscle-legs)"
-        />
-        <KpiTile
-          label="Body fat"
-          value={bodyFatPercent !== null ? bodyFatPercent.toFixed(1) : '—'}
-          unit="%"
-          sparkline={series('bodyFatPercent')}
-          color="var(--muscle-arms)"
-        />
-        <KpiTile
-          label="Visceral fat"
-          value={visceralFat !== null ? visceralFat.toFixed(0) : '—'}
-          sparkline={series('visceralFat')}
-          color="var(--status-warn)"
-        />
-      </div>
+      {rangeEmpty && (
+        <p className="text-[11.5px] text-muted-foreground">
+          No scan in the last {range} — showing the most recent one from {latest.measured_at.slice(0, 10)}.
+        </p>
+      )}
 
-      <KpiTile
-        label="Fitness score"
-        value={fitnessScore !== null ? fitnessScore.toFixed(0) : '—'}
-        unit="/ 100"
-        sparkline={series('fitnessScore')}
-        color="var(--metric-e1rm)"
-      />
+      <Card className="px-3 pb-1 pt-3">
+        <FitScoreGauge score={kpi('fitnessScore')} previous={previous ? kpi('fitnessScore', previous) : null} />
+        <div className="grid grid-cols-4 gap-1 pb-2">
+          {headline.map((h) => {
+            const value = kpi(h.key)
+            const d = delta(h.key)
+            const good = d === null || d === 0 ? null : (d > 0) === (h.goodWhen === 'up')
+            return (
+              <div key={h.key} className="text-center">
+                <div className="text-[15px] font-bold tabular-nums">{value !== null ? value.toFixed(h.decimals) : '—'}</div>
+                <div className="text-[9.5px] uppercase tracking-wide text-muted-foreground">{h.label}</div>
+                {d !== null && d !== 0 && (
+                  <div
+                    className="text-[10px] font-semibold tabular-nums"
+                    style={{ color: good ? 'var(--status-good)' : 'var(--status-warn)' }}
+                  >
+                    {d > 0 ? '+' : ''}
+                    {d.toFixed(h.decimals)}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </Card>
 
       <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Scan history</div>
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Weight vs target
+        </div>
+        <BiaTrendChart points={trend} keys={['weight', 'target']} height={200} />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Muscle vs fat
+        </div>
+        <BiaTrendChart points={trend} keys={['muscle', 'fat']} height={200} />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Segments</div>
+          <SegmentedControl<SegmentKind>
+            className="w-[132px]"
+            value={segmentKind}
+            onChange={setSegmentKind}
+            options={[
+              { value: 'muscle', label: 'Muscle' },
+              { value: 'fat', label: 'Fat' },
+            ]}
+          />
+        </div>
+        <BiaSegmentBody values={latest.values} kind={segmentKind} />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Composition vs normal
+        </div>
+        {BIA_BANDED_METRICS.map((m) => (
+          <BiaRangeBar key={m.subcategory} label={m.label} unit={m.unit} reading={pickBanded(latest.values, m.subcategory)} />
+        ))}
+        <BiaBandBar label="BMI" value={kpi('bmi')} bands={BMI_BANDS} min={15} max={40} />
+      </Card>
+
+      <div className="grid grid-cols-2 gap-2">
+        {DETAIL_TILES.map((tile) => {
+          const value = kpi(tile.key)
+          const d = delta(tile.key)
+          const spark = shown.map((s) => pickBiaKpi(s.values, tile.key)).filter((v): v is number => v !== null)
+          const improved = d === null || d === 0 || tile.better === 'none' ? null : (d > 0) === (tile.better === 'up')
+          return (
+            <KpiTile
+              key={tile.key}
+              label={tile.label}
+              value={value !== null ? value.toFixed(tile.decimals) : '—'}
+              unit={tile.unit}
+              trend={d !== null && d !== 0 ? `${d > 0 ? '▲ +' : '▼ '}${d.toFixed(tile.decimals)} · ${tile.hint}` : tile.hint}
+              trendClassName={improved === null ? 'text-muted-foreground' : improved ? 'text-status-good' : 'text-status-warn'}
+              sparkline={spark.length > 0 ? spark : [0]}
+              color="var(--muted-foreground)"
+            />
+          )
+        })}
+      </div>
+
+      <Card className="p-3.5">
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Scan history{range !== 'All' && ` · ${shown.length} in ${range}`}
+        </div>
         <div className="flex flex-col">
-          {measurements.map((m) => (
+          {[...shown].reverse().map((m) => (
             <button
               key={m.id}
               type="button"

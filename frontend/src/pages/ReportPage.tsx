@@ -2,20 +2,24 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '@/lib/api'
 import { RANGE_WEEKS } from '@/lib/dashboardRanges'
-import { BIA_KPI_METRICS, pickBiaKpi, type BiaKpiKey } from '@/lib/biaMetrics'
+import { pickBiaKpi, type BiaKpiKey } from '@/lib/biaMetrics'
 import type { AcwrResponse, BiaMeasurementDetail, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { ConsistencyCalendar } from '@/components/ConsistencyCalendar'
 import { Button } from '@/components/ui/button'
 
-const BIA_KPI_LABELS: Record<BiaKpiKey, { label: string; unit: string }> = {
-  weight: { label: 'Weight', unit: 'kg' },
-  skeletalMuscleMass: { label: 'Skeletal muscle', unit: 'kg' },
-  bodyFatPercent: { label: 'Body fat', unit: '%' },
-  visceralFat: { label: 'Visceral fat', unit: '' },
-  fitnessScore: { label: 'Fitness score', unit: '/ 100' },
-}
+// The printable report deliberately carries only the headline figures, in
+// this order -- not every metric the scan reports. The on-screen Body scope
+// is where the full detail lives.
+const BIA_REPORT_ROWS: { key: BiaKpiKey; label: string; unit: string }[] = [
+  { key: 'fitnessScore', label: 'Fitness score', unit: '/ 100' },
+  { key: 'weight', label: 'Weight', unit: 'kg' },
+  { key: 'skeletalMuscleMass', label: 'Skeletal muscle', unit: 'kg' },
+  { key: 'bodyFatPercent', label: 'Body fat', unit: '%' },
+  { key: 'visceralFat', label: 'Visceral fat', unit: '' },
+  { key: 'bmr', label: 'Basal metabolic rate', unit: 'kcal' },
+]
 
 interface ReportData {
   acwr: AcwrResponse
@@ -108,10 +112,9 @@ function ReportBody({ data }: { data: ReportData }) {
           <h2 className="mb-2 text-[12px] font-bold uppercase tracking-wide text-muted-foreground">
             Body composition ({bia.measurement.measured_at.slice(0, 10)})
           </h2>
-          {(Object.keys(BIA_KPI_METRICS) as BiaKpiKey[]).map((key) => {
+          {BIA_REPORT_ROWS.map(({ key, label, unit }) => {
             const value = pickBiaKpi(bia.values, key)
             if (value === null) return null
-            const { label, unit } = BIA_KPI_LABELS[key]
             return <ReportRow key={key} label={label} value={`${value} ${unit}`.trim()} />
           })}
         </section>

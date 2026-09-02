@@ -278,6 +278,12 @@ export interface BiaMeasurementDetail {
   values: BiaValue[]
 }
 
+// One request for the whole Body dashboard: every measurement, oldest
+// first, with its values inlined (GET /bia/series).
+export interface BiaSeriesEntry extends BiaMeasurement {
+  values: BiaValue[]
+}
+
 export interface BiaImportResult {
   imported: number
   skipped: number

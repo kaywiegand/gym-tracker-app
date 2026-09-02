@@ -46,9 +46,9 @@ Toggle auf "All exercises" für die vollen 873.
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 11 | **BIA "Bereich"-Zeilen ohne strukturierte Referenzbereiche** — `bia_values.ref_low`/`ref_high` bleiben beim CSV-Import immer `NULL`; die "Bereich"-Zeilen der echten InBody-CSV (z.B. "37.0 - 45.2") landen 1:1 als Text in `value_text`, nicht als geparstes Min/Max. Verliert keine Information (jede Zelle bleibt sichtbar in der Detail-Ansicht), aber ein Chart mit Referenzband bräuchte das geparst. | 3 |
+| 11 | **BIA-Referenzbereiche nicht strukturiert gespeichert** — `bia_values.ref_low`/`ref_high` bleiben beim Import `NULL`; die "Bereich"-Zeile liegt als Text daneben. Das Frontend paart sie seit 2026-09-02 zur Laufzeit (`pickBanded`), damit bereits importierte Scans keine Neuimport brauchen. Sauberer wäre Parsing beim Import — dann bräuchte es aber einen Backfill für vorhandene Daten. | 3 |
 | 12 | **Kein "Strength × Composition"-Decouple-Chart** — Prototyp überlagert e1RM-Trend mit BIA-Verlauf; bräuchte echte Korrelationslogik zwischen zwei unterschiedlich getakteten Zeitreihen (Training wöchentlich, BIA-Scans ein paar Mal im Jahr). Bewusst zurückgestellt, keine erfundene Formel. | 3 |
-| 13 | **Body-Scope-Zeitraum-Switch (3M/6M/12M/All) filtert nichts** — bleibt nur für UI-Konsistenz mit den anderen drei Scopes bestehen. BIA-Scans sind zu selten für eine sinnvolle Zeitraum-Filterung. Nachziehen falls die Scan-Frequenz mal deutlich steigt. | 3 |
+| 13 | **Body-Scope-Zeitraum-Switch** — ✅ erledigt 2026-09-02, filtert jetzt Chart, Segmente, Kennzahlen und Historie. | — |
 | 14 | **Backup enthält keine Bilddateien** — `media`-Zeilen (Pfade) sind im JSON-Backup enthalten, die eigentlichen Bild-Dateien in `/uploads` nicht. Für echte Portabilität müsste `/uploads` klassisch per Dateisystem-Backup (rsync o.ä.) gesichert werden. | 3 |
 
 ---

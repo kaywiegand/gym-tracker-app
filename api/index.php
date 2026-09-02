@@ -97,6 +97,8 @@ try {
         handleBiaTemplate();
     } elseif ($method === 'POST' && $path === '/bia/import') {
         handleBiaImport();
+    } elseif ($method === 'GET' && $path === '/bia/series') {
+        handleBiaSeries();
     } elseif ($method === 'GET' && $path === '/bia/latest') {
         handleLatestBia();
     } elseif ($method === 'GET' && $path === '/bia/measurements') {

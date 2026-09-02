@@ -1,6 +1,6 @@
-import re, json, sys
+import re, json, sys, os
 
-SRC = '/Users/kaywiegand/Desktop/body.svg'
+SRC = os.path.join(os.path.dirname(__file__), '..', 'docs', 'references', 'body.svg')
 s = open(SRC).read()
 
 # split into the two labelled groups
@@ -34,7 +34,7 @@ def classify(nx, ny, side, w, h):
     if ny < 0.135:
         return None
     # hands and feet are not a trainable region
-    if 0.40 < ny < 0.57 and (nx < 0.155 or nx > 0.845):
+    if 0.46 < ny < 0.60 and (nx < 0.17 or nx > 0.83):
         return None
     if ny > 0.93:
         return None
@@ -67,7 +67,31 @@ for name, g in groups.items():
     for d, b in zip(g['paths'], boxes):
         cx = ((b[0] + b[2]) / 2 - x0) / W
         cy = ((b[1] + b[3]) / 2 - y0) / H
-        items.append({'d': d, 'region': classify(cx, cy, name, W, H), 'cx': round(cx, 3), 'cy': round(cy, 3)})
+        # The drawing carries one path spanning the whole figure -- the body
+        # silhouette the muscle segments are laid on top of. Filling it with a
+        # status colour washed the entire body in one colour; it has to render
+        # as background so only the segments carry meaning.
+        is_base = (b[2] - b[0]) / W > 0.9 and (b[3] - b[1]) / H > 0.9
+        # Anatomical side, for the BIA segment view (muscle/fat are reported
+        # per right arm / left arm / trunk / right leg / left leg).
+        # The figure is MIRRORED between views: in the front view the
+        # person's right arm sits on the LEFT of the image, in the back view
+        # on the right. Getting this backwards silently swaps every segment
+        # value, so it is derived per view rather than from cx alone.
+        if is_base or abs(cx - 0.5) < 0.03:
+            side = None
+        elif name == 'front':
+            side = 'right' if cx < 0.5 else 'left'
+        else:
+            side = 'left' if cx < 0.5 else 'right'
+
+        items.append({
+            'd': d,
+            'region': None if is_base else classify(cx, cy, name, W, H),
+            'base': is_base,
+            'side': side,
+            'cx': round(cx, 3), 'cy': round(cy, 3),
+        })
     out[name] = {'m': g['m'], 'items': items, 'box': [x0, y0, W, H]}
 
 json.dump(out, open(sys.argv[1], 'w'))
