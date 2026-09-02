@@ -37,9 +37,16 @@ foreach ($db->query('SELECT exercise_id, COUNT(*) c FROM sets WHERE deleted_at I
     $setCounts[$row['exercise_id']] = (int) $row['c'];
 }
 
+// Grouped on a normalised title, not the literal one: "Wide-Grip" and
+// "Wide Grip" are the same variant written two ways, and an exact-string
+// group would leave them side by side looking like two exercises.
+$normalise = static function (string $title): string {
+    return preg_replace('/\s+/', ' ', trim(strtolower((string) preg_replace('/[^a-z0-9]+/i', ' ', $title))));
+};
+
 $byTitle = [];
 foreach ((new ExerciseRepository())->list(null, null, null) as $e) {
-    $byTitle[$e['display_name']][] = $e;
+    $byTitle[$normalise($e['display_name'])][] = $e;
 }
 
 $exerciseRows = [];
