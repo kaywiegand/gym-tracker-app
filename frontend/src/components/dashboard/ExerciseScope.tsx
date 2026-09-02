@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { detectPlateau } from '@/lib/plateau'
-import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
 import { MultiMetricTrendChart } from '@/components/MultiMetricTrendChart'
 import { FilterChips } from '@/components/FilterChips'
@@ -36,7 +36,7 @@ function buildLadder(summaries: ExerciseSessionSummary[]): Rung[] {
 }
 
 export function ExerciseScope() {
-  const [range, setRange] = useState<DashboardRange>('3M')
+  const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ExerciseListItem[]>([])
   const [selected, setSelected] = useState<ExerciseListItem | null>(null)

@@ -60,7 +60,7 @@ Toggle auf "All exercises" für die vollen 873.
 | 15 | **Kalorien-Schätzung (Keytel, HR-basiert) nicht gebaut** — CLAUDE.md §8 nennt sie explizit "(später)". Voraussetzungen sind seit Stufe 5 vorhanden (HR-Samples pro Session, Alter/Geschlecht/Gewicht aus BIA), aber noch offene Entscheidungen: Gewichtsquelle (Bodyweight vs. BIA, welches wenn beide vorhanden), Geschlecht-Parsing aus dem BIA-Freitext ("Männlich"/"Weiblich" → Keytel-Formel-Zweig), eigene UI-Fläche (wo genau angezeigt). Bewusst als eigene Runde zurückgestellt statt in Stufe 6 Runde 1 mit reingepackt. | 2 |
 | 18 | **Workouts gruppieren** — nach dem Gainsfire-Import stehen 25 Workouts in einer flachen Liste. Braucht Gruppierung (nach Periode/Split/Archiv-Flag) oder ein Archiv, sonst ist die Liste unbrauchbar. `workouts.archived` existiert im Schema, wird aber nirgends genutzt. | 1 |
 | 19 | **Farb-Dubletten in der Palette** — `--body-weight`/`--body-muscle` teilen ihren Hex mit `--brand-accent`/`--metric-e1rm`, ebenso `--muscle-chest` = `--metric-volume`. Keine Datei nutzt zwei Bedeutungen desselben Tons gleichzeitig, also heute nicht mehrdeutig; echte Eindeutigkeit wäre eine Paletten-Entscheidung. | 3 |
-| 20 | **Maskable-Icon 5 % zu groß** — Inhalt ragt aus der sicheren Zone (zentrierter Kreis, 80 % der Kantenlänge). Auf iOS irrelevant, Android würde G und M anschneiden. | 3 |
+| 20 | ~~Maskable-Icon 5 % zu groß~~ — ✅ bewusst so belassen 2026-09-02: Kay nutzt iOS, dort wird nicht beschnitten. Auf Android würden G und M an den Außenkanten fehlen. | — |
 
 ---
 

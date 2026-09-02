@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
-import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import type { WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
@@ -11,7 +11,7 @@ import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
 
 export function WorkoutScope() {
-  const [range, setRange] = useState<DashboardRange>('3M')
+  const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([])
   const [selected, setSelected] = useState<WorkoutListItem | null>(null)
   const [split, setSplit] = useState<WorkoutMuscleSplitResponse | null>(null)
@@ -87,7 +87,10 @@ export function WorkoutScope() {
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : sessionCount === 0 ? (
-        <p className="text-sm text-muted-foreground">No sessions logged for this workout yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No sessions for this workout in the last {range === 'All' ? '5 years' : range}
+          {range !== 'All' && ' — try a longer range.'}
+        </p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
-import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import { FilterChips } from '@/components/FilterChips'
 import { KpiTile } from '@/components/KpiTile'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
@@ -20,7 +20,7 @@ const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_
 // with many exercises. e1RM lives in the Exercise scope instead, where one
 // is explicitly picked.
 export function OverviewScope() {
-  const [range, setRange] = useState<DashboardRange>('3M')
+  const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('sets')
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null)
@@ -50,8 +50,15 @@ export function OverviewScope() {
     return <p className="text-sm text-muted-foreground">Loading…</p>
   }
 
-  const lastVolume = trainingLoad.weekly_volume[trainingLoad.weekly_volume.length - 1]?.volume_kg ?? 0
-  const lastSessions = trainingLoad.weekly_sessions[trainingLoad.weekly_sessions.length - 1]?.count ?? 0
+  // Average across the selected range, not the last week in it. The headline
+  // used to be "last week", which is always the current one -- so after
+  // importing a year of history the tiles read 0 kg / 0 sessions while the
+  // sparkline underneath showed a full year of training.
+  const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0)
+  const volumeSeries = trainingLoad.weekly_volume.map((w) => w.volume_kg)
+  const sessionSeries = trainingLoad.weekly_sessions.map((w) => w.count)
+  const avgVolume = mean(volumeSeries)
+  const avgSessions = mean(sessionSeries)
   const acwrInRange = acwr.ratio >= 0.8 && acwr.ratio <= 1.3
   const acwrTone = acwrInRange ? 'text-status-good' : 'text-status-warn'
 
@@ -75,16 +82,18 @@ export function OverviewScope() {
       <div className="grid grid-cols-3 gap-2">
         <KpiTile
           label="Volume/wk"
-          value={Math.round(lastVolume).toLocaleString()}
+          value={Math.round(avgVolume).toLocaleString()}
           unit="kg"
-          sparkline={trainingLoad.weekly_volume.map((w) => w.volume_kg)}
+          trend={`avg over ${range}`}
+          sparkline={volumeSeries}
           color="var(--brand-accent)"
           infoTerm="Volume"
         />
         <KpiTile
           label="Sessions/wk"
-          value={String(lastSessions)}
-          sparkline={trainingLoad.weekly_sessions.map((w) => w.count)}
+          value={avgSessions.toFixed(1)}
+          trend={`avg over ${range}`}
+          sparkline={sessionSeries}
           color="var(--brand-accent)"
         />
         <KpiTile
@@ -96,6 +105,25 @@ export function OverviewScope() {
           color="var(--brand-accent)"
           infoTerm="ACWR"
         />
+      </div>
+
+      <Card className="p-3.5">
+        <div className="mb-1 flex items-baseline justify-between gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</span>
+          <span className="text-[10.5px] text-muted-foreground">
+            {consistency.dates.length} training days · one square = one day
+          </span>
+        </div>
+        <ConsistencyCalendar dates={consistency.dates} weeks={RANGE_WEEKS[range]} />
+      </Card>
+
+      {/* Everything above follows the range switch. The three cards below
+          always describe the current week -- they were interleaved with the
+          range-driven ones, so half the screen looked unresponsive. */}
+      <div className="mt-2 flex items-center gap-2">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">This week</span>
+        <span className="h-px flex-1 bg-border" />
       </div>
 
       <Card className="p-3.5">
@@ -120,10 +148,6 @@ export function OverviewScope() {
         <MuscleRadar series={radarSeries} />
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
-        <ConsistencyCalendar dates={consistency.dates} weeks={Math.min(18, RANGE_WEEKS[range])} />
-      </Card>
     </div>
   )
 }
