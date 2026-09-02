@@ -50,7 +50,10 @@ def classify(nx, ny, side, w, h):
     if side == 'front':
         if ny < 0.30:
             return 'chest'
-        if ny < 0.44:
+        # Down to the hip crease, not to the navel: the lower abdominals sit
+        # around 0.46 and were falling into 'legs', so the BIA trunk segment
+        # left a hole exactly where the belly is.
+        if ny < 0.48:
             return 'core'
         return 'legs'
     if ny < 0.42:
@@ -78,7 +81,12 @@ for name, g in groups.items():
         # person's right arm sits on the LEFT of the image, in the back view
         # on the right. Getting this backwards silently swaps every segment
         # value, so it is derived per view rather than from cx alone.
-        if is_base or abs(cx - 0.5) < 0.03:
+        region_now = None if is_base else classify(cx, cy, name, W, H)
+        # Midline paths have no side. Traps and the neck are classified as
+        # 'shoulders' for the heat map, but they are not an arm -- leaving
+        # them side-less lets the BIA segment view tell them from the delts.
+        midline = abs(cx - 0.5) < 0.03 or (region_now == 'shoulders' and 0.32 < cx < 0.68)
+        if is_base or midline:
             side = None
         elif name == 'front':
             side = 'right' if cx < 0.5 else 'left'
@@ -87,7 +95,7 @@ for name, g in groups.items():
 
         items.append({
             'd': d,
-            'region': None if is_base else classify(cx, cy, name, W, H),
+            'region': region_now,
             'base': is_base,
             'side': side,
             'cx': round(cx, 3), 'cy': round(cy, 3),

@@ -32,7 +32,15 @@ export function BiaSegmentBody({ values, kind }: BiaSegmentBodyProps) {
 
   const colorFor = (region: string | null, side?: 'left' | 'right'): string => {
     if (region === null) return 'var(--secondary)'
-    // chest/core/back paths all belong to the scan's single "trunk" figure.
+    // The scan's segments are arms, trunk and legs. Deltoids belong to the
+    // arm they sit on, not to the trunk -- they were being painted with the
+    // trunk's value. Traps and the neck carry no side and belong to no
+    // segment at all, so they stay neutral rather than borrowing one.
+    if (region === 'shoulders') {
+      if (!side) return 'var(--secondary)'
+      const arm = readings.find((r) => r.seg.region === 'arms' && r.seg.side === side)
+      return arm ? statusColor(arm.percent, kind) : 'var(--secondary)'
+    }
     const key = region === 'arms' || region === 'legs' ? region : 'trunk'
     const hit = readings.find((r) => r.seg.region === key && (key === 'trunk' || r.seg.side === side))
     return hit ? statusColor(hit.percent, kind) : 'var(--secondary)'

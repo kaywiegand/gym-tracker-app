@@ -186,32 +186,6 @@ export function BodyScope() {
         <BiaTrendChart points={trend} keys={['muscle', 'fat']} height={200} />
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Segments</div>
-          <SegmentedControl<SegmentKind>
-            className="w-[132px]"
-            value={segmentKind}
-            onChange={setSegmentKind}
-            options={[
-              { value: 'muscle', label: 'Muscle' },
-              { value: 'fat', label: 'Fat' },
-            ]}
-          />
-        </div>
-        <BiaSegmentBody values={latest.values} kind={segmentKind} />
-      </Card>
-
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Composition vs normal
-        </div>
-        {BIA_BANDED_METRICS.map((m) => (
-          <BiaRangeBar key={m.subcategory} label={m.label} unit={m.unit} reading={pickBanded(latest.values, m.subcategory)} />
-        ))}
-        <BiaBandBar label="BMI" value={kpi('bmi')} bands={BMI_BANDS} min={15} max={40} />
-      </Card>
-
       <div className="grid grid-cols-2 gap-2">
         {DETAIL_TILES.map((tile) => {
           const value = kpi(tile.key)
@@ -250,6 +224,43 @@ export function BodyScope() {
             </button>
           ))}
         </div>
+      </Card>
+
+      {/* Everything above reacts to the range switch. Everything below
+          describes one single scan, so it stays put when the range changes --
+          the split is called out rather than left for the reader to notice. */}
+      <div className="mt-2 flex items-center gap-2">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+          Latest scan · {latest.measured_at.slice(0, 10)}
+        </span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <Card className="p-3.5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Segments</div>
+          <SegmentedControl<SegmentKind>
+            className="w-[132px]"
+            value={segmentKind}
+            onChange={setSegmentKind}
+            options={[
+              { value: 'muscle', label: 'Muscle' },
+              { value: 'fat', label: 'Fat' },
+            ]}
+          />
+        </div>
+        <BiaSegmentBody values={latest.values} kind={segmentKind} />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Composition vs normal
+        </div>
+        {BIA_BANDED_METRICS.map((m) => (
+          <BiaRangeBar key={m.subcategory} label={m.label} unit={m.unit} reading={pickBanded(latest.values, m.subcategory)} />
+        ))}
+        <BiaBandBar label="BMI" value={kpi('bmi')} bands={BMI_BANDS} min={15} max={40} />
       </Card>
 
       <BiaMeasurementDetailSheet measurementId={openMeasurementId} onOpenChange={(open) => !open && setOpenMeasurementId(null)} />
