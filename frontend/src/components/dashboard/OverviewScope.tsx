@@ -110,7 +110,7 @@ export function OverviewScope() {
       <Card className="p-3.5">
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
         <p className="mb-2 text-[10.5px] text-muted-foreground">
-          {consistency.dates.length} training days · one square = one day · one row = one week
+          {consistency.dates.length} training days · one square = one day · one column = one week
         </p>
         <ConsistencyCalendar dates={consistency.dates} weeks={RANGE_WEEKS[range]} />
       </Card>
