@@ -3,6 +3,13 @@
 
     python3 scripts/gainsfire-to-backup.py <export.csv> <all.tsv> <overrides.tsv> <out.json>
 
+IMPORTANT -- <all.tsv> must be exported from the TARGET database, the one the
+backup will be restored into. db/seed/exercises.php mints a fresh Uuid::v4()
+for every exercise on every install, so the same exercise carries a different
+id on every machine. Building the file against a dev database and restoring
+it on the server leaves every set pointing at an id that does not exist
+there, and the workouts come up empty.
+
 The app has no training-data import; it does have Backup restore, which
 upserts by id and leaves rows not in the file alone. So the migration rides
 that already-tested path instead of adding an endpoint.
@@ -37,19 +44,31 @@ def main(csv_path, all_tsv, overrides_tsv, out_path):
     C = {name: i for i, name in enumerate(header)}
 
     # --- exercise lookup -------------------------------------------------
-    by_name = {}
+    # Keyed by the app's display title, which is derived from the source data
+    # and is therefore stable across installs -- unlike the row id.
+    # <all.tsv> is "<source name>\t<id>" exported from the TARGET database.
+    # Source names come from the seed data and are identical on every install;
+    # ids are not.
+    by_source = {}
     for line in io.open(all_tsv, encoding='utf-8'):
         p = line.rstrip('\n').split('\t')
-        if len(p) != 4: continue
-        name, _sub, eid, curated = p
-        if name not in by_name or (curated == '1' and by_name[name][1] != '1'):
-            by_name[name] = (eid, curated)
+        if len(p) != 2: continue
+        by_source.setdefault(p[0], p[1])
 
     mapping = {}
+    unresolved = []
     for line in io.open(overrides_tsv, encoding='utf-8'):
         if not line.strip(): continue
-        gf, app = line.rstrip('\n').split('\t')
-        mapping[gf] = by_name[app][0]
+        gf, source_name = line.rstrip('\n').split('\t')
+        if source_name in by_source:
+            mapping[gf] = by_source[source_name]
+        else:
+            unresolved.append((gf, source_name))
+    if unresolved:
+        print(f'{len(unresolved)} mapping targets missing from the target database:')
+        for gf, sn in unresolved:
+            print(f'  {gf}  ->  {sn}')
+        raise SystemExit(1)
 
     # --- drop duplicate spellings ---------------------------------------
     sig = defaultdict(set)

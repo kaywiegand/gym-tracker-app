@@ -178,16 +178,23 @@ upsertet und Zeilen, die nicht in der Datei stehen, unangetastet lässt.
 Die Migration nutzt diesen bereits getesteten Weg statt eines neuen Endpoints.
 
 ```bash
-# 1. aktuelle Übungsbibliothek exportieren (Titel + IDs)
+# 1. Übungsbibliothek der ZIELDATENBANK exportieren (Quellname + ID)
 php -r 'require "api/bootstrap.php";
   foreach ((new ExerciseRepository())->list(null,null,null) as $e)
-    printf("%s\t%s\t%s\t%d\n", $e["display_name"], $e["display_subtitle"], $e["id"], $e["is_curated"]);' > /tmp/all.tsv
+    printf("%s\t%s\n", $e["name"], $e["id"]);' > /tmp/exercises.tsv
 
 # 2. konvertieren
 python3 scripts/gainsfire-to-backup.py \
-    <gainsfire-export.csv> /tmp/all.tsv scripts/gainsfire-mapping.tsv \
+    <gainsfire-export.csv> /tmp/exercises.tsv scripts/gainsfire-mapping.tsv \
     uploads/gainsfire-migration-backup.json
 ```
+
+> **Schritt 1 muss gegen die Zieldatenbank laufen.** `db/seed/exercises.php`
+> erzeugt für jede Übung bei jeder Installation eine neue `Uuid::v4()` — dieselbe
+> Übung hat auf jedem Rechner eine andere ID. Wird die Datei gegen eine
+> Dev-Datenbank gebaut und auf dem Server eingespielt, zeigen alle Sätze auf
+> IDs, die es dort nicht gibt, und die Workouts sind leer. Deshalb mappt
+> `scripts/gainsfire-mapping.tsv` auf **Quellnamen**, nicht auf IDs.
 
 Ergebnis in der App hochladen: **Settings → Backup → Restore**.
 
