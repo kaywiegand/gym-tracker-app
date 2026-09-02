@@ -3,11 +3,12 @@ import { api } from '@/lib/api'
 import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import { FilterChips } from '@/components/FilterChips'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { KpiTile } from '@/components/KpiTile'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
-import { ConsistencyCalendar } from '@/components/ConsistencyCalendar'
+import { ConsistencyCalendar, type CalendarLayout } from '@/components/ConsistencyCalendar'
 import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_
 export function OverviewScope() {
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('sets')
+  const [calendarLayout, setCalendarLayout] = useState<CalendarLayout>('timeline')
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null)
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeResponse | null>(null)
@@ -108,13 +110,23 @@ export function OverviewScope() {
       </div>
 
       <Card className="p-3.5">
-        <div className="mb-1 flex items-baseline justify-between gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</span>
-          <span className="text-[10.5px] text-muted-foreground">
-            {consistency.dates.length} training days · one square = one day
-          </span>
+          <SegmentedControl<CalendarLayout>
+            className="w-[150px]"
+            value={calendarLayout}
+            onChange={setCalendarLayout}
+            options={[
+              { value: 'timeline', label: 'Timeline' },
+              { value: 'weekly', label: 'By week' },
+            ]}
+          />
         </div>
-        <ConsistencyCalendar dates={consistency.dates} weeks={RANGE_WEEKS[range]} />
+        <p className="mb-2 text-[10.5px] text-muted-foreground">
+          {consistency.dates.length} training days · one square = one day
+          {calendarLayout === 'weekly' ? ' · one row = one week' : ' · one column = one week'}
+        </p>
+        <ConsistencyCalendar dates={consistency.dates} weeks={RANGE_WEEKS[range]} layout={calendarLayout} />
       </Card>
 
       {/* Everything above follows the range switch. The three cards below
