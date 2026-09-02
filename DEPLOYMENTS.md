@@ -21,3 +21,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20260902-0745-4f61fbf` | `4f61fbf` | 2026-09-02T07:45:22Z | `backups/20260902-0745-4f61fbf/` | all 873 exercises titled; My-library filter removed |
 | `20260902-1225-f86935b` | `f86935b` | 2026-09-02T12:25:24Z | `backups/20260902-1225-f86935b/` | range switch reaches everything; weekly calendar; segment fixes |
 | `20260902-1503-9afb40e` | `9afb40e` | 2026-09-02T15:03:44Z | `backups/20260902-1503-9afb40e/` | finish-sheet comparison fallback; weekly-only calendar |
+| `20260902-1804-fea7f1a` | `fea7f1a` | 2026-09-02T18:04:19Z | `backups/20260902-1804-fea7f1a/` | consistency calendar back to timeline |

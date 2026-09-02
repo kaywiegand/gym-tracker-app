@@ -581,7 +581,7 @@ check(
     'ExerciseNaming omits a missing variant instead of leaving a gap',
     ExerciseNaming::displayName([
         'primary_muscle' => 'Chest', 'movement' => 'Press',
-        'equipment' => 'barbell', 'variant' => null, 'name' => 'x',
+        'equipment' => 'barbell', 'variant' => null, 'name' => 'Barbell Bench Press',
     ]) === 'Chest Press Barbell',
     $failures
 );
@@ -589,7 +589,7 @@ check(
     'ExerciseNaming drops the equipment part for "other"',
     ExerciseNaming::displayName([
         'primary_muscle' => 'Chest', 'movement' => 'Press',
-        'equipment' => 'other', 'variant' => null, 'name' => 'x',
+        'equipment' => 'other', 'variant' => null, 'name' => 'Press',
     ]) === 'Chest Press',
     $failures
 );
@@ -597,7 +597,7 @@ check(
     'ExerciseNaming drops a variant that only repeats the equipment',
     ExerciseNaming::displayName([
         'primary_muscle' => 'Lats', 'movement' => 'Row',
-        'equipment' => 'machine', 'variant' => 'Machine', 'name' => 'x',
+        'equipment' => 'machine', 'variant' => 'Machine', 'name' => 'Machine Row',
     ]) === 'Lats Row Machine',
     $failures
 );
@@ -605,7 +605,7 @@ check(
     'ExerciseNaming drops a variant that only repeats the muscle',
     ExerciseNaming::displayName([
         'primary_muscle' => 'Lower Back', 'movement' => 'Extension',
-        'equipment' => 'body only', 'variant' => 'lower back', 'name' => 'x',
+        'equipment' => 'body only', 'variant' => 'lower back', 'name' => 'Back Extension',
     ]) === 'Lower Back Extension Bodyweight',
     $failures
 );
@@ -625,14 +625,14 @@ check(
     ExerciseNaming::displayName([
         'primary_muscle' => 'Chest', 'movement' => null,
         'equipment' => 'dumbbell', 'name' => 'Decline Dumbbell Flyes',
-    ]) === 'Chest Fly Dumbbell',
+    ]) === 'Chest Fly Dumbbell Decline',
     $failures
 );
 check(
     'a curated movement always beats the inferred one',
     ExerciseNaming::displayName([
         'primary_muscle' => 'Chest', 'movement' => 'Press',
-        'equipment' => 'dumbbell', 'name' => 'Decline Dumbbell Flyes',
+        'equipment' => 'dumbbell', 'name' => 'Dumbbell Flyes',
     ]) === 'Chest Press Dumbbell',
     $failures
 );
@@ -770,6 +770,42 @@ $exRepo->create([
 check(
     'a hyphen counts as a word boundary',
     in_array($hyphenId, $idsFor('grip'), true),
+    $failures
+);
+
+// Without an inferred variant every exercise sharing a muscle, movement and
+// equipment collapsed onto one title -- 26 barbell squats all read
+// "Quads Squat Barbell", which makes them indistinguishable in the picker.
+check(
+    'ExerciseNaming infers a variant from what the source name adds',
+    ExerciseNaming::inferVariant('Wide Stance Barbell Squat', 'Quadriceps', 'Squat', 'barbell') === 'Wide Stance',
+    $failures
+);
+check(
+    'inferVariant drops words already carried by the other parts',
+    ExerciseNaming::inferVariant('Barbell Squat', 'Quadriceps', 'Squat', 'barbell') === '',
+    $failures
+);
+check(
+    'inferVariant drops the word that made the movement match',
+    ExerciseNaming::inferVariant('Decline Dumbbell Flyes', 'Chest', 'Fly', 'dumbbell') === 'Decline',
+    $failures
+);
+check(
+    'a curated variant is never overwritten by the inferred one',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Quadriceps', 'movement' => 'Squat', 'variant' => 'Front',
+        'equipment' => 'barbell', 'name' => 'Wide Stance Barbell Squat',
+    ]) === 'Quads Squat Barbell Front',
+    $failures
+);
+
+check(
+    'a curated exercise keeps its empty variant instead of guessing one',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => 'Press', 'variant' => null,
+        'equipment' => 'barbell', 'name' => 'Barbell Bench Press - Medium Grip',
+    ]) === 'Chest Press Barbell',
     $failures
 );
 

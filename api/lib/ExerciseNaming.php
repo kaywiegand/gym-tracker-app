@@ -215,6 +215,75 @@ final class ExerciseNaming
         return self::MOVEMENT_BY_CATEGORY[$category] ?? null;
     }
 
+    // Words that carry no distinguishing information in a variant.
+    private const VARIANT_STOPWORDS = [
+        'with', 'the', 'a', 'an', 'on', 'in', 'to', 'and', 'of', 'or', 'for',
+        'using', 'up', 'down', 'version', 'exercise', 'male', 'female',
+        // Body-region filler: the muscle part already says where it happens.
+        'torso', 'trunk',
+    ];
+
+    // Best-effort variant for an exercise nobody curated: whatever is left of
+    // the source name once the parts already in the title are removed.
+    //
+    // Without this, every exercise sharing a muscle, movement and equipment
+    // collapsed onto one title -- 26 different barbell squats all read
+    // "Quads Squat Barbell", which makes the picker unusable. Taking the
+    // leftover words ("Narrow Stance", "Zercher", "Box") splits them apart
+    // again. Capped at two words so a title stays a title.
+    public static function inferVariant(?string $sourceName, ?string $muscle, ?string $movement, ?string $equipment): string
+    {
+        $name = strtolower(trim((string) $sourceName));
+        if ($name === '') {
+            return '';
+        }
+
+        $used = [];
+        foreach ([$muscle, $movement, $equipment, self::equipmentLabel($equipment), self::muscleLabel($muscle)] as $part) {
+            foreach (preg_split('/[^a-z]+/', strtolower((string) $part)) ?: [] as $w) {
+                if ($w !== '') {
+                    $used[$w] = true;
+                }
+            }
+        }
+        foreach (self::VARIANT_STOPWORDS as $w) {
+            $used[$w] = true;
+        }
+
+        // Words that made the movement match are dropped by PREFIX, not by
+        // exact match: the needle is "fly" but the source says "Flyes", and
+        // keeping it would put the movement in the title twice.
+        $movementWords = [];
+        foreach (self::MOVEMENT_PATTERNS as $needles) {
+            foreach ($needles as $needle) {
+                foreach (explode(' ', $needle) as $w) {
+                    $w = trim($w, '-');
+                    if ($w !== '') {
+                        $movementWords[] = $w;
+                    }
+                }
+            }
+        }
+
+        $rest = [];
+        foreach (preg_split('/[^a-z0-9]+/', $name) ?: [] as $word) {
+            if ($word === '' || is_numeric($word) || isset($used[$word])) {
+                continue;
+            }
+            foreach ($movementWords as $w) {
+                if (str_starts_with($word, $w)) {
+                    continue 2;
+                }
+            }
+            $rest[] = ucfirst($word);
+            if (count($rest) === 2) {
+                break;
+            }
+        }
+
+        return implode(' ', $rest);
+    }
+
     public static function isCurated(array $row): bool
     {
         return trim((string) ($row['movement'] ?? '')) !== '';
@@ -237,6 +306,13 @@ final class ExerciseNaming
         $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
         $equipment = self::equipmentLabel($row['equipment'] ?? null);
         $variant = trim((string) ($row['variant'] ?? ''));
+        // Only guess a variant for an exercise nobody curated. On a curated
+        // one an empty variant is a decision -- "Bench Press" is deliberately
+        // just "Chest Press Barbell" -- and inferring "Medium Grip" from its
+        // source name would overwrite that decision.
+        if ($variant === '' && trim((string) ($row['movement'] ?? '')) === '') {
+            $variant = self::inferVariant($row['name'] ?? null, $row['primary_muscle'] ?? null, $movement, $row['equipment'] ?? null);
+        }
 
         // A variant that only repeats a part already in the name reads as a
         // stutter ("Lats Row Machine Machine", "Abdominals Crunch Cable Cable").
