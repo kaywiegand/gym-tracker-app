@@ -209,3 +209,25 @@
 **Zurückgestellt aus dieser Runde** (Zeit-/Umfangsgründe, nicht vergessen): Backlog #2 ("In your workouts"/meistgenutzt im Exercise-Picker), #3 (Muskel-Zuordnung im Exercise-Editor neu setzbar), #7 (Naming-Konvention), #15 (Kalorien-Schätzung).
 
 **Nächster Schritt:** Kay testet den neuen Exercise-Scope-Chart, die Volume-Targets-Karte und die Rep-Range-Override-UI live (inkl. nochmal BIA-Import mit der tatsächlich hochgeladenen Datei, falls das Problem weiterhin besteht). Danach ggf. weiter mit #2/#3 aus dem Backlog.
+
+---
+
+## Session 2026-09-02 — Body-Dashboard, Nomenklatur für alle Übungen, Gainsfire-Migration
+
+**Was passiert ist:**
+- **Body-Dashboard neu gebaut** (Kay: „sehr lahm", „Karten langweilig", „Zeitraum ändert nichts"): neuer Bulk-Endpoint `GET /bia/series` statt 1+N Requests, FitScore-Halbkreis aus dem Prototyp, Zeitraum-Schalter verdrahtet, Segmentanalyse auf der Body-Figur (Frontansicht, Muskel/Fett-Toggle), Zusammensetzungs-Metriken als Bullet-Charts gegen den Normbereich, BMI auf den vier Kategorien des Ausdrucks, Weight-vs-Target und Muscle-vs-Fat als getrennte Charts. Sichtbar jetzt ~35 statt 5 Werte pro Scan.
+- **Farb-Audit** nach Kays Frage: die Detail-Kacheln trugen je eine Muskelgruppen-Farbe — die bedeutet in der App eine Körperregion, und Grün neben einem sich verschlechternden Wert liest sich als Zustimmung. Alle Sparklines jetzt neutral, Farbe nur auf der Veränderung, Richtung explizit („higher is better"). Eigene Farbfamilie `--body-*` deklariert.
+- **Nomenklatur für alle 873 Übungen** (Kay: „ich gehe davon aus, dass du allen Übungen einen nominalen Titel zugewiesen hast"): 107 fielen noch auf den FEDB-Rohnamen zurück. `MOVEMENT_BY_NAME` für Gym-Slang (Cocoons, Otis-Up), `MOVEMENT_BY_CATEGORY` als Rückfall (stretching → Stretch). `category` musste in `selectColumns()` — sonst hätte dieselbe Übung im Workout wieder anders geheißen als in der Bibliothek.
+- **„My library"-Filter entfernt** — mit Titeln für alle 873 war die Trennung als Browsing-Filter sinnlos. `is_curated` bleibt als Handprüf-Flag und rankt Treffer.
+- **Gainsfire-Migration** gebaut: `scripts/gainsfire-to-backup.py` + `scripts/gainsfire-mapping.tsv`, Ergebnis als Backup-JSON in `uploads/`. 2775 Sätze, 122 Sessions, 22 Workouts, Mai 2025 – Juni 2026.
+- **BIA vervollständigt**: der März-2026-Scan fehlte, lag nur im XLSX von `kw-gym-performance`; der August-Scan lag in `~/Projects/GYM-Fitness/`. Beide eingearbeitet, sechs Scans vollständig, gegen die Original-Fotos gegengelesen.
+
+**Entscheidungen:**
+- Migration läuft über Backup-Restore statt über einen neuen Import-Endpoint — der Pfad ist getestet, upsertet per ID und lässt Bestehendes stehen. Gegen eine Kopie der Live-DB verifiziert: Kays drei aktiven Workouts überleben mit unveränderten IDs.
+- `is_curated` heißt weiterhin „von Hand geprüft" und nicht „hat einen Titel" — das sind zwei verschiedene Dinge, und nur Ersteres rechtfertigt eine Sonderbehandlung.
+
+**Gefundene Fehler:**
+- Der Gainsfire-Export enthält **jeden Satz doppelt** unter zwei Schreibweisen (15 Gruppen, 380 Zeilen, 12 %). Ungefiltert hätte das jede Volumenzahl verfälscht.
+- Erster Testimport verlor **579 Sätze**: zwei Gainsfire-Namen mappen auf dieselbe App-Übung am selben Tag und kollidierten auf der deterministischen Satz-ID. Nummerierung läuft jetzt nach dem Mapping.
+
+**Nächster Schritt:** Kay importiert die Migration und testet im Training. Danach frischer Gainsfire-Export (der vorhandene endet 12.06.2026) und Mapping-Durchsicht in eigener Session.

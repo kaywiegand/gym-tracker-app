@@ -170,6 +170,45 @@ Logik in `api/lib/ExerciseNaming.php` (eine Stelle, getestet in
 `api/tests/run.php`). Die Datenquelle bleibt austauschbar — sie muss nur
 Muskel, Equipment und einen Originalnamen liefern.
 
+## Gainsfire-Migration
+
+Trainingshistorie aus der Vorgänger-App übernehmen. Die App hat keinen
+Import für Trainingsdaten — wohl aber **Backup-Restore**, das per ID
+upsertet und Zeilen, die nicht in der Datei stehen, unangetastet lässt.
+Die Migration nutzt diesen bereits getesteten Weg statt eines neuen Endpoints.
+
+```bash
+# 1. aktuelle Übungsbibliothek exportieren (Titel + IDs)
+php -r 'require "api/bootstrap.php";
+  foreach ((new ExerciseRepository())->list(null,null,null) as $e)
+    printf("%s\t%s\t%s\t%d\n", $e["display_name"], $e["display_subtitle"], $e["id"], $e["is_curated"]);' > /tmp/all.tsv
+
+# 2. konvertieren
+python3 scripts/gainsfire-to-backup.py \
+    <gainsfire-export.csv> /tmp/all.tsv scripts/gainsfire-mapping.tsv \
+    uploads/gainsfire-migration-backup.json
+```
+
+Ergebnis in der App hochladen: **Settings → Backup → Restore**.
+
+**`scripts/gainsfire-mapping.tsv`** ordnet jeden Gainsfire-Namen einem
+App-Übungstitel zu (Tab-getrennt). Neue Namen aus einem frischeren Export
+hier ergänzen — nicht im Script.
+
+Zwei Eigenheiten des Exports, die das Script abfängt (Details im Docstring):
+
+- **Jeder Satz steht doppelt drin**, unter zwei Schreibweisen derselben
+  Übung (`Leg Press Machine` = `Leg press`). Ungefiltert wäre jede
+  Volumenzahl zu hoch. Erkennung über identische (Datum, Satz, Reps,
+  Gewicht)-Mengen.
+- **Rund ein Fünftel der Zeilen trägt „Entfernter Plan"** (Plan in Gainsfire
+  gelöscht). Hat derselbe Tag einen echten Plan, gehören sie dorthin — kein
+  Tag im Export hat zwei echte Pläne, die Zuordnung ist also eindeutig.
+
+IDs sind deterministisch (UUIDv5 über einen stabilen Schlüssel): ein zweiter
+Import aktualisiert dieselben Zeilen, statt Duplikate anzulegen. Bestehende
+Workouts und Sessions bleiben erhalten.
+
 ## Production Build
 
 ```bash
