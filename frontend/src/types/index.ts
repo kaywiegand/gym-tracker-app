@@ -253,6 +253,18 @@ export interface BodyMeasurement {
   deleted_at: string | null
 }
 
+// The session a just-finished one is compared against. `scope` says whether
+// it was the same workout or -- when that workout has no history yet -- the
+// most recent session of any workout.
+export interface PreviousSession {
+  session_id: string
+  started_at: string
+  workout_name: string | null
+  volume_kg: number
+  sets_count: number
+  scope: 'same_workout' | 'any_workout'
+}
+
 export interface BiaMeasurement {
   id: string
   measured_at: string

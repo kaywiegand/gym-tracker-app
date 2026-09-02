@@ -9,7 +9,7 @@ import { keepScreenAwake } from '@/lib/wakeLock'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
 import { useTrackingStore } from '@/store/useTrackingStore'
-import type { Settings, SetEntry, Workout } from '@/types'
+import type { PreviousSession, Settings, SetEntry, Workout } from '@/types'
 import { TrackShell } from '@/components/TrackShell'
 import { NumberField } from '@/components/NumberField'
 import { Card } from '@/components/ui/card'
@@ -67,7 +67,7 @@ export function TrackingPage() {
   const [now, setNow] = useState(() => Date.now())
   const [finishOpen, setFinishOpen] = useState(false)
   const [summary, setSummary] = useState<Summary | null>(null)
-  const [previousVolume, setPreviousVolume] = useState<number | null>(null)
+  const [previous, setPrevious] = useState<PreviousSession | null>(null)
   const [comparingVolume, setComparingVolume] = useState(false)
   const [pendingChoice, setPendingChoice] = useState<PendingResumeChoice | null>(null)
   const [suggestions, setSuggestions] = useState<Record<string, Suggestion>>({})
@@ -271,6 +271,7 @@ export function TrackingPage() {
   const doneSets = store.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0)
   const restRemaining = store.restEndAt ? Math.max(0, Math.ceil((store.restEndAt - now) / 1000)) : 0
   const restExpired = store.restEndAt !== null && restRemaining <= 0
+  const previousVolume = previous?.volume_kg ?? null
   const volumeDelta = summary && previousVolume !== null ? summary.volumeKg - previousVolume : null
   const volumeDeltaPct = volumeDelta !== null && previousVolume ? Math.round((volumeDelta / previousVolume) * 100) : null
 
@@ -279,18 +280,18 @@ export function TrackingPage() {
     const sessionIdForCompare = store.sessionId
     const result = await store.finish()
     setSummary(result)
-    setPreviousVolume(null)
+    setPrevious(null)
     setFinishOpen(true)
 
     if (workoutIdForCompare && sessionIdForCompare) {
       setComparingVolume(true)
       try {
-        const prev = await api.get<{ volume_kg: number | null }>(
+        const prev = await api.get<PreviousSession | null>(
           `/workouts/${workoutIdForCompare}/last-session-volume?exclude_session=${sessionIdForCompare}`,
         )
-        setPreviousVolume(prev.volume_kg)
+        setPrevious(prev)
       } catch {
-        setPreviousVolume(null)
+        setPrevious(null)
       } finally {
         setComparingVolume(false)
       }
@@ -463,18 +464,25 @@ export function TrackingPage() {
             {comparingVolume ? (
               <p className="text-[12px] text-muted-foreground">Comparing to last time…</p>
             ) : previousVolume === null ? (
-              <p className="text-[12px] text-muted-foreground">No previous session to compare</p>
+              <p className="text-[12px] text-muted-foreground">First session logged — nothing to compare yet.</p>
             ) : (
               volumeDelta !== null && (
-                <p
-                  className={`text-[12.5px] font-semibold ${
-                    volumeDelta > 0 ? 'text-status-good' : volumeDelta < 0 ? 'text-status-crit' : 'text-muted-foreground'
-                  }`}
-                >
-                  {volumeDelta > 0 ? '+' : ''}
-                  {Math.round(volumeDelta)} kg{volumeDeltaPct !== null ? ` (${volumeDelta > 0 ? '+' : ''}${volumeDeltaPct}%)` : ''} vs
-                  last time
-                </p>
+                <>
+                  <p
+                    className={`text-[12.5px] font-semibold ${
+                      volumeDelta > 0 ? 'text-status-good' : volumeDelta < 0 ? 'text-status-crit' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {volumeDelta > 0 ? '+' : ''}
+                    {Math.round(volumeDelta)} kg{volumeDeltaPct !== null ? ` (${volumeDelta > 0 ? '+' : ''}${volumeDeltaPct}%)` : ''}
+                  </p>
+                  {/* Which session this is measured against -- comparing to a
+                      different workout is a weaker signal, so it says so. */}
+                  <p className="text-[11px] text-muted-foreground">
+                    vs {previous?.scope === 'same_workout' ? 'last time' : previous?.workout_name ?? 'last session'} ·{' '}
+                    {previous?.started_at.slice(0, 10)} · {Math.round(previousVolume).toLocaleString()} kg
+                  </p>
+                </>
               )
             )}
           </div>

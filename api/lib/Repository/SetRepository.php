@@ -53,15 +53,37 @@ final class SetRepository extends BaseRepository
     // Total volume load (Σ weight × reps, CLAUDE.md §8) of the most recent
     // other completed session of this workout -- used to compare a
     // just-finished session against "last time". Warmup sets excluded.
+    // The previous session to compare a just-finished one against.
+    //
+    // Same workout first -- that is the honest comparison. But a workout done
+    // for the first time has no history, and the finish sheet then showed no
+    // trend at all, which reads as a broken screen rather than "nothing to
+    // compare yet". So it falls back to the previous session of ANY workout
+    // and says which of the two it used.
     public function lastSessionVolume(string $workoutId, ?string $excludeSessionId): ?array
     {
-        $sql = 'SELECT s.id AS session_id, s.started_at,
+        $same = $this->previousSession($excludeSessionId, $workoutId);
+        if ($same !== null) {
+            return $same + ['scope' => 'same_workout'];
+        }
+        $any = $this->previousSession($excludeSessionId, null);
+        return $any === null ? null : $any + ['scope' => 'any_workout'];
+    }
+
+    private function previousSession(?string $excludeSessionId, ?string $workoutId): ?array
+    {
+        $sql = 'SELECT s.id AS session_id, s.started_at, w.name AS workout_name,
                        SUM(st.weight_kg * st.reps) AS volume_kg,
                        COUNT(st.id) AS sets_count
                 FROM sessions s
                 JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
-                WHERE s.workout_id = ? AND s.deleted_at IS NULL';
-        $params = [$workoutId];
+                LEFT JOIN workouts w ON w.id = s.workout_id
+                WHERE s.deleted_at IS NULL';
+        $params = [];
+        if ($workoutId !== null) {
+            $sql .= ' AND s.workout_id = ?';
+            $params[] = $workoutId;
+        }
         if ($excludeSessionId !== null) {
             $sql .= ' AND s.id != ?';
             $params[] = $excludeSessionId;
