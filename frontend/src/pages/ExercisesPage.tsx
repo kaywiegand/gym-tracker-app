@@ -12,22 +12,17 @@ import { ExerciseDetailSheet } from '@/components/ExerciseDetailSheet'
 
 const REGION_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core']
 const MECHANIC_FILTERS = ['All', 'Compound', 'Isolation']
-const SCOPE_FILTERS = ['My library', 'All exercises']
 
-// Second line: the common gym name, plus the equipment. The structured name
-// on the first line already carries muscle and equipment, so repeating the
-// muscle here would be noise -- but only for curated rows, where the first
-// line is structured at all.
+// Second line: the common gym name. The structured first line already carries
+// muscle and equipment, so repeating them here would be noise.
 function cardSubtitle(item: ExerciseListItem): string {
-  const parts = item.is_curated ? [item.display_subtitle] : [item.primary_muscle, item.equipment]
-  return parts.filter(Boolean).join(' · ')
+  return item.display_subtitle
 }
 
 export function ExercisesPage() {
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState('All')
   const [mechanic, setMechanic] = useState('All')
-  const [scope, setScope] = useState('My library')
   const [exercises, setExercises] = useState<ExerciseListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<string | null>(null)
@@ -39,7 +34,6 @@ export function ExercisesPage() {
       if (query.trim()) params.set('q', query.trim())
       if (region !== 'All') params.set('region', region.toLowerCase())
       if (mechanic !== 'All') params.set('mechanic', mechanic.toLowerCase())
-      if (scope === 'My library') params.set('curated', '1')
       const qs = params.toString()
       setLoading(true)
       api
@@ -48,7 +42,7 @@ export function ExercisesPage() {
         .finally(() => setLoading(false))
     }, 200)
     return () => clearTimeout(timer)
-  }, [query, region, mechanic, scope])
+  }, [query, region, mechanic])
 
   const groups = groupByRegion(exercises)
 
@@ -73,22 +67,15 @@ export function ExercisesPage() {
 
   return (
     <>
-      <PageHeader title="Exercises" subtitle={scope === 'My library' ? 'Curated names' : 'Full library · Free Exercise DB'} />
+      <PageHeader title="Exercises" subtitle="Library" />
 
       <Input placeholder="Search exercises…" value={query} onChange={(e) => setQuery(e.target.value)} />
-      <FilterChips className="mt-2" options={SCOPE_FILTERS} value={scope} onChange={setScope} />
-      <FilterChips className="mt-1" options={REGION_FILTERS} value={region} onChange={setRegion} />
+      <FilterChips className="mt-2" options={REGION_FILTERS} value={region} onChange={setRegion} />
       <FilterChips className="mt-1" options={MECHANIC_FILTERS} value={mechanic} onChange={setMechanic} />
 
       {loading && exercises.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">Loading…</p>}
 
-      {!loading && groups.length === 0 && (
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          {scope === 'My library'
-            ? 'Nothing curated yet. Switch to All exercises, open one and give it a movement.'
-            : 'No matches'}
-        </p>
-      )}
+      {!loading && groups.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">No matches</p>}
 
       {groups.map((group) => (
         <div key={group.region}>

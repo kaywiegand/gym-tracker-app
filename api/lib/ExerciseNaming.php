@@ -123,15 +123,86 @@ final class ExerciseNaming
         'Sprint' => ['sprint', 'run'],
     ];
 
+    // Source names whose movement no keyword catches -- mostly gym slang
+    // ("Cocoons", "Otis-Up", "Spell Caster"). Listed by exact name so every
+    // exercise in the library ends up with a structured title, which is the
+    // whole point of the scheme: an exercise you cannot name you cannot find.
+    private const MOVEMENT_BY_NAME = [
+        'advanced kettlebell windmill' => 'Windmill',
+        'alternate heel touchers' => 'Crunch',
+        'around the worlds' => 'Fly',
+        'balance board' => 'Hold',
+        'band hip adductions' => 'Adduction',
+        'band pull apart' => 'Fly',
+        'battling ropes' => 'Wave',
+        'body-up' => 'Extension',
+        'bottoms up' => 'Raise',
+        'butt-ups' => 'Crunch',
+        'cable hip adduction' => 'Adduction',
+        'cable iron cross' => 'Fly',
+        'car drivers' => 'Rotation',
+        'cocoons' => 'Crunch',
+        'cross over - with bands' => 'Fly',
+        'dead bug' => 'Hold',
+        'double kettlebell windmill' => 'Windmill',
+        'downward facing balance' => 'Hold',
+        'dumbbell scaption' => 'Raise',
+        'elbow to knee' => 'Crunch',
+        'exercise ball pull-in' => 'Crunch',
+        'flutter kicks' => 'Raise',
+        'gironda sternum chins' => 'Pull-Up',
+        'hanging pike' => 'Raise',
+        'hip flexion with band' => 'Raise',
+        'iron cross' => 'Fly',
+        'kettlebell figure 8' => 'Pass',
+        'kettlebell pirate ships' => 'Press',
+        'kettlebell windmill' => 'Windmill',
+        "landmine 180's" => 'Rotation',
+        'landmine linear jammer' => 'Press',
+        'leg lift' => 'Raise',
+        'leg pull-in' => 'Crunch',
+        'lying face down plate neck resistance' => 'Extension',
+        'lying face up plate neck resistance' => 'Extension',
+        'mixed grip chin' => 'Pull-Up',
+        'otis-up' => 'Sit-Up',
+        'platform hamstring slides' => 'Curl',
+        'power partials' => 'Raise',
+        'prone manual hamstring' => 'Curl',
+        'seated head harness neck resistance' => 'Extension',
+        'seated leg tucks' => 'Crunch',
+        'side jackknife' => 'Crunch',
+        'side to side chins' => 'Pull-Up',
+        'single-arm linear jammer' => 'Press',
+        'spell caster' => 'Rotation',
+        'standing cable lift' => 'Chop',
+        'suspended fallout' => 'Rollout',
+        'skating' => 'Skate',
+        'rack delivery' => 'Clean',
+        'wide stance stiff legs' => 'Deadlift',
+    ];
+
+    // Last resort per source category: a stretch is a Stretch even when its
+    // name never says so ("Child's Pose", "Groiners").
+    private const MOVEMENT_BY_CATEGORY = [
+        'stretching' => 'Stretch',
+        'plyometrics' => 'Drill',
+        'strongman' => 'Carry',
+        'cardio' => 'Cardio',
+        'olympic weightlifting' => 'Lift',
+    ];
+
     // Best-effort movement for an exercise nobody curated. Deliberately a
     // guess: the hand-curated value always wins, and this never sets
     // is_curated -- it only stops the display name from falling back to the
     // raw source name.
-    public static function inferMovement(?string $sourceName): ?string
+    public static function inferMovement(?string $sourceName, ?string $category = null): ?string
     {
         $name = strtolower(trim((string) $sourceName));
         if ($name === '') {
             return null;
+        }
+        if (isset(self::MOVEMENT_BY_NAME[$name])) {
+            return self::MOVEMENT_BY_NAME[$name];
         }
         foreach (self::MOVEMENT_PATTERNS as $movement => $needles) {
             foreach ($needles as $needle) {
@@ -140,7 +211,8 @@ final class ExerciseNaming
                 }
             }
         }
-        return null;
+        $category = strtolower(trim((string) $category));
+        return self::MOVEMENT_BY_CATEGORY[$category] ?? null;
     }
 
     public static function isCurated(array $row): bool
@@ -156,7 +228,7 @@ final class ExerciseNaming
             // Not curated -- guess the movement so this still reads as a
             // structured name. Only a name we truly cannot structure keeps
             // the raw source name.
-            $movement = (string) (self::inferMovement($row['name'] ?? null) ?? '');
+            $movement = (string) (self::inferMovement($row['name'] ?? null, $row['category'] ?? null) ?? '');
         }
         if ($movement === '') {
             return (string) ($row['name'] ?? '');
@@ -219,6 +291,7 @@ final class ExerciseNaming
                 {$alias}.display_alias AS {$prefix}display_alias,
                 {$alias}.is_curated AS {$prefix}is_curated,
                 {$alias}.equipment AS {$prefix}equipment,
+                {$alias}.category AS {$prefix}category,
                 (SELECT mu.name_en FROM exercise_muscles em JOIN muscles mu ON mu.id = em.muscle_id
                  WHERE em.exercise_id = {$alias}.id AND em.role = 'primary'
                  ORDER BY mu.sort LIMIT 1) AS {$prefix}primary_muscle";
@@ -229,7 +302,7 @@ final class ExerciseNaming
     public static function decorateJoined(array $row, string $prefix = 'exercise_'): array
     {
         $inner = [];
-        foreach (['name', 'movement', 'variant', 'display_alias', 'is_curated', 'equipment', 'primary_muscle'] as $key) {
+        foreach (['name', 'movement', 'variant', 'display_alias', 'is_curated', 'equipment', 'category', 'primary_muscle'] as $key) {
             $inner[$key] = $row[$prefix . $key] ?? null;
         }
         $row[$prefix . 'display_name'] = self::displayName($inner);
