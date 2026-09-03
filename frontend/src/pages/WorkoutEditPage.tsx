@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '@/lib/api'
-import type { ExerciseListItem, TrainingMode, Workout } from '@/types'
+import type { ExerciseListItem, TrainingMode, Workout, WorkoutGroup } from '@/types'
 import { PageHeader } from '@/components/PageHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { NumberField } from '@/components/NumberField'
@@ -34,6 +34,12 @@ export function WorkoutEditPage() {
   const [loading, setLoading] = useState(isEditing)
   const [saving, setSaving] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [groups, setGroups] = useState<WorkoutGroup[]>([])
+  const [groupId, setGroupId] = useState<string>('')
+
+  useEffect(() => {
+    api.get<WorkoutGroup[]>('/workout-groups').then(setGroups)
+  }, [])
 
   useEffect(() => {
     api.get<TrainingMode[]>('/training-modes').then((m) => {
@@ -47,6 +53,7 @@ export function WorkoutEditPage() {
     api.get<Workout>(`/workouts/${id}`).then((w) => {
       setName(w.name)
       setModeId(w.mode_id)
+      setGroupId(w.group_id ?? '')
       setExercises(
         w.exercises.map((e) => ({
           tempId: e.id,
@@ -113,6 +120,7 @@ export function WorkoutEditPage() {
     const payload = {
       name: name.trim(),
       mode_id: modeId,
+      group_id: groupId || null,
       exercises: exercises.map((e) => ({
         exercise_id: e.exercise_id,
         planned_sets: e.planned_sets,
@@ -165,6 +173,30 @@ export function WorkoutEditPage() {
         options={modes.map((m) => ({ value: String(m.id), label: `${m.name} ${m.rep_low}–${m.rep_high}` }))}
       />
       <p className="mt-1.5 px-0.5 text-[11px] text-muted-foreground">All exercises inherit this mode's rep range.</p>
+
+      <div className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Group</div>
+      {groups.length === 0 ? (
+        <p className="text-[12px] text-muted-foreground">
+          No groups yet —{' '}
+          <button type="button" className="underline underline-offset-2" onClick={() => navigate('/workout-groups')}>
+            create one
+          </button>{' '}
+          to sort the workout list.
+        </p>
+      ) : (
+        <select
+          value={groupId}
+          onChange={(e) => setGroupId(e.target.value)}
+          className="h-9 w-full rounded-md border border-border bg-secondary px-2 text-[14px] outline-none"
+        >
+          <option value="">No group</option>
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      )}
 
       <div className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Exercises</div>
       <div className="flex flex-col gap-1.5">

@@ -73,10 +73,22 @@ CREATE TABLE IF NOT EXISTS media (
   created_at TEXT
 );
 
+-- Optional grouping for the workout list: "Warm ups", "Full body", ...
+-- A workout may belong to one group or to none.
+CREATE TABLE IF NOT EXISTS workout_groups (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  sort INTEGER DEFAULT 0,
+  created_at TEXT,
+  updated_at TEXT,
+  deleted_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS workouts (
   id TEXT PRIMARY KEY,
   name TEXT,
   mode_id INTEGER,
+  group_id TEXT,
   notes TEXT,
   archived INTEGER DEFAULT 0,
   created_at TEXT,

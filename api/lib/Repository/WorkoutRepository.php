@@ -6,11 +6,13 @@ final class WorkoutRepository extends BaseRepository
     public function list(): array
     {
         return $this->fetchAll(
-            "SELECT w.id, w.name, w.mode_id, tm.key AS mode_key, tm.name AS mode_name, tm.rep_low, tm.rep_high,
+            "SELECT w.id, w.name, w.mode_id, w.group_id, g.name AS group_name, g.sort AS group_sort,
+                tm.key AS mode_key, tm.name AS mode_name, tm.rep_low, tm.rep_high,
                 (SELECT COUNT(*) FROM workout_exercises we WHERE we.workout_id = w.id AND we.deleted_at IS NULL) AS exercise_count,
                 w.updated_at
              FROM workouts w
              JOIN training_modes tm ON tm.id = w.mode_id
+             LEFT JOIN workout_groups g ON g.id = w.group_id AND g.deleted_at IS NULL
              WHERE w.deleted_at IS NULL AND w.archived = 0
              ORDER BY w.name"
         );
@@ -19,7 +21,7 @@ final class WorkoutRepository extends BaseRepository
     public function find(string $id): ?array
     {
         $workout = $this->fetchOne(
-            'SELECT w.id, w.name, w.mode_id, tm.key AS mode_key, tm.name AS mode_name, tm.rep_low, tm.rep_high,
+            'SELECT w.id, w.name, w.mode_id, w.group_id, tm.key AS mode_key, tm.name AS mode_name, tm.rep_low, tm.rep_high,
                 w.notes, w.archived, w.created_at, w.updated_at
              FROM workouts w JOIN training_modes tm ON tm.id = w.mode_id
              WHERE w.id = ? AND w.deleted_at IS NULL',
@@ -55,9 +57,9 @@ final class WorkoutRepository extends BaseRepository
         $this->db->beginTransaction();
         try {
             $this->execute(
-                'INSERT INTO workouts (id, name, mode_id, notes, archived, created_at, updated_at, deleted_at)
-                 VALUES (?, ?, ?, ?, 0, ?, ?, NULL)',
-                [$id, $data['name'], (int) $data['mode_id'], $data['notes'] ?? null, $now, $now]
+                'INSERT INTO workouts (id, name, mode_id, group_id, notes, archived, created_at, updated_at, deleted_at)
+                 VALUES (?, ?, ?, ?, ?, 0, ?, ?, NULL)',
+                [$id, $data['name'], (int) $data['mode_id'], self::blankToNull($data['group_id'] ?? null), $data['notes'] ?? null, $now, $now]
             );
             $this->replaceExercises($id, $data['exercises'] ?? []);
             $this->db->commit();
@@ -80,8 +82,8 @@ final class WorkoutRepository extends BaseRepository
         $this->db->beginTransaction();
         try {
             $this->execute(
-                'UPDATE workouts SET name = ?, mode_id = ?, notes = ?, updated_at = ? WHERE id = ?',
-                [$data['name'], (int) $data['mode_id'], $data['notes'] ?? null, $now, $id]
+                'UPDATE workouts SET name = ?, mode_id = ?, group_id = ?, notes = ?, updated_at = ? WHERE id = ?',
+                [$data['name'], (int) $data['mode_id'], self::blankToNull($data['group_id'] ?? null), $data['notes'] ?? null, $now, $id]
             );
             if (isset($data['exercises'])) {
                 $this->replaceExercises($id, $data['exercises']);
@@ -107,6 +109,14 @@ final class WorkoutRepository extends BaseRepository
     // (delete + reinsert in the same transaction) instead of diffing
     // individual workout_exercise rows -- there's no offline sync yet to
     // make that diffing worthwhile.
+    // "" from a <select> with no group chosen means no group, not a group
+    // whose id is the empty string.
+    private static function blankToNull(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+        return $value === '' ? null : $value;
+    }
+
     private function replaceExercises(string $workoutId, array $exercises): void
     {
         $now = self::nowIso();

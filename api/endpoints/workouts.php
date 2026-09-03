@@ -65,3 +65,39 @@ function handleWorkoutMuscleSplit(string $workoutId): void
     $sinceDays = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) * 7 : null;
     Http::respond(['sessions' => (new SetRepository())->muscleSplitForWorkout($workoutId, $limit, $sinceDays)]);
 }
+
+// --- workout groups -----------------------------------------------------
+function handleListWorkoutGroups(): void
+{
+    Auth::require();
+    Http::respond((new WorkoutGroupRepository())->list());
+}
+
+function handleCreateWorkoutGroup(): void
+{
+    Auth::require();
+    $body = Http::jsonBody();
+    if (!isset($body['name']) || trim((string) $body['name']) === '') {
+        Http::error('name is required');
+    }
+    Http::respond((new WorkoutGroupRepository())->create($body), 201);
+}
+
+function handleUpdateWorkoutGroup(string $id): void
+{
+    Auth::require();
+    $group = (new WorkoutGroupRepository())->update($id, Http::jsonBody());
+    if ($group === null) {
+        Http::error('Group not found', 404);
+    }
+    Http::respond($group);
+}
+
+function handleDeleteWorkoutGroup(string $id): void
+{
+    Auth::require();
+    if (!(new WorkoutGroupRepository())->softDelete($id)) {
+        Http::error('Group not found', 404);
+    }
+    Http::respond(['deleted' => true]);
+}

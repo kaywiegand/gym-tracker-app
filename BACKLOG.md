@@ -12,7 +12,7 @@ Prio: `1` = hoch · `2` = mittel · `3` = niedrig
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 1 | **Muskel-Icon-Set** — Prototyp-Icons sind bewusst Platzhalter (CLAUDE.md §7). Listen sind in Stufe 1 bewusst ohne Icons gebaut (Namen reichen). Falls später ein besserer Original-Icon-Satz kommt: Entscheidung treffen ob er in Listen zurückkommt oder nur in Detail-Ansichten bleibt. | 3 |
+| 1 | **Muskel-Icon-Set** — Prototyp-Icons sind bewusst Platzhalter (CLAUDE.md §7). Listen sind in Stufe 1 bewusst ohne Icons gebaut (Namen reichen). Falls später ein besserer Original-Icon-Satz kommt: Entscheidung treffen ob er in Listen zurückkommt oder nur in Detail-Ansichten bleibt. | 3 | ~~Muskel-Zuordnung im Exercise-Editor~~ — ✅ verworfen 2026-09-02: Kay — die FEDB-Zuordnung ist richtig (Deadlift auf Lower Back, RDL auf Hamstrings), keine Relevanz. | — |
 | 2 | **"In your workouts" im Exercise-Picker** — Prototyp zeigt eine "Most trained"-Sektion oben im Picker. Aktuell zeigt der Picker nur Suche + Gruppierung nach Region. Seit Stufe 2 gibt es echte Session/Sets-Historie — "meistgenutzt" oder "zuletzt verwendet" wäre jetzt berechenbar, aber bewusst noch nicht gebaut (kein UI-Auftrag dafür). Bei Bedarf nachziehen. | 2 |
 | 3 | **Muskel-Zuordnung im Exercise-Editor** — "Duplicate & edit" kopiert primary/secondary Muskeln 1:1, aber es gibt noch keine UI um sie für die Kopie neu zuzuordnen (nur Skalarfelder editierbar: Name/Equipment/Category/Mechanic/Increment). Für eigene Custom-Übungen mit abweichender Muskel-Verteilung müsste das nachgezogen werden — bewusst Overengineering-Vermeidung für Stufe 1. | 2 |
 
@@ -57,8 +57,8 @@ Toggle auf "All exercises" für die vollen 873.
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 15 | **Kalorien-Schätzung (Keytel, HR-basiert) nicht gebaut** — CLAUDE.md §8 nennt sie explizit "(später)". Voraussetzungen sind seit Stufe 5 vorhanden (HR-Samples pro Session, Alter/Geschlecht/Gewicht aus BIA), aber noch offene Entscheidungen: Gewichtsquelle (Bodyweight vs. BIA, welches wenn beide vorhanden), Geschlecht-Parsing aus dem BIA-Freitext ("Männlich"/"Weiblich" → Keytel-Formel-Zweig), eigene UI-Fläche (wo genau angezeigt). Bewusst als eigene Runde zurückgestellt statt in Stufe 6 Runde 1 mit reingepackt. | 2 |
-| 18 | **Workouts gruppieren** — 25 Workouts in einer flachen Liste. Braucht Gruppierung oder ein Archiv, sonst ist die Liste unbrauchbar. `workouts.archived` existiert im Schema, wird aber nirgends genutzt. | 1 |
+| 15 | **Kalorien-Schätzung** — HR-Daten fehlen. Über BIA allein geht nur eine MET-Faustformel (Krafttraining 3–6 MET × Gewicht × Dauer), die je nach Annahme um Faktor 2 streut. Zurückgestellt bis HR-Daten da sind. | 3 |
+| 18 | ~~Workouts gruppieren~~ — ✅ erledigt 2026-09-02: `workout_groups` + optionale `workouts.group_id`, aufklappbare Abschnitte in der Liste, Verwaltung unter /workout-groups. | — |
 | 19 | **Farb-Dubletten in der Palette** — `--body-weight`/`--body| 21 | **Frischer Gainsfire-Export** — der vorhandene endet am 12.06.2026, es fehlen ~3 Monate. Danach Mapping-Durchsicht (`uploads/gainsfire-exercise-mapping.csv`, 94 Zeilen). Eigene Session, Kay will den Export selbst ziehen. | 1 |
 -muscle` teilen ihren Hex mit `--brand-accent`/`--metric-e1rm`, ebenso `--muscle-chest` = `--metric-volume`. Keine Datei nutzt zwei Bedeutungen desselben Tons gleichzeitig, also heute nicht mehrdeutig; echte Eindeutigkeit wäre eine Paletten-Entscheidung. | 3 |
 | 20 | ~~Maskable-Icon 5 % zu groß~~ — ✅ bewusst so belassen 2026-09-02: Kay nutzt iOS, dort wird nicht beschnitten. Auf Android würden G und M an den Außenkanten fehlen. | — |

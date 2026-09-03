@@ -812,6 +812,31 @@ check(
 check('movements() lists distinct movements in use', in_array('Press', $exRepo->movements(), true), $failures);
 check('variants() lists distinct variants in use', in_array('Incline', $exRepo->variants(), true), $failures);
 
+echo "WorkoutGroupRepository\n";
+$groupRepo = new WorkoutGroupRepository();
+$gWarm = $groupRepo->create(['name' => 'Warm ups', 'sort' => 0]);
+$gMain = $groupRepo->create(['name' => 'Full body', 'sort' => 1]);
+check('create group returns id and name', $gWarm['name'] === 'Warm ups', $failures);
+check('groups list in sort order', array_column($groupRepo->list(), 'name') === ['Warm ups', 'Full body'], $failures);
+
+$grouped = $woRepo->create(['name' => 'Grouped Workout', 'mode_id' => 2, 'group_id' => $gMain['id'], 'exercises' => []]);
+check('workout carries its group', $grouped['group_id'] === $gMain['id'], $failures);
+$listed = array_values(array_filter($woRepo->list(), fn ($w) => $w['id'] === $grouped['id']))[0];
+check('list joins the group name', $listed['group_name'] === 'Full body', $failures);
+check('group counts its workouts', array_values(array_filter($groupRepo->list(), fn ($g) => $g['id'] === $gMain['id']))[0]['workout_count'] === 1, $failures);
+
+// "" from a select with nothing chosen must mean no group, not a group whose
+// id is the empty string -- that would leave a dangling reference.
+$woRepo->update($grouped['id'], ['name' => 'Grouped Workout', 'mode_id' => 2, 'group_id' => '']);
+check('empty group_id clears the group', $woRepo->find($grouped['id'])['group_id'] === null, $failures);
+
+// Deleting a group must never take its workouts with it.
+$woRepo->update($grouped['id'], ['name' => 'Grouped Workout', 'mode_id' => 2, 'group_id' => $gMain['id']]);
+check('delete group returns true once', $groupRepo->softDelete($gMain['id']) === true, $failures);
+check('delete group returns false on repeat', $groupRepo->softDelete($gMain['id']) === false, $failures);
+check('workout survives its group being deleted', $woRepo->find($grouped['id']) !== null, $failures);
+check('workout is ungrouped afterwards', $woRepo->find($grouped['id'])['group_id'] === null, $failures);
+
 @unlink($dbPath);
 
 if ($failures) {

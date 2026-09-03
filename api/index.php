@@ -69,6 +69,16 @@ try {
         handleSyncPush();
     } elseif ($method === 'GET' && $path === '/bodyweight') {
         handleGetBodyweight();
+    // Must stay above the two-segment workout routes, which would otherwise
+    // read "groups" as a workout id.
+    } elseif ($method === 'GET' && $path === '/workout-groups') {
+        handleListWorkoutGroups();
+    } elseif ($method === 'POST' && $path === '/workout-groups') {
+        handleCreateWorkoutGroup();
+    } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'workout-groups') {
+        handleUpdateWorkoutGroup($segments[1]);
+    } elseif ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'workout-groups') {
+        handleDeleteWorkoutGroup($segments[1]);
     } elseif ($method === 'GET' && $path === '/workouts') {
         handleListWorkouts();
     } elseif ($method === 'POST' && $path === '/workouts') {

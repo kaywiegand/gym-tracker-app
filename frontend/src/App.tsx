@@ -13,6 +13,7 @@ import { ExercisesPage } from '@/pages/ExercisesPage'
 import { ExerciseEditPage } from '@/pages/ExerciseEditPage'
 import { WorkoutsPage } from '@/pages/WorkoutsPage'
 import { WorkoutEditPage } from '@/pages/WorkoutEditPage'
+import { WorkoutGroupsPage } from '@/pages/WorkoutGroupsPage'
 import { TrackingPage } from '@/pages/TrackingPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { ReportPage } from '@/pages/ReportPage'
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/exercises" element={<ExercisesPage />} />
           <Route path="/exercises/:id/edit" element={<ExerciseEditPage />} />
           <Route path="/workouts" element={<WorkoutsPage />} />
+          <Route path="/workout-groups" element={<WorkoutGroupsPage />} />
           <Route path="/workouts/new" element={<WorkoutEditPage />} />
           <Route path="/workouts/:id/edit" element={<WorkoutEditPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -52,6 +52,9 @@ try {
 }
 
 foreach ([
+    'workouts' => [
+        'group_id' => 'TEXT',
+    ],
     'exercises' => [
         'variant' => 'TEXT',
         'display_alias' => 'TEXT',

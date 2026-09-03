@@ -84,9 +84,21 @@ export interface Exercise extends ExerciseNames {
   media: ExerciseMedia[]
 }
 
+// Optional grouping for the workout list. A workout belongs to at most one
+// group; ungrouped is a normal state, not a missing value.
+export interface WorkoutGroup {
+  id: string
+  name: string
+  sort: number
+  workout_count: number
+}
+
 export interface WorkoutListItem {
   id: string
   name: string
+  group_id: string | null
+  group_name: string | null
+  group_sort: number | null
   mode_id: number
   mode_key: string
   mode_name: string
@@ -193,6 +205,7 @@ export interface WorkoutMuscleSplitResponse {
 export interface Workout {
   id: string
   name: string
+  group_id: string | null
   mode_id: number
   mode_key: string
   mode_name: string

@@ -102,7 +102,10 @@ CREATE TABLE exercise_muscles (
 CREATE TABLE media ( id TEXT PRIMARY KEY, kind TEXT, exercise_id TEXT, bia_measurement_id TEXT,
   path TEXT, mime TEXT, sort INT, created_at TEXT );
 
-CREATE TABLE workouts ( id TEXT PRIMARY KEY, name TEXT, mode_id INT, notes TEXT, archived INT DEFAULT 0,
+CREATE TABLE workout_groups ( id TEXT PRIMARY KEY, name TEXT, sort INT,   -- optionale Abschnitte der Workout-Liste
+  created_at TEXT, updated_at TEXT, deleted_at TEXT );
+
+CREATE TABLE workouts ( id TEXT PRIMARY KEY, name TEXT, mode_id INT, group_id TEXT, notes TEXT, archived INT DEFAULT 0,
   created_at TEXT, updated_at TEXT, deleted_at TEXT );
 
 CREATE TABLE workout_exercises ( id TEXT PRIMARY KEY, workout_id TEXT, exercise_id TEXT, position INT,
