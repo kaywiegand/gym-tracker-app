@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
-import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
+import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TopExercise, TrainingLoadResponse } from '@/types'
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import { FilterChips } from '@/components/FilterChips'
 import { KpiTile } from '@/components/KpiTile'
@@ -8,6 +8,7 @@ import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { ConsistencyCalendar } from '@/components/ConsistencyCalendar'
+import { TopExercisesList } from '@/components/TopExercisesList'
 import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ export function OverviewScope() {
   const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null)
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeResponse | null>(null)
   const [consistency, setConsistency] = useState<ConsistencyResponse | null>(null)
+  const [topExercises, setTopExercises] = useState<TopExercise[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,12 +38,14 @@ export function OverviewScope() {
       api.get<TrainingLoadResponse>(`/dashboard/training-load?weeks=${weeks}`),
       api.get<MuscleVolumeResponse>(`/dashboard/muscle-volume?weeks=${weeks}`),
       api.get<ConsistencyResponse>(`/dashboard/consistency?days=${weeks * 7}`),
+      api.get<TopExercise[]>(`/dashboard/top-exercises?weeks=${weeks}&limit=8`),
     ])
-      .then(([acwrData, trainingLoadData, muscleVolumeData, consistencyData]) => {
+      .then(([acwrData, trainingLoadData, muscleVolumeData, consistencyData, topExerciseData]) => {
         setAcwr(acwrData)
         setTrainingLoad(trainingLoadData)
         setMuscleVolume(muscleVolumeData)
         setConsistency(consistencyData)
+        setTopExercises(topExerciseData)
       })
       .finally(() => setLoading(false))
   }, [range])
@@ -109,11 +113,11 @@ export function OverviewScope() {
 
       <Card className="p-3.5">
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
-        <p className="mb-2 text-[10.5px] text-muted-foreground">
-          {consistency.dates.length} training days · one square = one day · one column = one week
-        </p>
+        <p className="mb-2 text-[10.5px] text-muted-foreground">{consistency.dates.length} training days</p>
         <ConsistencyCalendar dates={consistency.dates} weeks={RANGE_WEEKS[range]} />
       </Card>
+
+      <TopExercisesList exercises={topExercises} range={range} />
 
       {/* Everything above follows the range switch. The three cards below
           always describe the current week -- they were interleaved with the

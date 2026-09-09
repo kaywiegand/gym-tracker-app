@@ -82,3 +82,13 @@ function handleConsistency(): void
     $days = isset($_GET['days']) ? max(7, min(365, (int) $_GET['days'])) : 126;
     Http::respond(['dates' => (new SessionRepository())->recentDates($days)]);
 }
+
+// Most-used exercises over the selected window -- the "what do I actually
+// train" list every other tracker puts on its analytics tab.
+function handleTopExercises(): void
+{
+    Auth::require();
+    $weeks = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) : 8;
+    $limit = isset($_GET['limit']) ? max(1, min(50, (int) $_GET['limit'])) : 10;
+    Http::respond((new SetRepository())->topExercises($weeks * 7, $limit));
+}
