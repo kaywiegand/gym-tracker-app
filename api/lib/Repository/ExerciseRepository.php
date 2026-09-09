@@ -56,10 +56,16 @@ final class ExerciseRepository extends BaseRepository
     }
 
     // Every word of the query must appear somewhere in the exercise: the
-    // structured display name, the common name, or the original source name.
-    // Word-wise rather than as one substring, so the parts can be typed in
-    // any order -- "cable abs rotation" finds the same thing as
-    // "abs rotation cable".
+    // structured display name, the common name, the original source name, or
+    // the muscle's region. Word-wise rather than as one substring, so the
+    // parts can be typed in any order -- "cable abs rotation" finds the same
+    // thing as "abs rotation cable".
+    //
+    // The region is in there because the title names a muscle and people
+    // search by body part: the title is "Hamstrings Curl Machine", but
+    // "legs machine curl" has to find it too. It stays out of the title,
+    // where it would be ambiguous -- a leg curl and a leg extension are both
+    // "legs machine" -- and lives here instead, where breadth is the point.
     private static function filterByQuery(array $rows, string $q): array
     {
         $terms = preg_split('/\s+/', mb_strtolower(trim($q)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
@@ -73,12 +79,11 @@ final class ExerciseRepository extends BaseRepository
                 $row['display_subtitle'] ?? '',
                 $row['name'] ?? '',
                 $row['equipment'] ?? '',
+                $row['region'] ?? '',
+                $row['primary_muscle'] ?? '',
             ])));
             foreach ($terms as $term) {
-                // Word START, not any substring: "rdl" must find "RDL" but
-                // not "Hurdle Hops". Hyphens count as boundaries so "grip"
-                // still finds "Close-Grip".
-                if (preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($term, '/') . '/u', $haystack) !== 1) {
+                if (!self::matchesWord($haystack, $term)) {
                     return false;
                 }
             }
@@ -90,6 +95,17 @@ final class ExerciseRepository extends BaseRepository
         usort($matched, static fn ($a, $b) => ((int) ($b['is_curated'] ?? 0)) <=> ((int) ($a['is_curated'] ?? 0)));
 
         return $matched;
+    }
+
+    // Word START, not any substring: "rdl" must find "RDL" but not
+    // "Hurdle Hops". Hyphens count as boundaries so "grip" still finds
+    // "Close-Grip". A trailing "s" is optional in both directions, because
+    // nobody keeps "leg curl" and "legs curl" apart while typing.
+    private static function matchesWord(string $haystack, string $term): bool
+    {
+        $stem = preg_quote(rtrim($term, 's'), '/');
+        return preg_match('/(?:^|[^\p{L}\p{N}])' . $stem . 's?(?![\p{L}\p{N}])/u', $haystack) === 1
+            || preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($term, '/') . '/u', $haystack) === 1;
     }
 
     // Distinct movement values already in use -- feeds the editor's combobox

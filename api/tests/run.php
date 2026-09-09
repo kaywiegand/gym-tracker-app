@@ -711,6 +711,23 @@ foreach (['Source Name' => 'source name', 'Bench Press' => 'alias', 'Incline' =>
     );
 }
 
+// The title names a muscle, but people search by body part: "chest" is the
+// region here, and it is not a word in the title "Chest Press Barbell
+// Incline" by accident -- pick a case where they differ to prove the region
+// itself is searchable, plus the singular/plural forgiveness around it.
+foreach (['chest barbell press', 'chests barbell press', 'barbell chest press'] as $term) {
+    check(
+        "search finds by region and word order: \"{$term}\"",
+        in_array($namedId, array_column($exRepo->list($term, null, null), 'id'), true),
+        $failures
+    );
+}
+check(
+    'search still anchors on word starts, not substrings',
+    $exRepo->list('ress', null, null) === [],
+    $failures
+);
+
 // A joined read (workout contents, CSV export) has to produce exactly the
 // same name as the library read -- them disagreeing is what made one exercise
 // appear under two names in two screens.
