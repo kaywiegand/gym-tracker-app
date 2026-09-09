@@ -108,6 +108,7 @@ final class SetRepository extends BaseRepository
         $params = [$exerciseId];
         $sql = 'SELECT s.id AS session_id, s.started_at,
                        MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm,
+                       MAX(st.weight_kg) AS top_weight_kg,
                        SUM(st.weight_kg * st.reps) AS volume_kg,
                        COUNT(st.id) AS sets_count
                 FROM sessions s
@@ -121,7 +122,7 @@ final class SetRepository extends BaseRepository
         $sql .= ' GROUP BY s.id ORDER BY s.started_at DESC LIMIT ' . (int) $limit;
 
         return $this->fetchAll(
-            "SELECT session_id, started_at, best_e1rm, volume_kg, sets_count FROM ({$sql}) ORDER BY started_at ASC",
+            "SELECT session_id, started_at, best_e1rm, top_weight_kg, volume_kg, sets_count FROM ({$sql}) ORDER BY started_at ASC",
             $params
         );
     }
@@ -259,6 +260,30 @@ final class SetRepository extends BaseRepository
              LEFT JOIN workouts w ON w.id = sess.workout_id
              WHERE s.deleted_at IS NULL
              ORDER BY s.performed_at ASC, s.set_index ASC'
+        ));
+    }
+
+    // What you actually train, most-used first, over a window. Ranked by
+    // sessions rather than sets: an exercise done every week in three sets
+    // is more central to the training than one done twice in twelve.
+    // Warmups excluded, same convention as the rest of this class.
+    public function topExercises(int $sinceDays, int $limit = 10): array
+    {
+        return ExerciseNaming::decorateAllJoined($this->fetchAll(
+            'SELECT ' . ExerciseNaming::selectColumns() . ',
+                    e.id AS exercise_id,
+                    COUNT(DISTINCT st.session_id) AS sessions,
+                    COUNT(st.id) AS sets_count,
+                    SUM(st.weight_kg * st.reps) AS volume_kg,
+                    MAX(st.weight_kg) AS top_weight_kg,
+                    MAX(st.performed_at) AS last_performed_at
+             FROM sets st
+             JOIN exercises e ON e.id = st.exercise_id
+             WHERE st.deleted_at IS NULL AND st.is_warmup = 0 AND st.performed_at >= ?
+             GROUP BY e.id
+             ORDER BY sessions DESC, sets_count DESC
+             LIMIT ' . (int) $limit,
+            [gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400)]
         ));
     }
 }

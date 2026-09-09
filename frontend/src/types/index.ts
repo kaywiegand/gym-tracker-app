@@ -129,8 +129,20 @@ export interface ExerciseHistoryEntry {
   session_id: string
   started_at: string
   best_e1rm: number
+  top_weight_kg: number
   volume_kg: number
   sets_count: number
+}
+
+export interface TopExercise {
+  exercise_id: string
+  exercise_display_name: string
+  exercise_display_subtitle: string
+  sessions: number
+  sets_count: number
+  volume_kg: number
+  top_weight_kg: number
+  last_performed_at: string
 }
 
 export interface WeeklyMetrics {
