@@ -61,7 +61,7 @@ final class WorkoutRepository extends BaseRepository
                  VALUES (?, ?, ?, ?, ?, 0, ?, ?, NULL)',
                 [$id, $data['name'], (int) $data['mode_id'], self::blankToNull($data['group_id'] ?? null), $data['notes'] ?? null, $now, $now]
             );
-            $this->replaceExercises($id, $data['exercises'] ?? []);
+            $this->syncExercises($id, $data['exercises'] ?? []);
             $this->db->commit();
         } catch (Throwable $e) {
             $this->db->rollBack();
@@ -86,7 +86,7 @@ final class WorkoutRepository extends BaseRepository
                 [$data['name'], (int) $data['mode_id'], self::blankToNull($data['group_id'] ?? null), $data['notes'] ?? null, $now, $id]
             );
             if (isset($data['exercises'])) {
-                $this->replaceExercises($id, $data['exercises']);
+                $this->syncExercises($id, $data['exercises']);
             }
             $this->db->commit();
         } catch (Throwable $e) {
@@ -105,10 +105,6 @@ final class WorkoutRepository extends BaseRepository
         return $stmt->rowCount() > 0;
     }
 
-    // Stage 1 keeps this simple: every save replaces the whole exercise list
-    // (delete + reinsert in the same transaction) instead of diffing
-    // individual workout_exercise rows -- there's no offline sync yet to
-    // make that diffing worthwhile.
     // "" from a <select> with no group chosen means no group, not a group
     // whose id is the empty string.
     private static function blankToNull(mixed $value): ?string
@@ -117,27 +113,65 @@ final class WorkoutRepository extends BaseRepository
         return $value === '' ? null : $value;
     }
 
-    private function replaceExercises(string $workoutId, array $exercises): void
+    // Reconciles the list in place instead of deleting it and inserting a
+    // fresh one. Logged sets carry the workout_exercise_id of the slot they
+    // were performed in, so a delete + reinsert orphaned every set in the
+    // workout's history -- and the editor posts the full list on every save,
+    // so merely assigning a group was enough to do it.
+    //
+    // A row is identified by its exercise_id: the picker cannot add the same
+    // exercise twice, so that is unique within a workout. A row whose
+    // exercise is no longer in the list is soft-deleted rather than dropped,
+    // and comes back with its own id if the exercise is added again -- which
+    // keeps the sets performed in that slot attached to it.
+    private function syncExercises(string $workoutId, array $exercises): void
     {
         $now = self::nowIso();
-        $this->execute('DELETE FROM workout_exercises WHERE workout_id = ?', [$workoutId]);
-        $stmt = $this->db->prepare(
+
+        $existing = [];
+        foreach ($this->fetchAll('SELECT id, exercise_id FROM workout_exercises WHERE workout_id = ?', [$workoutId]) as $row) {
+            $existing[$row['exercise_id']] = $row['id'];
+        }
+
+        $update = $this->db->prepare(
+            'UPDATE workout_exercises
+                SET position = ?, planned_sets = ?, rep_low_override = ?, rep_high_override = ?,
+                    increment_override_kg = ?, updated_at = ?, deleted_at = NULL
+              WHERE id = ?'
+        );
+        $insert = $this->db->prepare(
             'INSERT INTO workout_exercises (id, workout_id, exercise_id, position, planned_sets, rep_low_override, rep_high_override, increment_override_kg, created_at, updated_at, deleted_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)'
         );
+
+        $keep = [];
         foreach (array_values($exercises) as $i => $ex) {
-            $stmt->execute([
-                Uuid::v4(),
-                $workoutId,
-                $ex['exercise_id'],
+            $exerciseId = (string) $ex['exercise_id'];
+            $overrides = [
                 $i,
                 (int) $ex['planned_sets'],
                 $ex['rep_low_override'] ?? null,
                 $ex['rep_high_override'] ?? null,
                 $ex['increment_override_kg'] ?? null,
                 $now,
-                $now,
-            ]);
+            ];
+            if (isset($existing[$exerciseId])) {
+                $id = $existing[$exerciseId];
+                $update->execute([...$overrides, $id]);
+            } else {
+                $id = Uuid::v4();
+                $insert->execute([$id, $workoutId, $exerciseId, ...$overrides, $now]);
+            }
+            $keep[$id] = true;
+        }
+
+        foreach ($existing as $id) {
+            if (!isset($keep[$id])) {
+                $this->execute(
+                    'UPDATE workout_exercises SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+                    [$now, $now, $id]
+                );
+            }
         }
     }
 }
