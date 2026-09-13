@@ -33,6 +33,10 @@ export function WorkoutEditPage() {
   const [exercises, setExercises] = useState<DraftExercise[]>([])
   const [loading, setLoading] = useState(isEditing)
   const [saving, setSaving] = useState(false)
+  // A save that fails has to say so. Without this the button just flipped
+  // back from "Saving…" and the page stayed put, which reads as "saved" --
+  // so an edit made on a dead session was silently thrown away.
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [groups, setGroups] = useState<WorkoutGroup[]>([])
   const [groupId, setGroupId] = useState<string>('')
@@ -135,7 +139,10 @@ export function WorkoutEditPage() {
       } else {
         await api.post('/workouts', { id: crypto.randomUUID(), ...payload })
       }
+      setSaveError(null)
       navigate('/workouts')
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Request failed')
     } finally {
       setSaving(false)
     }
@@ -144,8 +151,12 @@ export function WorkoutEditPage() {
   async function handleDelete() {
     if (!id) return
     if (!window.confirm('Delete this workout?')) return
-    await api.delete(`/workouts/${id}`)
-    navigate('/workouts')
+    try {
+      await api.delete(`/workouts/${id}`)
+      navigate('/workouts')
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Request failed')
+    }
   }
 
   if (loading) {
@@ -298,6 +309,11 @@ export function WorkoutEditPage() {
       </Button>
 
       <div className="mt-5 flex flex-col gap-2">
+        {saveError !== null && (
+          <p className="text-center text-[12.5px] text-status-crit">
+            Not saved: {saveError}. Your changes are still on this screen -- try again.
+          </p>
+        )}
         <Button type="button" disabled={saving || !name.trim() || modeId === null} onClick={handleSave}>
           {saving ? 'Saving…' : 'Save workout'}
         </Button>

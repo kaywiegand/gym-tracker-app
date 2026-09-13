@@ -11,6 +11,8 @@ frontend/dev-dist/
 db/fitness.db
 db/fitness.db-journal
 db/*.sqlite
+# PHP session files (own save path, see api/lib/Auth.php)
+db/sessions/
 /uploads/*
 !/uploads/.gitkeep
 

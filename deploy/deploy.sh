@@ -106,8 +106,9 @@ cp -R frontend/dist/. deploy-upload/
 # config override (that one describes YOUR machine, not the server).
 rsync -a --exclude 'tests/' --exclude 'config.local.php' api/ deploy-upload/api/
 
-# db/ without any database file -- schema + seeds only.
-rsync -a --exclude 'fitness.db' --exclude '*.db-journal' --exclude '*.sqlite' db/ deploy-upload/db/
+# db/ without any database file -- schema + seeds only. sessions/ holds the
+# local PHP session files; the server keeps its own.
+rsync -a --exclude 'fitness.db' --exclude '*.db-journal' --exclude '*.sqlite' --exclude 'sessions/' db/ deploy-upload/db/
 
 # Empty uploads/ so the directory exists on a fresh install. Real images
 # live only on the server.

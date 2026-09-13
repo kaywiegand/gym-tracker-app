@@ -25,10 +25,19 @@ export function ExercisesPage() {
   const [mechanic, setMechanic] = useState('All')
   const [exercises, setExercises] = useState<ExerciseListItem[]>([])
   const [loading, setLoading] = useState(true)
+  // Separate from "no results": a failed request used to fall through to the
+  // same empty list, so a dropped connection or an expired session in the gym
+  // read as "this exercise does not exist".
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [openId, setOpenId] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Responses can arrive out of order on a bad connection. Only the latest
+    // request may touch the list -- a slow failure from an older keystroke
+    // must not wipe the results of a newer one.
+    let current = true
     const timer = setTimeout(() => {
       const params = new URLSearchParams()
       if (query.trim()) params.set('q', query.trim())
@@ -38,11 +47,25 @@ export function ExercisesPage() {
       setLoading(true)
       api
         .get<ExerciseListItem[]>(`/exercises${qs ? `?${qs}` : ''}`)
-        .then(setExercises)
-        .finally(() => setLoading(false))
+        .then((rows) => {
+          if (!current) return
+          setExercises(rows)
+          setError(null)
+        })
+        .catch((err) => {
+          if (!current) return
+          setExercises([])
+          setError(err instanceof Error ? err.message : 'Request failed')
+        })
+        .finally(() => {
+          if (current) setLoading(false)
+        })
     }, 200)
-    return () => clearTimeout(timer)
-  }, [query, region, mechanic])
+    return () => {
+      current = false
+      clearTimeout(timer)
+    }
+  }, [query, region, mechanic, reloadKey])
 
   const groups = groupByRegion(exercises)
 
@@ -75,7 +98,22 @@ export function ExercisesPage() {
 
       {loading && exercises.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">Loading…</p>}
 
-      {!loading && groups.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">No matches</p>}
+      {!loading && error !== null && (
+        <div className="mt-6 text-center text-sm text-status-crit">
+          <p>Could not load the library: {error}</p>
+          <button
+            type="button"
+            className="mt-2 rounded-lg border border-border px-3 py-1.5 text-[13px] text-foreground"
+            onClick={() => setReloadKey((k) => k + 1)}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && error === null && groups.length === 0 && (
+        <p className="mt-6 text-center text-sm text-muted-foreground">No matches</p>
+      )}
 
       {groups.map((group) => (
         <div key={group.region}>

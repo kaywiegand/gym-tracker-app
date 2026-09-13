@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
-import { api } from '@/lib/api'
+import { api, UNAUTHORIZED_EVENT } from '@/lib/api'
 import { initSyncListeners, pushPending } from '@/lib/syncService'
 import type { Settings } from '@/types'
 import { RequireAuth } from '@/components/RequireAuth'
@@ -21,6 +21,7 @@ import { ReportPage } from '@/pages/ReportPage'
 export default function App() {
   const status = useAuthStore((s) => s.status)
   const checkStatus = useAuthStore((s) => s.checkStatus)
+  const recheck = useAuthStore((s) => s.recheck)
   const setTheme = useThemeStore((s) => s.setTheme)
 
   useEffect(() => {
@@ -30,6 +31,15 @@ export default function App() {
   useEffect(() => {
     initSyncListeners()
   }, [])
+
+  useEffect(() => {
+    // The PHP session can expire while the app stays open. Without this the
+    // app kept rendering as if it were logged in and every list came back
+    // empty, which reads as "the data is gone" instead of "log in again".
+    const onUnauthorized = () => void recheck()
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+  }, [recheck])
 
   useEffect(() => {
     if (status === 'authenticated') {

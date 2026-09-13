@@ -1,0 +1,9 @@
+# Nothing under db/ is ever served over HTTP: it holds fitness.db and the
+# PHP session files. Only the PHP process reads them, through the filesystem.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

@@ -5,8 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
-export function LoginPage() {
+interface LoginPageProps {
+  // Shown over a screen whose session expired: no navigation on success, the
+  // screen underneath simply carries on.
+  overlay?: boolean
+}
+
+export function LoginPage({ overlay = false }: LoginPageProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -21,11 +28,41 @@ export function LoginPage() {
     const ok = await login(password)
     setSubmitting(false)
     if (ok) {
+      if (overlay) return
       const from = (location.state as { from?: string } | null)?.from ?? '/exercises'
       navigate(from, { replace: true })
     } else {
       setError('Wrong password.')
     }
+  }
+
+  const form = (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="password">Password</Label>
+        <Input id="password" type="password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <Button type="submit" disabled={submitting || password === ''}>
+        {submitting ? 'Signing in…' : 'Log in'}
+      </Button>
+    </form>
+  )
+
+  if (overlay) {
+    // Controlled and without onOpenChange: Escape or a click outside must not
+    // dismiss it -- there is nothing to go back to until the session is back.
+    return (
+      <Dialog open>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Session expired</DialogTitle>
+            <DialogDescription>Log in again to continue. Nothing on this screen is lost.</DialogDescription>
+          </DialogHeader>
+          {form}
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
@@ -35,24 +72,7 @@ export function LoginPage() {
           <CardTitle>Workout Tracker</CardTitle>
           <CardDescription>Enter the app password to continue.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" disabled={submitting || password === ''}>
-              {submitting ? 'Signing in…' : 'Log in'}
-            </Button>
-          </form>
-        </CardContent>
+        <CardContent>{form}</CardContent>
       </Card>
     </div>
   )

@@ -35,6 +35,9 @@ export function ExerciseEditPage() {
   const [mechanic, setMechanic] = useState<Mechanic>('compound')
   const [increment, setIncrement] = useState(2.5)
   const [saving, setSaving] = useState(false)
+  // Same failure mode as the workout editor: without this a rejected save
+  // just reset the button and looked like it had gone through.
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -80,7 +83,10 @@ export function ExerciseEditPage() {
         mechanic,
         default_increment_kg: increment,
       })
+      setSaveError(null)
       navigate('/exercises')
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Request failed')
     } finally {
       setSaving(false)
     }
@@ -209,6 +215,12 @@ export function ExerciseEditPage() {
             </div>
           </CardContent>
         </Card>
+
+        {saveError !== null && (
+          <p className="text-center text-[12.5px] text-status-crit">
+            Not saved: {saveError}. Your changes are still on this screen -- try again.
+          </p>
+        )}
 
         <div className="mt-2 flex gap-2">
           <Button type="button" variant="outline" className="flex-1" onClick={() => navigate('/exercises')}>

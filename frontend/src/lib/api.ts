@@ -1,5 +1,10 @@
 const BASE = '/api'
 
+// Fired whenever the API answers 401. App.tsx listens and re-checks the
+// session, which sends the user to the login screen instead of leaving them
+// on a screen that claims there is nothing to show.
+export const UNAUTHORIZED_EVENT = 'api:unauthorized'
+
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -29,6 +34,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       }
     } catch {
       // response wasn't JSON -- keep statusText
+    }
+    // A session that expired mid-use has to reach the auth store, otherwise
+    // every screen just renders an empty list and looks like the data is
+    // gone. Sent as an event so this module stays free of store imports.
+    if (res.status === 401) {
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
     }
     throw new ApiError(message, res.status)
   }

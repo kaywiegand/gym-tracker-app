@@ -54,10 +54,18 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
             </SheetHeader>
 
             <div className="px-4">
+              {/* 4:3 box, object-contain: the source images have wildly
+                  different aspect ratios, and cropping to fill cut the
+                  barbell (or the whole person) out of the frame. Letterboxing
+                  against the card background always shows the full picture. */}
               {photo ? (
-                <img src={photo.path} alt={exercise.display_name} className="h-[140px] w-full rounded-xl object-cover" />
+                <img
+                  src={photo.path}
+                  alt={exercise.display_name}
+                  className="aspect-[4/3] w-full rounded-xl bg-secondary object-contain"
+                />
               ) : (
-                <div className="flex h-[120px] items-center justify-center rounded-xl border border-dashed border-border bg-secondary text-center text-[11.5px] text-muted-foreground">
+                <div className="flex aspect-[4/3] items-center justify-center rounded-xl border border-dashed border-border bg-secondary text-center text-[11.5px] text-muted-foreground">
                   No photo on file
                 </div>
               )}

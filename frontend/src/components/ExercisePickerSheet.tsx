@@ -16,20 +16,46 @@ interface ExercisePickerSheetProps {
 export function ExercisePickerSheet({ open, onOpenChange, onPick, excludeIds }: ExercisePickerSheetProps) {
   const [query, setQuery] = useState('')
   const [exercises, setExercises] = useState<ExerciseListItem[]>([])
+  // A failed request used to land in the same empty list as a genuine miss,
+  // so a dropped connection or an expired session looked like the exercise
+  // was not in the library at all.
+  const [error, setError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!open) return
+    // Responses can arrive out of order on a bad connection. Only the latest
+    // request may touch the list -- a slow failure from an older keystroke
+    // must not wipe the results of a newer one.
+    let current = true
     const timer = setTimeout(() => {
       const params = new URLSearchParams()
       if (query.trim()) params.set('q', query.trim())
       const qs = params.toString()
-      api.get<ExerciseListItem[]>(`/exercises${qs ? `?${qs}` : ''}`).then(setExercises)
+      api
+        .get<ExerciseListItem[]>(`/exercises${qs ? `?${qs}` : ''}`)
+        .then((rows) => {
+          if (!current) return
+          setExercises(rows)
+          setError(null)
+        })
+        .catch((err) => {
+          if (!current) return
+          setExercises([])
+          setError(err instanceof Error ? err.message : 'Request failed')
+        })
     }, 200)
-    return () => clearTimeout(timer)
-  }, [query, open])
+    return () => {
+      current = false
+      clearTimeout(timer)
+    }
+  }, [query, open, reloadKey])
 
   useEffect(() => {
-    if (!open) setQuery('')
+    if (!open) {
+      setQuery('')
+      setError(null)
+    }
   }, [open])
 
   const groups = groupByRegion(exercises.filter((e) => !excludeIds.includes(e.id)))
@@ -43,7 +69,31 @@ export function ExercisePickerSheet({ open, onOpenChange, onPick, excludeIds }: 
         <div className="px-4 pb-4">
           <Input placeholder="Search…" value={query} onChange={(e) => setQuery(e.target.value)} />
 
-          {exercises.length === 0 && <p className="mt-6 text-center text-[12px] text-muted-foreground">No matches</p>}
+          {error !== null && (
+            <div className="mt-6 text-center text-[12px] text-status-crit">
+              <p>Could not load the library: {error}</p>
+              <button
+                type="button"
+                className="mt-2 rounded-lg border border-border px-3 py-1.5 text-[12px] text-foreground"
+                onClick={() => setReloadKey((k) => k + 1)}
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {error === null && exercises.length === 0 && (
+            <p className="mt-6 text-center text-[12px] text-muted-foreground">No matches</p>
+          )}
+
+          {/* Exercises already in this workout are filtered out of the list.
+              Saying so beats an unexplained gap where the user knows an
+              exercise should be. */}
+          {error === null && exercises.length > 0 && groups.length === 0 && (
+            <p className="mt-6 text-center text-[12px] text-muted-foreground">
+              Every match is already in this workout.
+            </p>
+          )}
 
           {groups.map((group) => (
             <div key={group.region}>
