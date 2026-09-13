@@ -25,3 +25,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20260902-1850-5f6e407` | `5f6e407` | 2026-09-02T18:50:26Z | `backups/20260902-1850-5f6e407/` | inferred variants; duplicate-title merge |
 | `20260903-2010-63ff4b1` | `63ff4b1` | 2026-09-03T20:10:39Z | `backups/20260903-2010-63ff4b1/` | workout groups |
 | `20260909-2109-5cffbc8-dirty` | `5cffbc8` | 2026-09-09T21:09:19Z | `backups/20260909-2109-5cffbc8-dirty/` | — |
+| `20260913-0553-107db04-dirty` | `107db04` | 2026-09-13T05:53:43Z | `backups/20260913-0553-107db04-dirty/` | session survives a workout; failed saves and searches say so; exercise photos 4:3 contain; db/ denied over HTTP |

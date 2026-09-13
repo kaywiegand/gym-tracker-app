@@ -71,3 +71,12 @@ Toggle auf "All exercises" für die vollen 873.
 | :--- | :--- | :--- |
 | 16 | ~~BIA-Import „0 imported"~~ — ✅ erledigt 2026-09-02, sechs Scans erfolgreich importiert. Ursache war vermutlich der kaputte PHP-Prozess nach dem Ordner-Rename. | — |
 | 17 | **Exercise-Scope-Redesign (3-Linien-Chart) nicht live durchgeklickt** — `MultiMetricTrendChart` ersetzt die alten KPI-Kacheln + Einzel-Chart. Nur per tsc/lint/Code-Review geprüft, kein Zugriff auf Kays Passwort für einen echten Browser-Durchlauf. Sollte als erstes bei der nächsten Testrunde angeschaut werden. | 1 |
+
+---
+
+## Offen aus dem Gym 2026-09-12
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 22 | **Übung während einer laufenden Session hinzufügen** — `TrackingPage` kann nur Sätze ergänzen, keine Übung. Fehlt eine Übung im Template, muss man die Session verlassen und das Workout editieren. War Teil des Problems am 12.09. | 1 |
+| 23 | **Bewegungs-Inferenz: „Twist" schlägt „Fly"** — `MOVEMENT_PATTERNS` in `api/lib/ExerciseNaming.php` prüft `Twist` vor `Fly`, daher wird „Incline Dumbbell Flyes - With A Twist" zu `Chest Twist Dumbbell Incline`. Betrifft nur unkuratierte Übungen; per `MOVEMENT_BY_NAME` oder Reihenfolge lösen, danach Titelkollisionen prüfen. | 3 |

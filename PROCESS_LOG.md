@@ -231,3 +231,24 @@
 - Erster Testimport verlor **579 Sätze**: zwei Gainsfire-Namen mappen auf dieselbe App-Übung am selben Tag und kollidierten auf der deterministischen Satz-ID. Nummerierung läuft jetzt nach dem Mapping.
 
 **Nächster Schritt:** Kay importiert die Migration und testet im Training. Danach frischer Gainsfire-Export (der vorhandene endet 12.06.2026) und Mapping-Durchsicht in eigener Session.
+
+---
+
+## Session 2026-09-12/13 — „Übung nicht zu finden", verlorene Workout-Edits, Bilder 4:3
+
+**Was passiert ist:**
+- Kay konnte im Gym `Abs Rotation Cable` nicht finden und seine Löschung im Friday-Workout war nicht gespeichert. Live-DB mehrfach per `deploy/backup.sh` gezogen (`backups/diag-*`, `pre-/post-restore-20260913`): Übung vorhanden, Suche findet sie in jeder Schreibweise — seit 09.09. war aber **kein einziges Workout** mehr geschrieben worden.
+- Ursache: Session-Cookie ohne Lifetime + 24-Min-GC des Hosts → 401 mitten im Training. Suchlisten zeigten den Fehler als „No matches", `handleSave` im Workout- und Übungs-Editor hatte kein `catch` und sah nach Erfolg aus. Fix: Commit `107db04` (Details in der Commit-Message).
+- `/code-review` fand drei weitere Punkte (Draft-Verlust durch 401-Redirect, veraltete Suchantworten, fixe statt gleitende Cookie-Laufzeit) — alle gefixt, bevor committet wurde.
+- Browser-Verifikation gegen eine Kopie der Live-DB: Session getötet → Save → Login-Overlay über dem Editor, Entwurf bleibt, Save danach landet in der DB; derselbe Ablauf mit offenem Übungs-Picker. Bild: 4:3-Box, `object-fit: contain` gemessen.
+- Daten live per `deploy/restore.sh` (Payload vorher gegen Kopie getestet): FB26 Friday Position 1 `Abs Twist` → `Abs Rotation Cable Standing`; Russian Twist umkuratiert zu `Abs Rotation Dumbbell Seated`. Sätze unverändert.
+- Deploy `20260913-0553-107db04-dirty` („dirty" = untracktes `frontend/backups/`).
+
+**Entscheidungen:**
+- Kays Namensregel für Rumpfrotation: Titel `Abs Rotation …`, Untertitel `Core Twist …` — nicht „Core" im Titel, nicht „Twist" als Bewegung, nicht „Core Chops" (wäre mit `Abs Chop Cable` verwechselbar). Equipment ohne Oberbegriff für Plate/Dumbbell → Dumbbell.
+- Abgelaufene Session öffnet den Login **über** dem aktuellen Screen statt auf `/login` umzuleiten — nur so überlebt ein ungespeicherter Entwurf oder eine laufende Session.
+- Eigener Session-Pfad `db/sessions/` statt Host-Default, weil fremde GC dort mit eigener Lifetime aufräumt. Nach dem Deploy ist **einmal neu einloggen** nötig.
+
+**Korrektur:** Die Commit-Message von `107db04` sagt, `fitness.db` sei über HTTP erreichbar gewesen. Falsch — der HEAD-Check vor dem Upload gab bereits 403. `db/.htaccess` ist eine zusätzliche explizite Sperre, keine geschlossene Lücke. Nicht per Amend korrigiert, weil der Hash in `build.json` und `DEPLOYMENTS.md` steht.
+
+**Nächster Schritt:** Kay trainiert Monday mit dem neuen Build und meldet, ob Login und Speichern im Gym halten.
