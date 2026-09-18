@@ -20,49 +20,87 @@ final class MuscleVolume
     // -- one row per exercise_muscles mapping a logged set touches (a set
     // with one secondary muscle produces two rows, weighted 1.0/0.5, see
     // SetRepository::rawSetsWithMuscles()). Returns, per region that has at
-    // least one row:
-    //   ['weeks' => [weekStart => ['sets','volume_kg','best_e1rm']], 'this_week' => [...], 'last_week' => [...]]
-    // for exactly $weeks week-buckets ending at the current week. Sets and
-    // volume are weighted by muscle_weight (secondary ×0.5); best_e1rm is a
-    // peak, never weighted or summed (adding e1RM across exercises is
-    // meaningless -- CLAUDE.md §8), and it only counts rows where the region
-    // is the primary muscle -- otherwise the bench press sets the arms' e1RM.
-    // Rows without a role (older callers) count as primary.
+    // least one row (in the calendar weeks or the rolling windows below):
+    //   ['weeks' => [weekStart => ['sets','volume_kg','best_e1rm']],
+    //    'this_week' => [...], 'last_week' => [...],
+    //    'last_7_days' => [...], 'prev_7_days' => [...]]
+    // 'weeks'/'this_week'/'last_week' bucket by calendar week, for exactly
+    // $weeks week-buckets ending at the current week -- kept for an
+    // installed PWA that may still run the previous bundle for one launch
+    // after a deploy (BACKLOG #31). 'last_7_days'/'prev_7_days' are rolling
+    // windows relative to $nowIso instead (now-7d..now vs. now-14d..now-7d)
+    // -- the dashboard cards read these: a calendar "this week" is nearly
+    // empty on a Monday, which made the week-over-week comparison say
+    // nothing. Sets and volume are weighted by muscle_weight (secondary
+    // ×0.5); best_e1rm is a peak, never weighted or summed (adding e1RM
+    // across exercises is meaningless -- CLAUDE.md §8), and it only counts
+    // rows where the region is the primary muscle -- otherwise the bench
+    // press sets the arms' e1RM. Rows without a role (older callers) count
+    // as primary. Both bucketing schemes apply the exact same rules.
     public static function weeklyByRegion(array $rows, int $weeks, ?string $nowIso = null): array
     {
-        $currentWeekStart = self::isoWeekStart($nowIso ?? gmdate('Y-m-d\TH:i:s\Z'));
+        $now = $nowIso ?? gmdate('Y-m-d\TH:i:s\Z');
+        $nowTs = (new DateTimeImmutable($now, new DateTimeZone('UTC')))->getTimestamp();
+        $last7Start = $nowTs - 7 * 86400;
+        $prev7Start = $nowTs - 14 * 86400;
+
+        $currentWeekStart = self::isoWeekStart($now);
         $weekStarts = self::lastWeekStarts($currentWeekStart, $weeks);
         $earliestWeekStart = $weekStarts[0];
         $emptyWeek = ['sets' => 0.0, 'volume_kg' => 0.0, 'best_e1rm' => 0.0];
 
         $byRegion = [];
+        $rolling = [];
         foreach ($rows as $row) {
-            $weekStart = self::isoWeekStart($row['performed_at']);
-            if ($weekStart < $earliestWeekStart) {
-                continue;
-            }
             $region = $row['region'];
             $weight = (float) $row['weight_kg'];
             $reps = (float) $row['reps'];
             $muscleWeight = (float) $row['muscle_weight'];
             $e1rm = $weight * (1 + $reps / 30);
+            $isPrimary = ($row['role'] ?? 'primary') === 'primary';
 
+            // Rolling windows are independent of the calendar-week cutoff
+            // below -- a set from "last week" on the calendar can still be
+            // inside the rolling last_7_days window.
+            $performedTs = (new DateTimeImmutable($row['performed_at'], new DateTimeZone('UTC')))->getTimestamp();
+            if ($performedTs > $prev7Start && $performedTs <= $nowTs) {
+                $window = $performedTs > $last7Start ? 'last_7_days' : 'prev_7_days';
+                $rolling[$region] ??= ['last_7_days' => $emptyWeek, 'prev_7_days' => $emptyWeek];
+                $rolling[$region][$window]['sets'] += $muscleWeight;
+                $rolling[$region][$window]['volume_kg'] += $weight * $reps * $muscleWeight;
+                if ($isPrimary) {
+                    $rolling[$region][$window]['best_e1rm'] = max($rolling[$region][$window]['best_e1rm'], $e1rm);
+                }
+            }
+
+            $weekStart = self::isoWeekStart($row['performed_at']);
+            if ($weekStart < $earliestWeekStart) {
+                continue;
+            }
             $byRegion[$region] ??= array_fill_keys($weekStarts, $emptyWeek);
             $byRegion[$region][$weekStart]['sets'] += $muscleWeight;
             $byRegion[$region][$weekStart]['volume_kg'] += $weight * $reps * $muscleWeight;
-            if (($row['role'] ?? 'primary') === 'primary') {
+            if ($isPrimary) {
                 $byRegion[$region][$weekStart]['best_e1rm'] = max($byRegion[$region][$weekStart]['best_e1rm'], $e1rm);
             }
         }
 
         $lastWeekStart = $weekStarts[count($weekStarts) - 2] ?? $currentWeekStart;
 
+        // Union of regions seen in either bucketing -- a region can be
+        // rolling-only (e.g. $weeks is small enough that the calendar
+        // cutoff excludes a set the 14-day rolling window still covers).
+        $regions = array_unique(array_merge(array_keys($byRegion), array_keys($rolling)));
+
         $result = [];
-        foreach ($byRegion as $region => $weeksData) {
+        foreach ($regions as $region) {
+            $weeksData = $byRegion[$region] ?? array_fill_keys($weekStarts, $emptyWeek);
             $result[$region] = [
                 'weeks' => $weeksData,
-                'this_week' => $weeksData[$currentWeekStart],
+                'this_week' => $weeksData[$currentWeekStart] ?? $emptyWeek,
                 'last_week' => $weeksData[$lastWeekStart] ?? $emptyWeek,
+                'last_7_days' => $rolling[$region]['last_7_days'] ?? $emptyWeek,
+                'prev_7_days' => $rolling[$region]['prev_7_days'] ?? $emptyWeek,
             ];
         }
         return $result;

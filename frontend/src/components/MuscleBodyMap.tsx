@@ -21,7 +21,8 @@ export function MuscleBodyMap({ regions }: MuscleBodyMapProps) {
     if (p.region === null) return 'var(--secondary)'
     const r = byRegion.get(p.region)
     if (!r) return 'var(--secondary)'
-    return STATUS_FILL_VAR[statusFor(r.this_week.sets, r.mev, r.mav, r.mrv)]
+    // Rolling last 7 days, not the calendar week -- see MuscleVolumeRegion.
+    return STATUS_FILL_VAR[statusFor(r.last_7_days.sets, r.mev, r.mav, r.mrv)]
   }
 
   const figure = (f: BodyFigure, key: string) => (

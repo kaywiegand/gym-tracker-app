@@ -7,7 +7,10 @@ function handleMuscleVolume(): void
     $weeks = isset($_GET['weeks']) ? max(1, min(260, (int) $_GET['weeks'])) : 8;
 
     $setRepo = new SetRepository();
-    $rows = $setRepo->rawSetsWithMuscles($weeks * 7 + 7);
+    // At least 14 days regardless of $weeks -- the rolling last_7_days/
+    // prev_7_days windows need that much history even when only one week
+    // was requested (BACKLOG #31).
+    $rows = $setRepo->rawSetsWithMuscles(max($weeks * 7 + 7, 14));
     $byRegion = MuscleVolume::weeklyByRegion($rows, $weeks);
     $targets = (new MuscleRepository())->volumeTargets();
 
@@ -20,6 +23,8 @@ function handleMuscleVolume(): void
             'weeks' => array_fill_keys($weekStarts, $emptyMetrics),
             'this_week' => $emptyMetrics,
             'last_week' => $emptyMetrics,
+            'last_7_days' => $emptyMetrics,
+            'prev_7_days' => $emptyMetrics,
         ];
         $weeklyList = [];
         foreach ($data['weeks'] as $weekStart => $metrics) {
@@ -28,7 +33,13 @@ function handleMuscleVolume(): void
         $regions[] = array_merge(
             ['region' => $region],
             $target,
-            ['this_week' => $data['this_week'], 'last_week' => $data['last_week'], 'weeks' => $weeklyList]
+            [
+                'this_week' => $data['this_week'],
+                'last_week' => $data['last_week'],
+                'last_7_days' => $data['last_7_days'],
+                'prev_7_days' => $data['prev_7_days'],
+                'weeks' => $weeklyList,
+            ]
         );
     }
 

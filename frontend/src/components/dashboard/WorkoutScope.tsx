@@ -12,7 +12,9 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 type RadarMetric = keyof RegionMetrics
-const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_kg: 'Volume', best_e1rm: 'e1RM' }
+// Button order is the order of interest: strength first, then load, then
+// the raw count -- the same order as everywhere else in the app.
+const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { best_e1rm: 'e1RM', volume_kg: 'Volume', sets: 'Sets' }
 
 export function WorkoutScope() {
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('best_e1rm')

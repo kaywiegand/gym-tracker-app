@@ -10,6 +10,7 @@ import {
 } from '@/lib/biaMetrics'
 import type { BiaSeriesEntry } from '@/types'
 import { FilterChips } from '@/components/FilterChips'
+import { SectionDivider } from '@/components/SectionDivider'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { FitScoreGauge } from '@/components/FitScoreGauge'
 import { KpiTile } from '@/components/KpiTile'
@@ -240,13 +241,7 @@ export function BodyScope() {
       {/* Everything above reacts to the range switch. Everything below
           describes one single scan, so it stays put when the range changes --
           the split is called out rather than left for the reader to notice. */}
-      <div className="mt-2 flex items-center gap-2">
-        <span className="h-px flex-1 bg-border" />
-        <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-          Latest scan · {latest.measured_at.slice(0, 10)}
-        </span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
+      <SectionDivider>Latest scan · {latest.measured_at.slice(0, 10)}</SectionDivider>
 
       <Card className="p-3.5">
         <div className="mb-2 flex items-center justify-between gap-2">

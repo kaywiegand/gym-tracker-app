@@ -4,6 +4,7 @@ import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TopExerci
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import { FilterChips } from '@/components/FilterChips'
 import { KpiTile } from '@/components/KpiTile'
+import { SectionDivider } from '@/components/SectionDivider'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
@@ -14,7 +15,9 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 type RadarMetric = 'sets' | 'volume_kg' | 'best_e1rm'
-const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_kg: 'Volume', best_e1rm: 'e1RM' }
+// Button order is the order of interest: strength first, then load, then
+// the raw count -- the same order as everywhere else in the app.
+const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { best_e1rm: 'e1RM', volume_kg: 'Volume', sets: 'Sets' }
 
 // No 4th "e1RM Bench"-style KPI here (unlike the prototype) -- which single
 // exercise would represent "the" lift isn't well-defined for a real user
@@ -68,16 +71,42 @@ export function OverviewScope() {
   const acwrInRange = acwr.ratio >= 0.8 && acwr.ratio <= 1.3
   const acwrTone = acwrInRange ? 'text-status-good' : 'text-status-warn'
 
+  // Min/max over completed, trained weeks only. Drop the last entry --
+  // weekly_volume / weekly_sessions end at the current, still-running week
+  // (MuscleVolume::weeksFromDaily() ends its range at isoWeekStart(now)),
+  // which is partial and would read as the minimum almost every day of the
+  // week. Also drop weeks with zero sessions: a week off already shows in
+  // the sparkline, but "min 0" would read the same whether the range has
+  // one deload week or a dozen -- it says nothing. Both tiles are filtered
+  // by the same mask (sessions > 0) so they describe the same set of weeks.
+  const completedSessionCounts = sessionSeries.slice(0, -1)
+  const trainedWeekMask = completedSessionCounts.map((count) => count > 0)
+  const trainedVolumeWeeks = volumeSeries.slice(0, -1).filter((_, i) => trainedWeekMask[i])
+  const trainedSessionWeeks = completedSessionCounts.filter((count) => count > 0)
+  const volumeMinMax =
+    trainedVolumeWeeks.length >= 2
+      ? `min ${Math.round(Math.min(...trainedVolumeWeeks)).toLocaleString()} · max ${Math.round(Math.max(...trainedVolumeWeeks)).toLocaleString()} kg`
+      : undefined
+  const sessionsMinMax =
+    trainedSessionWeeks.length >= 2
+      ? `min ${Math.min(...trainedSessionWeeks)} · max ${Math.max(...trainedSessionWeeks)}`
+      : undefined
+
+  // Rolling last 7 days, not the calendar week -- on a Monday "this week"
+  // is nearly empty, so a calendar-aligned comparison said nothing
+  // (BACKLOG #31). this_week/last_week still exist on the response for an
+  // installed PWA running the previous bundle, but this screen reads the
+  // rolling windows.
   const radarSeries: MuscleRadarSeries[] = [
     {
-      label: 'This week',
+      label: 'Last 7 days',
       color: 'var(--brand-accent)',
-      values: Object.fromEntries(muscleVolume.regions.map((r) => [r.region, r.this_week[radarMetric]])),
+      values: Object.fromEntries(muscleVolume.regions.map((r) => [r.region, r.last_7_days[radarMetric]])),
     },
     {
-      label: 'Last week',
+      label: 'Previous 7 days',
       color: 'var(--muted-foreground)',
-      values: Object.fromEntries(muscleVolume.regions.map((r) => [r.region, r.last_week[radarMetric]])),
+      values: Object.fromEntries(muscleVolume.regions.map((r) => [r.region, r.prev_7_days[radarMetric]])),
     },
   ]
 
@@ -90,7 +119,7 @@ export function OverviewScope() {
           label="Volume/wk"
           value={Math.round(avgVolume).toLocaleString()}
           unit="kg"
-          trend={`avg over ${range}`}
+          trend={volumeMinMax}
           sparkline={volumeSeries}
           color="var(--brand-accent)"
           infoTerm="Volume"
@@ -98,7 +127,7 @@ export function OverviewScope() {
         <KpiTile
           label="Sessions/wk"
           value={avgSessions.toFixed(1)}
-          trend={`avg over ${range}`}
+          trend={sessionsMinMax}
           sparkline={sessionSeries}
           color="var(--brand-accent)"
         />
@@ -122,17 +151,13 @@ export function OverviewScope() {
       <TopExercisesList exercises={topExercises} range={range} />
 
       {/* Everything above follows the range switch. The three cards below
-          always describe the current week -- they were interleaved with the
-          range-driven ones, so half the screen looked unresponsive. */}
-      <div className="mt-2 flex items-center gap-2">
-        <span className="h-px flex-1 bg-border" />
-        <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">This week</span>
-        <span className="h-px flex-1 bg-border" />
-      </div>
+          always describe the rolling last 7 days -- they were interleaved with
+          the range-driven ones, so half the screen looked unresponsive. */}
+      <SectionDivider>Last 7 days</SectionDivider>
 
       <Card className="p-3.5">
         <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Muscle load this week
+          Muscle load · last 7 days
           <InfoButton term="MEV" />
         </div>
         <MuscleBodyMap regions={muscleVolume.regions} />
@@ -141,7 +166,7 @@ export function OverviewScope() {
       <MuscleVolumeStatusList regions={muscleVolume.regions} />
 
       <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">This week vs. last week</div>
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Last 7 days vs. previous 7</div>
         <div className="mb-1 flex gap-1.5">
           {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
             <Button key={m} type="button" size="sm" variant={radarMetric === m ? 'default' : 'outline'} onClick={() => setRadarMetric(m)}>

@@ -225,6 +225,36 @@ check(
 check('weeklyByRegion carries last week\'s data separately', abs($byRegion['chest']['last_week']['sets'] - 1.0) < 0.001, $failures);
 check('weeklyByRegion zero-fills a region\'s week with no sets', $byRegion['arms']['last_week']['sets'] === 0.0, $failures);
 check('weeklyByRegion omits a region with no rows at all', !array_key_exists('shoulders', $byRegion), $failures);
+check('weeklyByRegion zero-fills prev_7_days for a region with no rows in that window', $byRegion['arms']['prev_7_days']['sets'] === 0.0, $failures);
+
+// Rolling 7-day windows, relative to $nowIso (2026-02-18T12:00Z), not the
+// calendar week -- BACKLOG #31.
+$rollingRows = [
+    // 3 days back = 2026-02-15T12:00Z, a Sunday in the PREVIOUS calendar
+    // week (Feb 9-15) -- last_7_days must still count it.
+    ['performed_at' => '2026-02-15T12:00:00Z', 'weight_kg' => 60, 'reps' => 10, 'muscle_weight' => 1.0, 'region' => 'legs'],
+    // 10 days back -- inside prev_7_days (day 8-14 back), not last_7_days.
+    ['performed_at' => '2026-02-08T12:00:00Z', 'weight_kg' => 60, 'reps' => 10, 'muscle_weight' => 1.0, 'region' => 'legs'],
+    // 20 days back -- outside both rolling windows.
+    ['performed_at' => '2026-01-29T12:00:00Z', 'weight_kg' => 60, 'reps' => 10, 'muscle_weight' => 1.0, 'region' => 'legs'],
+];
+$rolling = MuscleVolume::weeklyByRegion($rollingRows, 8, '2026-02-18T12:00:00Z');
+check(
+    'weeklyByRegion last_7_days counts a set from the previous calendar week',
+    abs($rolling['legs']['last_7_days']['sets'] - 1.0) < 0.001,
+    $failures
+);
+check(
+    'weeklyByRegion prev_7_days counts a set from 10 days back',
+    abs($rolling['legs']['prev_7_days']['sets'] - 1.0) < 0.001,
+    $failures
+);
+check(
+    'weeklyByRegion excludes a set 20 days back from both rolling windows',
+    ($rolling['legs']['last_7_days']['sets'] + $rolling['legs']['prev_7_days']['sets']) === 2.0,
+    $failures
+);
+
 $secondaryHeavy = MuscleVolume::weeklyByRegion([
     ['performed_at' => '2026-02-17T10:00:00Z', 'weight_kg' => 30, 'reps' => 10, 'muscle_weight' => 1.0, 'role' => 'primary', 'region' => 'arms'],
     ['performed_at' => '2026-02-17T10:05:00Z', 'weight_kg' => 100, 'reps' => 5, 'muscle_weight' => 0.5, 'role' => 'secondary', 'region' => 'arms'],

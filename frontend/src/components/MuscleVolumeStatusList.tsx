@@ -21,12 +21,13 @@ export function MuscleVolumeStatusList({ regions }: MuscleVolumeStatusListProps)
   return (
     <Card className="p-3.5">
       <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-        Volume this week (sets)
+        Volume · last 7 days (sets)
         <InfoButton term="MEV" />
       </div>
       <div className="flex flex-col gap-1.5">
         {ordered.map((r) => {
-          const sets = Math.round(r.this_week.sets * 10) / 10
+          // Rolling last 7 days, not the calendar week -- see MuscleVolumeRegion.
+          const sets = Math.round(r.last_7_days.sets * 10) / 10
           const status = statusFor(sets, r.mev, r.mav, r.mrv)
           return (
             <div key={r.region} className="flex items-center justify-between gap-2">

@@ -169,6 +169,12 @@ export interface MuscleVolumeRegion {
   mrv: number
   this_week: WeeklyMetrics
   last_week: WeeklyMetrics
+  // Rolling 7-day windows (now-7d..now / now-14d..now-7d), not calendar
+  // weeks -- what the dashboard cards actually read (BACKLOG #31). Kept
+  // alongside this_week/last_week rather than replacing them: an installed
+  // PWA can run the previous bundle for one launch after a deploy.
+  last_7_days: WeeklyMetrics
+  prev_7_days: WeeklyMetrics
   weeks: MuscleVolumeWeek[]
 }
 
