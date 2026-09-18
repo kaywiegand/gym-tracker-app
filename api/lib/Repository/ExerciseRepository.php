@@ -81,6 +81,11 @@ final class ExerciseRepository extends BaseRepository
                 $row['equipment'] ?? '',
                 $row['region'] ?? '',
                 $row['primary_muscle'] ?? '',
+                // The gym shorthand ("Quads", "Abs") as well as the anatomical
+                // name: once Squat/Deadlift titles dropped the muscle, "quads
+                // squat" had nothing left to match -- "Quadriceps" does not
+                // start with "quads".
+                ExerciseNaming::muscleLabel($row['primary_muscle'] ?? null),
             ])));
             foreach ($terms as $term) {
                 if (!self::matchesWord($haystack, $term)) {

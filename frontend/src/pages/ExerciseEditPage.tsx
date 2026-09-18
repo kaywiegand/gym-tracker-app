@@ -64,9 +64,7 @@ export function ExerciseEditPage() {
   const previewName =
     movement.trim() === ''
       ? name
-      : [exercise?.primary_muscle ?? '', movement.trim(), equipmentLabel(equipment), variant.trim()]
-          .filter((p) => p !== '')
-          .join(' ')
+      : previewTitle(exercise?.primary_muscle ?? '', movement.trim(), equipment, variant.trim())
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -235,6 +233,63 @@ export function ExerciseEditPage() {
   )
 }
 
+// Mirror of ExerciseNaming::muscleLabel() plus its leg-machine rule
+// (api/lib/ExerciseNaming.php): the gym calls these Leg Curl / Leg Extension /
+// Leg Press, never "Hamstrings Curl". Without this the preview promises a
+// different title than the one the server computes on save.
+const MUSCLE_LABELS: Record<string, string> = {
+  abdominals: 'Abs',
+  quadriceps: 'Quads',
+  'middle back': 'Mid Back',
+}
+const LEG_TITLE_MUSCLES = ['quadriceps', 'hamstrings']
+const LEG_TITLE_MOVEMENTS = ['Curl', 'Extension', 'Press']
+
+function muscleLabel(muscle: string, movement: string): string {
+  const key = muscle.trim().toLowerCase()
+  if (key === '') return ''
+  if (LEG_TITLE_MUSCLES.includes(key) && LEG_TITLE_MOVEMENTS.includes(movement)) return 'Legs'
+  return MUSCLE_LABELS[key] ?? muscle
+}
+
+const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift']
+
+function joinSingleLeg(words: string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].toLowerCase() === 'single' && words[i + 1]?.toLowerCase() === 'leg') {
+      out.push('Single-Leg')
+      i++
+    } else {
+      out.push(words[i])
+    }
+  }
+  return out
+}
+
+// Mirror of ExerciseNaming::displayName() for a curated exercise -- the only
+// case the editor previews, so no movement/variant inference here. Same rules
+// in the same order: muscle-free Squat/Deadlift, Smith into the equipment
+// slot, Single-Leg as one word, no stray "Leg" in a Legs title, no variant
+// that only repeats another part.
+function previewTitle(primaryMuscle: string, movement: string, equipment: string, variant: string): string {
+  const muscle = MUSCLE_FREE_MOVEMENTS.includes(movement) ? '' : muscleLabel(primaryMuscle, movement)
+  let equipmentText = equipmentLabel(equipment)
+  let words = variant.split(/\s+/).filter((w) => w !== '')
+  const withoutSmith = words.filter((w) => w.toLowerCase() !== 'smith')
+  if (withoutSmith.length !== words.length) {
+    equipmentText = 'Smith-Machine'
+    words = withoutSmith
+  }
+  words = joinSingleLeg(words)
+  if (muscle === 'Legs') words = words.filter((w) => w.toLowerCase() !== 'leg')
+  let variantText = words.join(' ')
+  if (variantText.toLowerCase() === equipmentText.toLowerCase() || variantText.toLowerCase() === muscle.toLowerCase()) {
+    variantText = ''
+  }
+  return [muscle, movement, equipmentText, variantText].filter((p) => p !== '').join(' ')
+}
+
 // Mirror of ExerciseNaming::EQUIPMENT_LABELS (api/lib/ExerciseNaming.php) --
 // only used for the live preview; the saved name is built server-side.
 const EQUIPMENT_LABELS: Record<string, string> = {
@@ -247,7 +302,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   bands: 'Band',
   'e-z curl bar': 'EZ-Bar',
   'medicine ball': 'Medicine Ball',
-  'exercise ball': 'Exercise Ball',
+  'exercise ball': 'Ball',
   'foam roll': 'Foam Roller',
   other: '',
 }

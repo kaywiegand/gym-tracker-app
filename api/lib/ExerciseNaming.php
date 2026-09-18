@@ -26,7 +26,10 @@ final class ExerciseNaming
         'bands' => 'Band',
         'e-z curl bar' => 'EZ-Bar',
         'medicine ball' => 'Medicine Ball',
-        'exercise ball' => 'Exercise Ball',
+        // One word per part: "Exercise Ball" split across the equipment slot
+        // read like equipment + variant. Stays distinct from Medicine Ball,
+        // which always carries its first word.
+        'exercise ball' => 'Ball',
         'foam roll' => 'Foam Roller',
         'other' => '',
     ];
@@ -39,6 +42,19 @@ final class ExerciseNaming
         'quadriceps' => 'Quads',
         'middle back' => 'Mid Back',
     ];
+
+    // The leg machines are named after the movement, not the muscle, in every
+    // gym on earth: "Leg Curl", "Leg Extension", "Leg Press". Titling them
+    // "Hamstrings Curl" / "Quads Extension" reads wrong to anyone looking for
+    // them. Limited to these three movements; Squat and Deadlift go further
+    // and carry no muscle at all (MUSCLE_FREE_MOVEMENTS below).
+    private const LEG_TITLE_MUSCLES = ['quadriceps', 'hamstrings'];
+    private const LEG_TITLE_MOVEMENTS = ['Curl', 'Extension', 'Press'];
+
+    // Movements whose name already says what they train. "Quads Squat" and
+    // "Hamstrings Deadlift" only put a muscle in front of a word that needs
+    // none; the gym says "Squat" and "Deadlift".
+    private const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift'];
 
     public static function muscleLabel(?string $muscle): string
     {
@@ -215,6 +231,19 @@ final class ExerciseNaming
         return self::MOVEMENT_BY_CATEGORY[$category] ?? null;
     }
 
+    // Source names whose inferred variant would collide with another exercise
+    // once the muscle is gone from the title (Squat/Deadlift carry none).
+    // "Clean" is also a movement word and gets stripped; "Sumo" falls behind
+    // the two-word cap. Named here instead of loosening the general rules,
+    // which would retitle hundreds of exercises to fix two.
+    private const VARIANT_BY_NAME = [
+        'clean deadlift' => 'Clean',
+        'reverse band sumo deadlift' => 'Sumo Reverse Band',
+        // "from" is filler; the deficit is what sets it apart from the plain
+        // Romanian deadlift, whose muscles it shares.
+        'romanian deadlift from deficit' => 'Romanian Deficit',
+    ];
+
     // Words that carry no distinguishing information in a variant.
     private const VARIANT_STOPWORDS = [
         'with', 'the', 'a', 'an', 'on', 'in', 'to', 'and', 'of', 'or', 'for',
@@ -236,6 +265,9 @@ final class ExerciseNaming
         $name = strtolower(trim((string) $sourceName));
         if ($name === '') {
             return '';
+        }
+        if (isset(self::VARIANT_BY_NAME[$name])) {
+            return self::VARIANT_BY_NAME[$name];
         }
 
         $used = [];
@@ -276,7 +308,10 @@ final class ExerciseNaming
                 }
             }
             $rest[] = ucfirst($word);
-            if (count($rest) === 2) {
+            // "Smith" leaves the variant for the equipment slot in
+            // displayName(), so it must not use up one of the two places --
+            // otherwise "Smith Machine Single Leg Squat" loses its "Leg".
+            if (count(array_filter($rest, static fn ($w) => $w !== 'Smith')) === 2) {
                 break;
             }
         }
@@ -304,6 +339,13 @@ final class ExerciseNaming
         }
 
         $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
+        if (in_array(strtolower(trim((string) ($row['primary_muscle'] ?? ''))), self::LEG_TITLE_MUSCLES, true)
+            && in_array($movement, self::LEG_TITLE_MOVEMENTS, true)) {
+            $muscle = 'Legs';
+        }
+        if (in_array($movement, self::MUSCLE_FREE_MOVEMENTS, true)) {
+            $muscle = '';
+        }
         $equipment = self::equipmentLabel($row['equipment'] ?? null);
         $variant = trim((string) ($row['variant'] ?? ''));
         // Only guess a variant for an exercise nobody curated. On a curated
@@ -314,9 +356,33 @@ final class ExerciseNaming
             $variant = self::inferVariant($row['name'] ?? null, $row['primary_muscle'] ?? null, $movement, $row['equipment'] ?? null);
         }
 
+        // The Smith machine is its own piece of equipment, not a variant of
+        // "Machine" -- "Press Machine Smith" reads as two things. Whatever the
+        // source filed it under, "Smith" in the variant moves into the
+        // equipment slot as one word.
+        $variantWords = preg_split('/\s+/', $variant, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $withoutSmith = array_values(array_filter($variantWords, static fn ($w) => strcasecmp($w, 'Smith') !== 0));
+        if (count($withoutSmith) !== count($variantWords)) {
+            $equipment = 'Smith-Machine';
+            $variantWords = $withoutSmith;
+        }
+
+        // "Single Leg" is one variant and is spelled as one word, the way it is
+        // written when curated. In a Legs title a remaining "Leg" says nothing
+        // the title has not already said ("Legs Curl Ball Leg").
+        $variantWords = self::joinSingleLeg($variantWords);
+        if ($muscle === 'Legs') {
+            $variantWords = array_values(array_filter($variantWords, static fn ($w) => strcasecmp($w, 'Leg') !== 0));
+        }
+        $variant = implode(' ', $variantWords);
+
         // A variant that only repeats a part already in the name reads as a
         // stutter ("Lats Row Machine Machine", "Abdominals Crunch Cable Cable").
         // Drop it -- the part it duplicates already says the same thing.
+        // Deliberately an exact match: ignoring a trailing s as well would
+        // also drop "Shoulder" from "Barbell Shoulder Press" and "Hamstring"
+        // from "Hamstring Stretch", and those variants are the only thing
+        // keeping four titles apart from another exercise.
         if (strcasecmp($variant, $equipment) === 0 || strcasecmp($variant, $muscle) === 0) {
             $variant = '';
         }
@@ -325,6 +391,22 @@ final class ExerciseNaming
 
         $name = implode(' ', array_filter($parts, static fn ($p) => $p !== ''));
         return $name !== '' ? $name : (string) ($row['name'] ?? '');
+    }
+
+    // ["Single", "Leg"] -> ["Single-Leg"], so the Leg filter above cannot
+    // tear a real variant apart.
+    private static function joinSingleLeg(array $words): array
+    {
+        $out = [];
+        for ($i = 0; $i < count($words); $i++) {
+            if (strcasecmp($words[$i], 'Single') === 0 && isset($words[$i + 1]) && strcasecmp($words[$i + 1], 'Leg') === 0) {
+                $out[] = 'Single-Leg';
+                $i++;
+                continue;
+            }
+            $out[] = $words[$i];
+        }
+        return $out;
     }
 
     // The common gym name shown as the small second line. Falls back to the

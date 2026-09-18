@@ -636,6 +636,70 @@ check(
     $failures
 );
 check(
+    'ExerciseNaming titles the leg machines Legs, not the muscle',
+    ExerciseNaming::displayName([
+        'name' => 'Seated Leg Curl', 'movement' => 'Curl', 'variant' => 'Seated',
+        'equipment' => 'machine', 'primary_muscle' => 'Hamstrings',
+    ]) === 'Legs Curl Machine Seated'
+        && ExerciseNaming::displayName([
+            'name' => 'Leg Extensions', 'movement' => 'Extension', 'variant' => '',
+            'equipment' => 'machine', 'primary_muscle' => 'Quadriceps',
+        ]) === 'Legs Extension Machine',
+    $failures
+);
+check(
+    'ExerciseNaming titles Squat and Deadlift without a muscle',
+    ExerciseNaming::displayName([
+        'name' => 'Barbell Squat', 'movement' => 'Squat', 'variant' => 'Back',
+        'equipment' => 'barbell', 'primary_muscle' => 'Quadriceps',
+    ]) === 'Squat Barbell Back'
+        && ExerciseNaming::displayName([
+            'name' => 'Stiff-Legged Dumbbell Deadlift', 'movement' => 'Deadlift', 'variant' => 'Stiff-Legged',
+            'equipment' => 'dumbbell', 'primary_muscle' => 'Hamstrings',
+        ]) === 'Deadlift Dumbbell Stiff-Legged',
+    $failures
+);
+check(
+    'ExerciseNaming moves Smith into the equipment slot',
+    ExerciseNaming::displayName([
+        'name' => 'Smith Machine Leg Press', 'movement' => '', 'variant' => '',
+        'equipment' => 'machine', 'primary_muscle' => 'Quadriceps', 'category' => 'strength',
+    ]) === 'Legs Press Smith-Machine'
+        && ExerciseNaming::displayName([
+            'name' => 'Smith Machine Bench Press', 'movement' => 'Press', 'variant' => 'Smith',
+            'equipment' => 'machine', 'primary_muscle' => 'Chest',
+        ]) === 'Chest Press Smith-Machine',
+    $failures
+);
+check(
+    'ExerciseNaming calls the exercise ball Ball and drops a stray Leg from Legs titles',
+    ExerciseNaming::displayName([
+        'name' => 'Ball Leg Curl', 'movement' => '', 'variant' => '',
+        'equipment' => 'exercise ball', 'primary_muscle' => 'Hamstrings', 'category' => 'strength',
+    ]) === 'Legs Curl Ball',
+    $failures
+);
+check(
+    'ExerciseNaming keeps Single Leg as one hyphenated variant',
+    ExerciseNaming::displayName([
+        'name' => 'Single-Leg Leg Extension', 'movement' => 'Extension', 'variant' => 'Single Leg',
+        'equipment' => 'machine', 'primary_muscle' => 'Quadriceps',
+    ]) === 'Legs Extension Machine Single-Leg',
+    $failures
+);
+check(
+    'ExerciseNaming keeps the muscle on other leg movements',
+    ExerciseNaming::displayName([
+        'name' => 'Barbell Lunge', 'movement' => 'Lunge', 'variant' => '',
+        'equipment' => 'barbell', 'primary_muscle' => 'Quadriceps',
+    ]) === 'Quads Lunge Barbell'
+        && ExerciseNaming::displayName([
+            'name' => 'Standing Calf Raise', 'movement' => 'Press', 'variant' => '',
+            'equipment' => 'machine', 'primary_muscle' => 'Calves',
+        ]) === 'Calves Press Machine',
+    $failures
+);
+check(
     'ExerciseNaming falls back to the source name without a movement',
     ExerciseNaming::displayName([
         'primary_muscle' => 'Chest', 'movement' => null,
@@ -797,6 +861,21 @@ check('search matches the assembled display name', in_array($rotationId, $idsFor
 check('search terms may be given in any order', in_array($rotationId, $idsFor('cable rotation chest'), true), $failures);
 check('every search term must match', !in_array($rotationId, $idsFor('chest rotation barbell'), true), $failures);
 check('search still finds by the source name', in_array($rotationId, $idsFor('torso'), true), $failures);
+// Seeded here, not at the top: the region/volume checks above count on the
+// three muscles they were written against.
+$pdo->exec("INSERT OR IGNORE INTO muscles (id, name_en, region, sort) VALUES (9, 'Quadriceps', 'legs', 9)");
+$squatId = Uuid::v4();
+$exRepo->create([
+    'id' => $squatId, 'name' => 'Barbell Squat', 'movement' => 'Squat', 'variant' => 'Back', 'equipment' => 'barbell',
+    'muscles' => [['muscle_id' => 9, 'role' => 'primary', 'weight' => 1.0]],
+]);
+check(
+    'search finds by the gym shorthand of the muscle once the title drops it',
+    $exRepo->find($squatId)['display_name'] === 'Squat Barbell Back'
+        && in_array($squatId, $idsFor('quads squat'), true)
+        && in_array($squatId, $idsFor('quadriceps squat'), true),
+    $failures
+);
 
 // Regression: a plain substring match made "rdl" hit "Hurdle Hops".
 check(
@@ -839,7 +918,7 @@ check(
     ExerciseNaming::displayName([
         'primary_muscle' => 'Quadriceps', 'movement' => 'Squat', 'variant' => 'Front',
         'equipment' => 'barbell', 'name' => 'Wide Stance Barbell Squat',
-    ]) === 'Quads Squat Barbell Front',
+    ]) === 'Squat Barbell Front',
     $failures
 );
 
