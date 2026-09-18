@@ -78,7 +78,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 22 | **Übung während einer laufenden Session hinzufügen** — `TrackingPage` kann nur Sätze ergänzen, keine Übung. Fehlt eine Übung im Template, muss man die Session verlassen und das Workout editieren. War Teil des Problems am 12.09. | 1 |
+| 22 | ~~Übung während einer laufenden Session hinzufügen~~ — ✅ verworfen 2026-09-18: Kay — Session verlassen, Workout bearbeiten, zurück und „Resume" reicht. Geprüft: `TrackingPage` lädt das Workout bei jedem Öffnen frisch, `resume()` baut die Übungen aus dem aktuellen Template und hängt die geloggten Sätze wieder an. Voraussetzung: vorher nicht „Finish workout". | — |
 | 23 | **Bewegungs-Inferenz: „Twist" schlägt „Fly"** — `MOVEMENT_PATTERNS` in `api/lib/ExerciseNaming.php` prüft `Twist` vor `Fly`, daher wird „Incline Dumbbell Flyes - With A Twist" zu `Chest Twist Dumbbell Incline`. Betrifft nur unkuratierte Übungen; per `MOVEMENT_BY_NAME` oder Reihenfolge lösen, danach Titelkollisionen prüfen. | 3 |
 
 ---
