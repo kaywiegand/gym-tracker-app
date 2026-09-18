@@ -305,3 +305,16 @@
 - „Browse by workout" zeigt Workouts der letzten 90 Tage statt der Gruppen (Kays Präzisierung).
 
 **Nächster Schritt:** Kay spielt #24 ein; danach Titel-Durchsicht der FB26-Workouts (#47) und #32–#34.
+
+---
+
+## Session 2026-09-18 (Nacht) — Namen, Aufräumen, Exercise-Tab
+
+**Was passiert ist:** Kays Meldungen #48–#55 und #32–#34 umgesetzt, überwiegend durch Sonnet-Agenten (Kay: Limit schonen), geprüft und committet in `8d4fbd8`, `3519720`, `7c83c3f`; Deploy `20260918-2019-7c83c3f-dirty`. Gainsfire-Export 18.09. inkrementell importiert (neues `scripts/gainsfire-incremental-import.py`). Alle Datenänderungen in einem Restore gebündelt (BACKLOG #56).
+
+**Entscheidungen:**
+- „Bodyweight" steht in keinem Titel mehr — nur Hilfsmittel werden genannt (Kay). 8 dadurch entstandene Dubletten per fester Variante bzw. korrigierter Kuratierung aufgelöst.
+- Die `26 FB …`-Workouts (vom Gainsfire-Import angelegt) werden in `FB26 …` aufgelöst und archiviert; neue Importe hängen an FB26.
+- Zahlen in kg: schmaler Tausender-Abstand statt Komma — „5,245 kg" wurde als 5 Komma 245 gelesen.
+
+**Nächster Schritt:** Kay spielt #56 ein und prüft live; danach Mapping-Durchsicht (#21 Teil 2).

@@ -60,7 +60,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 15 | **Kalorien-Schätzung** — HR-Daten fehlen. Über BIA allein geht nur eine MET-Faustformel (Krafttraining 3–6 MET × Gewicht × Dauer), die je nach Annahme um Faktor 2 streut. Zurückgestellt bis HR-Daten da sind. | 3 |
 | 18 | ~~Workouts gruppieren~~ — ✅ erledigt 2026-09-02: `workout_groups` + optionale `workouts.group_id`, aufklappbare Abschnitte in der Liste, Verwaltung unter /workout-groups. | — |
 | 19 | **Farb-Dubletten in der Palette** — `--body-weight`/`--body-muscle` teilen ihren Hex mit `--brand-accent`/`--metric-e1rm`, ebenso `--muscle-chest` = `--metric-volume`. Keine Datei nutzt zwei Bedeutungen desselben Tons gleichzeitig, also heute nicht mehrdeutig; echte Eindeutigkeit wäre eine Paletten-Entscheidung. | 3 |
-| 21 | **Frischer Gainsfire-Export** — der vorhandene endet am 12.06.2026, es fehlen ~3 Monate. Danach Mapping-Durchsicht (`uploads/gainsfire-exercise-mapping.csv`, 94 Zeilen). Eigene Session, Kay will den Export selbst ziehen. | 1 |
+| 21 | **Frischer Gainsfire-Export** — Kay 18.09.: die Übungen aus `/Users/kaywiegand/Projects/GYM-Fitness/trainings /20260918` in die Datenbank übernehmen (enthält u. a. das nur in Gainsfire getrackte Training vom 16.09., #30). Danach Mapping-Durchsicht (`uploads/gainsfire-exercise-mapping.csv`). | 1 |
 | 20 | ~~Maskable-Icon 5 % zu groß~~ — ✅ bewusst so belassen 2026-09-02: Kay nutzt iOS, dort wird nicht beschnitten. Auf Android würden G und M an den Außenkanten fehlen. | — |
 
 ---
@@ -87,7 +87,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 24 | **Live-Daten nachziehen (Kay)** — `./deploy/restore.sh uploads/live-20260918b.json`: `Deadlift Dumbbell Romanian`, Smith-Duplikat zusammenführen, neue Volume-Targets (#46). Gegen den Deploy-Backup 18.09. 16:41 getestet. Ersetzt `live-naming-20260918.json`. Braucht den Deploy `2a977cb` (Restore-Unterstützung für Volume-Targets). | 1 |
+| 24 | ~~Live-Daten nachziehen~~ → ersetzt durch #56 | — |
 | 25 | **Titel-Feinschliff unkuratierter Übungen** — Quellschreibweise ohne Bindestrich (`Deadlift Barbell Stiff Legged` neben kuratiertem `Stiff-Legged`), Muskel-Stotterer in der Variante (`Shoulders Press Barbell Shoulder`, `Calves Raise Smith-Machine Calf`), Füllwörter (`Abs Rollout Barbell From`). Eine allgemeine Singular/Plural-Regel wurde verworfen: sie erzeugte 4 Titelkollisionen. Jede Einzelkorrektur braucht einen Kollisionscheck gegen die ganze Library. | 3 |
 | 26 | **Editor-Vorschau nicht im Browser geprüft** — `previewTitle()` in `ExerciseEditPage.tsx` spiegelt die Regeln aus `ExerciseNaming::displayName()`; nur per tsc verifiziert. Beim nächsten Kuratieren einer Squat/Smith/Legs-Übung Vorschau gegen gespeicherten Titel vergleichen. | 3 |
 
@@ -102,9 +102,9 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 29 | ~~Dashboard-Trenner deutlicher~~ — ✅ erledigt 2026-09-18 (`ca29b75`): gemeinsame `SectionDivider`-Komponente. | — |
 | 30 | **Tracking am Mi 16.09. wieder nicht möglich** — Kay: das Training vom Mittwoch musste er wieder in Gainsfire tracken, in der App ging es „leider wieder nicht". Ursache noch unklar (was genau ging nicht?). Folge: die Sätze fehlen in der App, „Muscle load this week" zeigt alles unter MEV. Sätze später über den Gainsfire-Export nachziehen (#21). **Befund Live-DB 18.09.:** gleiches Muster wie Fr 12.09. — Session „FB26 Wendsday" 16.09. 16:47Z, genau 3 Sätze der ersten Übung, danach nichts, nie beendet. Der Session-Fix vom 13.09. (`107db04`) war da schon live — Ursache also woanders. **Kay 18.09.:** er startet das Workout, die Übungsnamen passen nicht oder sind missverständlich, und während des Trainings sucht er nicht herum — dann trackt er nicht. Kein Mechanik-Bug, sondern Namen/Wiedererkennbarkeit: die Titelregeln (`c8b93ea`) kamen erst am 18.09. live, #24 (RDL-Titel) steht noch aus. Verständliche Namen haben höchste Priorität. | 1 |
 | 31 | ~~„This week" → rollierende 7 Tage~~ — ✅ erledigt 2026-09-18 (`ca29b75`): Muscle load, Volume vs. MEV und Radar vergleichen die letzten 7 mit den 7 Tagen davor; Consistency unberührt. | — |
-| 32 | **Dashboard/Exercise: „Overall training load" unverständlich** — Kay: was heißt z. B. „0.11 · outside 0.8–1.3"? Die Anzeige ist kryptisch. | 1 |
-| 33 | **Dashboard/Exercise: Top-Weight-Diagramm raus** — Kay: in der ersten Anzeige gibt es Liniendiagramme für e1RM, Volume, Sets und Top weight; Top weight gleicht e1RM und ist überflüssig. Stattdessen das Max-Gewicht vor der Session History anzeigen. | 2 |
-| 34 | **Dashboard/Exercise: Volumen in der Session History** — Kay: pro Session fehlt das Volumen, am besten nach dem Gewicht und vor den Reps pro Satz. | 2 |
+| 32 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Trainingslast als Prozent des 4-Wochen-Schnitts | — |
+| 33 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Top-Weight-Panel raus, Max-Gewicht über der History | — |
+| 34 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Volumen je Session in der History | — |
 | 35 | ~~Dashboard/Workout: Workout-Gruppen anzeigen~~ — ✅ erledigt 2026-09-18 (`f1975a6`) | — |
 | 36 | ~~Zeitraum-Schalter erst nach der Auswahl~~ — ✅ erledigt 2026-09-18 (`f1975a6`), Workout und Exercise | — |
 | 37 | ~~Legende für „Muscle split per session"~~ — ✅ erledigt 2026-09-18 (`f1975a6`) | — |
@@ -118,3 +118,12 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 45 | ~~Edit Workout: „no fixed target weight"~~ — ✅ erledigt 2026-09-18 (`f1975a6`): Hinweis entfernt | — |
 | 46 | ~~Weekly volume targets begründen~~ — ✅ erledigt 2026-09-18 (`2a977cb`): Richtwerte pro Muskel (RP), Region = Summe; Methode und Quellen in `docs/volume-landmarks.md`. Live-Werte kommen mit #24 | — |
 | 47 | **Titel-Durchsicht der aktiven Workouts** — Befund bei der Browserprüfung 18.09.: die erste Übung in FB26 Wendsday heißt `Hamstrings Raise Bodyweight Front` (Front Leg Raise) — genau die Art Titel, an der Kay im Gym aussteigt (#30). Alle Übungen der FB26-Workouts mit Kay durchgehen und unklare Titel kuratieren, zusammen mit #43. | 1 |
+| 48 | ✅ erledigt 2026-09-18 (`3519720`): `Legs Raise Front`, „Bodyweight" aus allen Titeln | — |
+| 49 | ✅ Daten vorbereitet: `Squat Barbell Split` · „Bulgarian Squat" — kommt mit #56 | — |
+| 50 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Kopfbereiche fixiert | — |
+| 51 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Gruppen wie auf der Workouts-Seite | — |
+| 52 | ✅ Daten vorbereitet: `26 FB` → `FB26`, `26 FB` archiviert — kommt mit #56 | — |
+| 53 | ✅ erledigt 2026-09-18 (`8d4fbd8`): kg mit schmalem Tausender-Abstand, max. 1 Nachkommastelle | — |
+| 54 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Min/Max: Wert oben, Beschriftung darunter | — |
+| 55 | ✅ erledigt 2026-09-18 (`8d4fbd8`): neutrale Nutzungslinie | — |
+| 56 | **Live-Daten einspielen (Kay)** — `./deploy/restore.sh uploads/live-20260918-final2.json`: Deadlift Dumbbell Romanian, Smith-Duplikat, Volume-Targets (#46), Bulgarian (#49), 21 Gainsfire-Sätze + 2 Sessions beendet (#21), `26 FB` → `FB26` (#52), Push-Up-Variante. Gegen Backup 18.09. 16:41 getestet. | 1 |

@@ -34,3 +34,6 @@ api/config.local.php
 
 # FTP-Zugangsdaten fürs Deployment — lokal, nie ins Git
 /deploy/env
+
+# Python bytecode from the scripts/
+__pycache__/
