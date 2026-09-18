@@ -142,8 +142,9 @@ CREATE TABLE hr_samples ( id TEXT PRIMARY KEY, session_id TEXT, ts TEXT, bpm INT
 
 - **Neutrales Schwarz-Weiß-Chrome** (shadcn-Stil) + **Dark/Light-Umschalter** (Dark = Default, OLED-Strom). **Farbe gehört den Daten.**
 - **Grün/Gelb/Rot = ausschließlich Status** (positiv/Warnung/negativ: Ampel MEV/MAV/MRV, ACWR, PR/Regress). Nie als Serienfarbe.
-- **Muskelgruppen fix farbcodiert, überall gleich:** Chest=Blau, Back=Orange, Shoulders=Aqua, Arms=Gelb, Legs=Magenta, Core=Grün.
-- **Metriken feste Farben** (e1RM/Gewicht/Reps je eine), für Wiedererkennung über alle Charts.
+- **Blau = ausschließlich UI-Akzent** (`--brand-accent`), keine Daten.
+- **Muskelgruppen: eigene Blau-Grau-Palette**, nur in Diagrammen mit Legende, überall gleich: Chest `#64748b` · Back `#0891b2` · Shoulders `#94a3b8` · Arms `#155e75` · Legs `#22d3ee` · Core `#4682b4` (Entscheidung 2026-09-18, BACKLOG #19).
+- **Metriken feste Farben, eine Violett-Familie:** e1RM `#7c4fd1` · Volumen `#d369bd` · Sätze `#0091b0`. Körperwerte teilen sie: Gewicht = e1RM, Muskelmasse = Volumen, Fett = Sätze.
 - Charts: dataviz-Prinzipien (dünne Marks, Legende ab 2 Serien, sequenzielle Ein-Hue-Heatmaps, kategoriale Palette in fixer Reihenfolge). Palette für Light+Dark validieren.
 - Muskel-Icons im Prototyp sind Platzhalter → **Backlog** (später besserer Original-Icon-Satz). In Listen/Workouts bewusst **ohne Icons** (Namen reichen).
 

@@ -109,22 +109,26 @@
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
 
-    --muscle-chest: #2a78d6;
-    --muscle-back: #eb6834;
-    --muscle-shoulders: #1baf7a;
-    --muscle-arms: #c98500;
-    --muscle-legs: #e87ba4;
-    --muscle-core: #4e9a2a;
+    /* Colour governance (CLAUDE.md §7, decided 2026-09-18): muscle groups use
+       their own blue-grey family, only ever in charts with a legend; blue is
+       the UI accent alone; e1RM / volume / sets are one violet family, and
+       the body values reuse them (weight = e1RM, muscle = volume, fat = sets). */
+    --muscle-chest: #64748b;
+    --muscle-back: #0891b2;
+    --muscle-shoulders: #94a3b8;
+    --muscle-arms: #155e75;
+    --muscle-legs: #22d3ee;
+    --muscle-core: #4682b4;
     --status-good: #0ca30c;
     --status-warn: #e0a017;
     --status-crit: #d03b3b;
     --brand-accent: #2a78d6;
     --metric-e1rm: #7c4fd1;
-    --metric-volume: #2a78d6;
-    --metric-sets: #0d9488;
-    --body-weight: #2a78d6;
-    --body-muscle: #7c4fd1;
-    --body-fat: #d97706;
+    --metric-volume: #d369bd;
+    --metric-sets: #0091b0;
+    --body-weight: var(--metric-e1rm);
+    --body-muscle: var(--metric-volume);
+    --body-fat: var(--metric-sets);
 }
 
 [data-theme="dark"] {
@@ -160,22 +164,22 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
 
-    --muscle-chest: #3987e5;
-    --muscle-back: #d95926;
-    --muscle-shoulders: #199e70;
-    --muscle-arms: #c98500;
-    --muscle-legs: #d55181;
-    --muscle-core: #5aa832;
+    --muscle-chest: #64748b;
+    --muscle-back: #0891b2;
+    --muscle-shoulders: #94a3b8;
+    --muscle-arms: #155e75;
+    --muscle-legs: #22d3ee;
+    --muscle-core: #4682b4;
     --status-good: #0ca30c;
     --status-warn: #e0a017;
     --status-crit: #d03b3b;
     --brand-accent: #3987e5;
     --metric-e1rm: #9b7bea;
-    --metric-volume: #3987e5;
-    --metric-sets: #2dd4bf;
-    --body-weight: #3987e5;
-    --body-muscle: #9b7bea;
-    --body-fat: #f59e0b;
+    --metric-volume: #e579ce;
+    --metric-sets: #42b1d1;
+    --body-weight: var(--metric-e1rm);
+    --body-muscle: var(--metric-volume);
+    --body-fat: var(--metric-sets);
 }
 
 @layer base {
