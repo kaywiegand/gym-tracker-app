@@ -252,3 +252,22 @@
 **Korrektur:** Die Commit-Message von `107db04` sagt, `fitness.db` sei über HTTP erreichbar gewesen. Falsch — der HEAD-Check vor dem Upload gab bereits 403. `db/.htaccess` ist eine zusätzliche explizite Sperre, keine geschlossene Lücke. Nicht per Amend korrigiert, weil der Hash in `build.json` und `DEPLOYMENTS.md` steht.
 
 **Nächster Schritt:** Kay trainiert Monday mit dem neuen Build und meldet, ob Login und Speichern im Gym halten.
+
+---
+
+## Session 2026-09-15–18 — Titel wie im Gym, FitScore-Verlauf, e1RM-Radars
+
+**Was passiert ist:**
+- Kays Feedback: Leg Curls hießen „Hamstrings", Extensions „Quads"; FitScore ohne Verlauf; e1RM fehlte im Netz-Diagramm. Umgesetzt in `9210068` (Dashboard) und `c8b93ea` (Titelregeln), Details in den Commit-Messages und in `api/lib/ExerciseNaming.php`.
+- Titelregeln iterativ mit Kay: Curl/Extension/Press → `Legs …`; Squat und Deadlift ohne Muskel; `Smith-Machine` als eigenes Equipment; Exercise Ball → `Ball`; `Single-Leg`. Jede Stufe gegen die ganze Library (823 Übungen) auf Titelkollisionen geprüft — Endstand 106 geänderte Titel, 0 Kollisionen nach dem Merge.
+- `/code-review` fand 4 Punkte, alle vor dem Commit behoben — der wichtigste: e1RM pro Region zählte auch sekundäre Muskeln, der Bankdruck setzte so den e1RM der Arme. Gilt jetzt nur für primäre Muskeln, auch im Overview-Radar (`MuscleVolume`).
+- Deploy `20260918-0859-c8b93ea-dirty`, alle Commits nach `origin/main` gepusht (35 waren lokal liegen geblieben).
+- Restore (`uploads/live-naming-20260918.json`) wurde in der Session nicht freigegeben → BACKLOG #24.
+
+**Entscheidungen:**
+- Squat/Deadlift ganz ohne Muskel, nicht „Legs": der Gym-Name trägt keinen. Die Muskeln bleiben in den Daten (Volumen, Heatmap unverändert) und sind weiter suchbar, inkl. Kürzel („quads squat").
+- Smith bleibt eigenes Equipment: als `Machine` kollidiert es mit `Chest Press Machine` (81 Sätze), als `Barbell` mit `Chest Press Barbell` (247). Zusammenlegen würde Smith-Gewichte in die Progression freier Übungen mischen.
+- Eine allgemeine Singular/Plural-Stotterregel verworfen (4 Kollisionen, u. a. Push Press vs. Barbell Shoulder Press); stattdessen gezielte Regeln und feste Varianten für Clean, Sumo Reverse Band, Romanian Deficit.
+- Kays Kurzhantel-Deadlift ist ein RDL (Untertitel „Dumbbell RDL") → `Deadlift Dumbbell Romanian`. Die 6 Sumo-Sätze vom Juni 2025, die der Gainsfire-Import in dieselbe Übung gelegt hat, bleiben dort (Kays Entscheidung). RDL-Varianten nur anlegen, wenn trainiert.
+
+**Nächster Schritt:** Kay spielt #24 ein und trainiert mit den neuen Titeln.
