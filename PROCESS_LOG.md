@@ -271,3 +271,19 @@
 - Kays Kurzhantel-Deadlift ist ein RDL (Untertitel „Dumbbell RDL") → `Deadlift Dumbbell Romanian`. Die 6 Sumo-Sätze vom Juni 2025, die der Gainsfire-Import in dieselbe Übung gelegt hat, bleiben dort (Kays Entscheidung). RDL-Varianten nur anlegen, wenn trainiert.
 
 **Nächster Schritt:** Kay spielt #24 ein und trainiert mit den neuen Titeln.
+
+---
+
+## Session 2026-09-18 (Fortsetzung) — Kays Meldungen zum Dashboard, neue Arbeitsregel
+
+**Was passiert ist:**
+- Neue Arbeitsregel (Kay): jede Meldung zuerst als BACKLOG-Zeile, erst dann untersuchen; Abarbeitung an eine Sonnet-Session, Ergebnis selbst prüfen. Angewandt ab #27.
+- BACKLOG #27–#29 und #31 umgesetzt in `ca29b75` — Details in der Commit-Message. #2 und #22 auf Kays Wort verworfen (Begründung im BACKLOG).
+- #30 geklärt: das Tracking brach nicht technisch ab — Kay trackt nicht, wenn er die Übungen im Workout nicht wiedererkennt. Befund in der Live-DB passt dazu (12.09. und 16.09. je 3 Sätze der ersten Übung, dann Abbruch).
+
+**Entscheidungen:**
+- „This week" heißt jetzt „Last 7 days" und rechnet rollierend — eine Kalenderwoche ist montags leer. Die alten Felder bleiben für gecachte App-Stände; die Consistency-Anzeige und die zeitraumgesteuerten Karten bleiben unverändert.
+- Min/Max der KPI-Kacheln nur über abgeschlossene Wochen mit Training — mit Nullwochen stand auf jedem längeren Zeitraum „min 0".
+- Verständliche Übungsnamen sind Voraussetzung dafür, dass Kay überhaupt trackt — sie haben Vorrang vor Dashboard-Arbeit.
+
+**Nächster Schritt:** Deploy nach Kays Freigabe, dann #24 (RDL-Titel live) und Namens-Durchsicht der FB26-Workouts vor dem nächsten Training.

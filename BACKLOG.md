@@ -90,3 +90,15 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 24 | **Live-Daten nachziehen** — `./deploy/restore.sh uploads/live-naming-20260918.json` (gegen frischen Pull getestet). Setzt `Deadlift Dumbbell Romanian` (Kays RDL, bisher Variante „Stiff-Legged") und faltet das Smith-Duplikat „Smith Machine Decline Press" in „Decline Smith Press". Lief nicht mit, weil der Restore in der Session nicht freigegeben war. | 1 |
 | 25 | **Titel-Feinschliff unkuratierter Übungen** — Quellschreibweise ohne Bindestrich (`Deadlift Barbell Stiff Legged` neben kuratiertem `Stiff-Legged`), Muskel-Stotterer in der Variante (`Shoulders Press Barbell Shoulder`, `Calves Raise Smith-Machine Calf`), Füllwörter (`Abs Rollout Barbell From`). Eine allgemeine Singular/Plural-Regel wurde verworfen: sie erzeugte 4 Titelkollisionen. Jede Einzelkorrektur braucht einen Kollisionscheck gegen die ganze Library. | 3 |
 | 26 | **Editor-Vorschau nicht im Browser geprüft** — `previewTitle()` in `ExerciseEditPage.tsx` spiegelt die Regeln aus `ExerciseNaming::displayName()`; nur per tsc verifiziert. Beim nächsten Kuratieren einer Squat/Smith/Legs-Übung Vorschau gegen gespeicherten Titel vergleichen. | 3 |
+
+---
+
+## Kays Meldungen 2026-09-18
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 27 | ~~Metrik-Reihenfolge e1RM → Volume → Sets~~ — ✅ erledigt 2026-09-18 (`ca29b75`): beide Radar-Schalter; Trend-Panels passten schon. | — |
+| 28 | ~~Overview-Kacheln: Min/Max statt „avg over …"~~ — ✅ erledigt 2026-09-18 (`ca29b75`): Min/Max über abgeschlossene Trainingswochen, ACWR behält seinen Status. | — |
+| 29 | ~~Dashboard-Trenner deutlicher~~ — ✅ erledigt 2026-09-18 (`ca29b75`): gemeinsame `SectionDivider`-Komponente. | — |
+| 30 | **Tracking am Mi 16.09. wieder nicht möglich** — Kay: das Training vom Mittwoch musste er wieder in Gainsfire tracken, in der App ging es „leider wieder nicht". Ursache noch unklar (was genau ging nicht?). Folge: die Sätze fehlen in der App, „Muscle load this week" zeigt alles unter MEV. Sätze später über den Gainsfire-Export nachziehen (#21). **Befund Live-DB 18.09.:** gleiches Muster wie Fr 12.09. — Session „FB26 Wendsday" 16.09. 16:47Z, genau 3 Sätze der ersten Übung, danach nichts, nie beendet. Der Session-Fix vom 13.09. (`107db04`) war da schon live — Ursache also woanders. **Kay 18.09.:** er startet das Workout, die Übungsnamen passen nicht oder sind missverständlich, und während des Trainings sucht er nicht herum — dann trackt er nicht. Kein Mechanik-Bug, sondern Namen/Wiedererkennbarkeit: die Titelregeln (`c8b93ea`) kamen erst am 18.09. live, #24 (RDL-Titel) steht noch aus. Verständliche Namen haben höchste Priorität. | 1 |
+| 31 | ~~„This week" → rollierende 7 Tage~~ — ✅ erledigt 2026-09-18 (`ca29b75`): Muscle load, Volume vs. MEV und Radar vergleichen die letzten 7 mit den 7 Tagen davor; Consistency unberührt. | — |
