@@ -318,3 +318,16 @@
 - Zahlen in kg: schmaler Tausender-Abstand statt Komma — „5,245 kg" wurde als 5 Komma 245 gelesen.
 
 **Nächster Schritt:** Kay spielt #56 ein und prüft live; danach Mapping-Durchsicht (#21 Teil 2).
+
+---
+
+## Session 2026-09-18 (spät) — Farbpalette
+
+**Was passiert ist:** Farbinventur (#19) als HTML-Übersicht für Kay, danach die Palette in mehreren Runden mit ihm festgelegt (Vergleichsseiten mit Abstandsmaß CIE ΔE). Umgesetzt in `a2f9ec5`, Deploy `20260918-2154-a2f9ec5-dirty`; Regel in CLAUDE.md §7.
+
+**Entscheidungen (Kay):**
+- Blau ist ausschließlich UI-Akzent — es stand vorher zugleich für Chest, Volumen und Körpergewicht.
+- Muskelgruppen: eigene Blau-Grau-Familie (Schiefer bis Cyan), unterschieden über hell/dunkel, nur in Diagrammen mit Legende. Zwei bunte Alternativ-Paletten hat Kay verworfen.
+- Metriken als Violett-Familie (e1RM `#7c4fd1`, Volumen `#d369bd`, Sätze `#0091b0`); Körperwerte referenzieren sie. Sätze ≈ Back ist bekannt und von Kay so gewählt — die beiden erscheinen nie im selben View.
+
+**Nächster Schritt:** Kay spielt #56 ein und prüft live.

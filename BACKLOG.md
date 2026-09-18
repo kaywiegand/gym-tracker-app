@@ -59,7 +59,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | :--- | :--- | :--- |
 | 15 | **Kalorien-Schätzung** — HR-Daten fehlen. Über BIA allein geht nur eine MET-Faustformel (Krafttraining 3–6 MET × Gewicht × Dauer), die je nach Annahme um Faktor 2 streut. Zurückgestellt bis HR-Daten da sind. | 3 |
 | 18 | ~~Workouts gruppieren~~ — ✅ erledigt 2026-09-02: `workout_groups` + optionale `workouts.group_id`, aufklappbare Abschnitte in der Liste, Verwaltung unter /workout-groups. | — |
-| 19 | **Farb-Dubletten in der Palette** — `--body-weight`/`--body-muscle` teilen ihren Hex mit `--brand-accent`/`--metric-e1rm`, ebenso `--muscle-chest` = `--metric-volume`. Keine Datei nutzt zwei Bedeutungen desselben Tons gleichzeitig, also heute nicht mehrdeutig; echte Eindeutigkeit wäre eine Paletten-Entscheidung. | 3 |
+| 19 | ~~Farb-Dubletten in der Palette~~ — ✅ erledigt 2026-09-18: Blau nur UI-Akzent; Muskeln eigene Blau-Grau-Palette; Metriken e1RM `#7c4fd1` / Volumen `#d369bd` / Sätze `#0091b0`, Körperwerte teilen sie. Regel in CLAUDE.md §7. Sätze `#0091b0` ≈ Back `#0891b2` bewusst von Kay so gewählt (erscheinen nie im selben View). | — |
 | 21 | **Frischer Gainsfire-Export** — Kay 18.09.: die Übungen aus `/Users/kaywiegand/Projects/GYM-Fitness/trainings /20260918` in die Datenbank übernehmen (enthält u. a. das nur in Gainsfire getrackte Training vom 16.09., #30). Danach Mapping-Durchsicht (`uploads/gainsfire-exercise-mapping.csv`). | 1 |
 | 20 | ~~Maskable-Icon 5 % zu groß~~ — ✅ bewusst so belassen 2026-09-02: Kay nutzt iOS, dort wird nicht beschnitten. Auf Android würden G und M an den Außenkanten fehlen. | — |
 
