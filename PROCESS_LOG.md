@@ -287,3 +287,21 @@
 - Verständliche Übungsnamen sind Voraussetzung dafür, dass Kay überhaupt trackt — sie haben Vorrang vor Dashboard-Arbeit.
 
 **Nächster Schritt:** Deploy nach Kays Freigabe, dann #24 (RDL-Titel live) und Namens-Durchsicht der FB26-Workouts vor dem nächsten Training.
+
+---
+
+## Session 2026-09-18 (Abend) — eine Übungsauswahl, Rows, Volumen-Richtwerte
+
+**Was passiert ist:**
+- Kays Meldungen #32–#47 zuerst ins BACKLOG, dann umgesetzt. Die zwei Sonnet-Agenten brachen am Rate-Limit ab (ohne Änderungen), Umsetzung daher direkt: `f1975a6` (Auswahl, Dashboard, Editor), `2a977cb` (Rows, Volume-Targets). Details in den Commit-Messages.
+- Browserprüfung gegen eine Kopie der Live-DB: Exercises, „Choose exercise" und Dashboard/Exercise zeigen dieselbe Auswahl; 51 von 823 Übungen als benutzt markiert; „Browse by workout" listet 8 Workouts der letzten 90 Tage.
+- #46 recherchiert: RP-Guides pro Muskel, Schoenfeld 2017, Pelland et al. 2026 — dokumentiert in `docs/volume-landmarks.md`.
+- Deploy `20260918-1641-2a977cb-dirty`. Live-Daten (RDL-Titel, Smith-Duplikat, neue Targets) als Restore-Payload vorbereitet (#24) — `restore.sh` ist in dieser Session nicht freigegeben.
+
+**Entscheidungen:**
+- Volume-Targets: Obergrenzen der RP-Bereiche pro Muskel, Region = Summe ihrer Muskeln (Kays Wahl, Option A). Status pro Muskel (Option B) zurückgestellt. Back-Werte teils aus Sekundärquelle — in der Doku markiert.
+- Muskel-Targets gehören ins Backup: sie sind in Settings editierbar, also Nutzerdaten.
+- Row wie Squat/Deadlift ohne Muskel im Titel; der Muskel steht bei diesen drei im Untertitel. Upright Row bleibt eigene Bewegung mit Muskel.
+- „Browse by workout" zeigt Workouts der letzten 90 Tage statt der Gruppen (Kays Präzisierung).
+
+**Nächster Schritt:** Kay spielt #24 ein; danach Titel-Durchsicht der FB26-Workouts (#47) und #32–#34.
