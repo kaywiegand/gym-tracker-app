@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Exercise } from '@/types'
 import { PageHeader } from '@/components/PageHeader'
-import { ExerciseSelector } from '@/components/ExerciseSelector'
+import { ExerciseSelectorControls, ExerciseSelectorResults, useExerciseSelectorState } from '@/components/ExerciseSelector'
 import { ExerciseDetailSheet } from '@/components/ExerciseDetailSheet'
 
 export function ExercisesPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const navigate = useNavigate()
+  // Not excluding anything -- this is the whole library, not a workout's
+  // picker. Lifted out of <ExerciseSelector> (BACKLOG #50) so the search,
+  // filters and browse button can live inside the page's own sticky
+  // PageHeader instead of a second, separately-offset sticky block.
+  const selectorState = useExerciseSelectorState([])
 
   async function handleDuplicated(detail: Exercise) {
     const newId = crypto.randomUUID()
@@ -31,9 +36,11 @@ export function ExercisesPage() {
 
   return (
     <>
-      <PageHeader title="Exercises" subtitle="Library" />
+      <PageHeader title="Exercises" subtitle="Library">
+        <ExerciseSelectorControls state={selectorState} />
+      </PageHeader>
 
-      <ExerciseSelector onSelect={(item) => setOpenId(item.id)} />
+      <ExerciseSelectorResults state={selectorState} onSelect={(item) => setOpenId(item.id)} />
 
       <ExerciseDetailSheet
         exerciseId={openId}

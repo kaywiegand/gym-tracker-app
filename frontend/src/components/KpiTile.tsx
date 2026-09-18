@@ -7,6 +7,12 @@ interface KpiTileProps {
   unit?: string
   trend?: string
   trendClassName?: string
+  // Two-column min/max block, replacing `trend` on the Volume/wk and
+  // Sessions/wk tiles (#53/#54) -- a "min 5 245 · max 25 798 kg" subtitle
+  // line was too subtle and the thousands comma read as a decimal point.
+  // Values arrive pre-formatted (see lib/format); `unit` (already a prop
+  // above) is reused here and shown once, on the max value only.
+  minMax?: { min: string; max: string }
   sparkline: number[]
   color: string
   infoTerm?: string
@@ -34,7 +40,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   )
 }
 
-export function KpiTile({ label, value, unit, trend, trendClassName, sparkline, color, infoTerm }: KpiTileProps) {
+export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, color, infoTerm }: KpiTileProps) {
   return (
     <Card className="p-3">
       <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -46,6 +52,21 @@ export function KpiTile({ label, value, unit, trend, trendClassName, sparkline, 
         {unit && <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">{unit}</span>}
       </div>
       {trend && <div className={`text-[11px] font-semibold ${trendClassName ?? 'text-muted-foreground'}`}>{trend}</div>}
+      {minMax && (
+        <div className="mt-1 flex gap-3">
+          <div>
+            <div className="text-[13px] font-semibold tabular-nums">{minMax.min}</div>
+            <div className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">min</div>
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold tabular-nums">
+              {minMax.max}
+              {unit && <span className="ml-0.5 text-[9px] font-normal text-muted-foreground">{unit}</span>}
+            </div>
+            <div className="text-[9px] font-bold uppercase tracking-wide text-muted-foreground">max</div>
+          </div>
+        </div>
+      )}
       <Sparkline values={sparkline} color={color} />
     </Card>
   )

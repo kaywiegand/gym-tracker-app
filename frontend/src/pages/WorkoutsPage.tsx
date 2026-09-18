@@ -2,33 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { WorkoutGroup, WorkoutListItem } from '@/types'
-import { groupWorkouts, type WorkoutSection } from '@/lib/workoutGrouping'
+import { groupWorkouts, useCollapsedWorkoutGroups, type WorkoutSection } from '@/lib/workoutGrouping'
 import { PageHeader } from '@/components/PageHeader'
+import { WorkoutGroupList } from '@/components/WorkoutGroupList'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 
 type Section = WorkoutSection
-
-const UNGROUPED = '__ungrouped__'
-
-// Which sections are collapsed, kept per browser. A collapsed group is a
-// display preference, not data -- it does not belong on the server, and it
-// should survive a reload on the phone it was collapsed on.
-function loadCollapsed(): Set<string> {
-  try {
-    const raw = localStorage.getItem('workout-groups-collapsed')
-    return new Set<string>(raw ? JSON.parse(raw) : [])
-  } catch {
-    return new Set<string>()
-  }
-}
 
 export function WorkoutsPage() {
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([])
   const [groups, setGroups] = useState<WorkoutGroup[]>([])
-  const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed)
+  const { collapsed, toggle } = useCollapsedWorkoutGroups()
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -40,20 +26,6 @@ export function WorkoutsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
-
-  function toggle(key: string) {
-    setCollapsed((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      try {
-        localStorage.setItem('workout-groups-collapsed', JSON.stringify([...next]))
-      } catch {
-        // a private window can refuse storage -- the toggle still works for this visit
-      }
-      return next
-    })
-  }
 
   const sections: Section[] = useMemo(() => groupWorkouts(workouts, groups), [workouts, groups])
 
@@ -92,49 +64,7 @@ export function WorkoutsPage() {
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {!loading && workouts.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">No workouts yet</p>}
 
-      <div className="flex flex-col gap-3">
-        {sections.map((section) => {
-          const key = section.id ?? UNGROUPED
-          // A single unnamed pile needs no header -- that is just the list.
-          if (section.id === null && groups.length === 0) {
-            return (
-              <div key={key} className="flex flex-col gap-2">
-                {section.workouts.map(card)}
-              </div>
-            )
-          }
-          const isOpen = !collapsed.has(key)
-          return (
-            <div key={key}>
-              <button
-                type="button"
-                className="flex w-full items-center gap-1.5 py-1.5 text-left"
-                onClick={() => toggle(key)}
-                aria-expanded={isOpen}
-              >
-                {isOpen ? (
-                  <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-                )}
-                <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{section.name}</span>
-                <span className="h-px flex-1 bg-border" />
-                <span className="text-[11px] tabular-nums text-muted-foreground">{section.workouts.length}</span>
-              </button>
-
-              {isOpen && (
-                <div className="flex flex-col gap-2">
-                  {section.workouts.length === 0 ? (
-                    <p className="px-1 py-1 text-[12px] text-muted-foreground">No workouts in this group yet.</p>
-                  ) : (
-                    section.workouts.map(card)
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+      <WorkoutGroupList sections={sections} hasNamedGroups={groups.length > 0} collapsed={collapsed} onToggle={toggle} renderWorkout={card} />
 
       <div className="mb-10 mt-3 flex gap-2">
         <Button type="button" variant="outline" className="flex-1 border-dashed" onClick={() => navigate('/workouts/new')}>

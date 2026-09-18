@@ -10,6 +10,7 @@ import {
 } from '@/lib/biaMetrics'
 import type { BiaSeriesEntry } from '@/types'
 import { FilterChips } from '@/components/FilterChips'
+import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { SectionDivider } from '@/components/SectionDivider'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { FitScoreGauge } from '@/components/FitScoreGauge'
@@ -80,7 +81,9 @@ export function BodyScope() {
   }, [scans, range])
 
   const rangeSwitch = (
-    <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
+    <DashboardStickyBar>
+      <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
+    </DashboardStickyBar>
   )
 
   if (loading) {

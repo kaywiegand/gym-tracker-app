@@ -3,12 +3,14 @@ import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import type { RegionMetrics, WorkoutGroup, WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
-import { groupWorkouts } from '@/lib/workoutGrouping'
+import { groupWorkouts, useCollapsedWorkoutGroups } from '@/lib/workoutGrouping'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { KpiTile } from '@/components/KpiTile'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
+import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
+import { WorkoutGroupList } from '@/components/WorkoutGroupList'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -25,6 +27,7 @@ export function WorkoutScope() {
   const [split, setSplit] = useState<WorkoutMuscleSplitResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [groups, setGroups] = useState<WorkoutGroup[]>([])
+  const { collapsed, toggle } = useCollapsedWorkoutGroups()
 
   useEffect(() => {
     api.get<WorkoutListItem[]>('/workouts').then(setWorkouts)
@@ -47,36 +50,25 @@ export function WorkoutScope() {
 
   // First step is only the choice -- the range switch belongs to the
   // analysis of a chosen workout and confused the picker. Grouped exactly as
-  // on the Workouts page, empty groups left out: nothing to pick there.
+  // on the Workouts page (BACKLOG #51, shared WorkoutGroupList), empty
+  // groups left out here: nothing to pick there.
   if (!selected) {
     const sections = groupWorkouts(workouts, groups).filter((s) => s.workouts.length > 0)
+    const row = (w: WorkoutListItem) => (
+      <Card
+        key={w.id}
+        className="cursor-pointer flex-row items-center justify-between gap-2 px-3 py-2.5"
+        onClick={() => setSelected(w)}
+      >
+        <div className="min-w-0">
+          <div className="truncate text-[14px] font-semibold">{w.name}</div>
+          <div className="text-[11.5px] text-muted-foreground">{w.exercise_count} exercises</div>
+        </div>
+        <span className="shrink-0 text-muted-foreground">›</span>
+      </Card>
+    )
     return (
-      <div className="flex flex-col">
-        {sections.map((section) => (
-          <div key={section.id ?? 'ungrouped'}>
-            <div className="mt-3 mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              {section.name}
-              <span className="h-px flex-1 bg-border" />
-              <span>{section.workouts.length}</span>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {section.workouts.map((w) => (
-                <Card
-                  key={w.id}
-                  className="cursor-pointer flex-row items-center justify-between gap-2 px-3 py-2.5"
-                  onClick={() => setSelected(w)}
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-[14px] font-semibold">{w.name}</div>
-                    <div className="text-[11.5px] text-muted-foreground">{w.exercise_count} exercises</div>
-                  </div>
-                  <span className="shrink-0 text-muted-foreground">›</span>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <WorkoutGroupList sections={sections} hasNamedGroups={groups.length > 0} collapsed={collapsed} onToggle={toggle} renderWorkout={row} />
     )
   }
 
@@ -111,16 +103,18 @@ export function WorkoutScope() {
 
   return (
     <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        className="flex w-full items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-left"
-        onClick={() => setSelected(null)}
-      >
-        <span className="text-[14px] font-bold">{selected.name}</span>
-        <span className="text-[12px] text-muted-foreground">change ›</span>
-      </button>
+      <DashboardStickyBar>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-left"
+          onClick={() => setSelected(null)}
+        >
+          <span className="text-[14px] font-bold">{selected.name}</span>
+          <span className="text-[12px] text-muted-foreground">change ›</span>
+        </button>
 
-      {rangeSwitch}
+        {rangeSwitch}
+      </DashboardStickyBar>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TopExercise, TrainingLoadResponse } from '@/types'
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import { formatNumber } from '@/lib/format'
 import { FilterChips } from '@/components/FilterChips'
+import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { KpiTile } from '@/components/KpiTile'
 import { SectionDivider } from '@/components/SectionDivider'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
@@ -83,13 +85,14 @@ export function OverviewScope() {
   const trainedWeekMask = completedSessionCounts.map((count) => count > 0)
   const trainedVolumeWeeks = volumeSeries.slice(0, -1).filter((_, i) => trainedWeekMask[i])
   const trainedSessionWeeks = completedSessionCounts.filter((count) => count > 0)
+  // Pre-formatted min/max pair for KpiTile's two-column block (#53/#54).
   const volumeMinMax =
     trainedVolumeWeeks.length >= 2
-      ? `min ${Math.round(Math.min(...trainedVolumeWeeks)).toLocaleString()} · max ${Math.round(Math.max(...trainedVolumeWeeks)).toLocaleString()} kg`
+      ? { min: formatNumber(Math.min(...trainedVolumeWeeks)), max: formatNumber(Math.max(...trainedVolumeWeeks)) }
       : undefined
   const sessionsMinMax =
     trainedSessionWeeks.length >= 2
-      ? `min ${Math.min(...trainedSessionWeeks)} · max ${Math.max(...trainedSessionWeeks)}`
+      ? { min: formatNumber(Math.min(...trainedSessionWeeks)), max: formatNumber(Math.max(...trainedSessionWeeks)) }
       : undefined
 
   // Rolling last 7 days, not the calendar week -- on a Monday "this week"
@@ -112,14 +115,16 @@ export function OverviewScope() {
 
   return (
     <div className="flex flex-col gap-3">
-      <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
+      <DashboardStickyBar>
+        <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
+      </DashboardStickyBar>
 
       <div className="grid grid-cols-3 gap-2">
         <KpiTile
           label="Volume/wk"
-          value={Math.round(avgVolume).toLocaleString()}
+          value={formatNumber(avgVolume)}
           unit="kg"
-          trend={volumeMinMax}
+          minMax={volumeMinMax}
           sparkline={volumeSeries}
           color="var(--brand-accent)"
           infoTerm="Volume"
@@ -127,7 +132,7 @@ export function OverviewScope() {
         <KpiTile
           label="Sessions/wk"
           value={avgSessions.toFixed(1)}
-          trend={sessionsMinMax}
+          minMax={sessionsMinMax}
           sparkline={sessionSeries}
           color="var(--brand-accent)"
         />

@@ -1,6 +1,7 @@
 import { ResponsiveLine } from '@nivo/line'
 import type { ExerciseHistoryEntry } from '@/types'
 import type { DashboardRange } from '@/lib/dashboardRanges'
+import { formatNumber } from '@/lib/format'
 
 interface MetricTrendPanelsProps {
   history: ExerciseHistoryEntry[]
@@ -8,26 +9,26 @@ interface MetricTrendPanelsProps {
 }
 
 interface Panel {
-  key: 'best_e1rm' | 'top_weight_kg' | 'volume_kg' | 'sets_count'
+  key: 'best_e1rm' | 'volume_kg' | 'sets_count'
   label: string
   unit: string
   color: string
   decimals: number
 }
 
-// Four panels rather than four series in one frame. e1RM runs 27-96 kg while
-// volume runs 600-2690 -- on a shared axis the strength line is a flat smear
-// along the bottom, which is why this used to normalize everything to a
-// percent of its own maximum and show no axis at all. That hid the actual
-// finding: e1RM holding at ~93 while the top weight fell from 85 to 75 and
-// the volume rose, i.e. more reps at less weight. Separate axes in real
-// units show it; the shared x-axis keeps "do these move together" readable.
+// Three panels rather than three series in one frame. e1RM runs 27-96 kg
+// while volume runs 600-2690 -- on a shared axis the strength line is a flat
+// smear along the bottom, which is why this used to normalize everything to
+// a percent of its own maximum and show no axis at all. That hid real
+// findings, e.g. e1RM holding steady while volume moved on its own. Separate
+// axes in real units show it; the shared x-axis keeps "do these move
+// together" readable.
 //
-// e1RM and top weight share a colour on purpose: same family (strength in
-// kg), and they never appear in the same frame, so nothing is ambiguous.
+// Top weight used to be a fourth panel here; it is now the single "Max
+// weight" line above the session history instead (#33) -- once e1RM already
+// tracks strength over time, a whole trend panel for it added little.
 const PANELS: Panel[] = [
   { key: 'best_e1rm', label: 'e1RM', unit: 'kg', color: 'var(--metric-e1rm)', decimals: 1 },
-  { key: 'top_weight_kg', label: 'Top weight', unit: 'kg', color: 'var(--metric-e1rm)', decimals: 1 },
   { key: 'volume_kg', label: 'Volume', unit: 'kg', color: 'var(--metric-volume)', decimals: 0 },
   { key: 'sets_count', label: 'Sets', unit: '', color: 'var(--metric-sets)', decimals: 0 },
 ]
@@ -50,8 +51,7 @@ function stats(values: number[]) {
   return { min, avg, max }
 }
 
-const fmt = (v: number, decimals: number) =>
-  decimals > 0 ? (Math.round(v * 10) / 10).toFixed(1) : Math.round(v).toLocaleString()
+const fmt = (v: number, decimals: number) => formatNumber(v, decimals > 0 ? 1 : 0)
 
 export function MetricTrendPanels({ history, range }: MetricTrendPanelsProps) {
   // At most six labels, evenly spaced, and never the same date twice.
