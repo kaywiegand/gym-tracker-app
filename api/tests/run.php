@@ -989,6 +989,38 @@ check('delete group returns false on repeat', $groupRepo->softDelete($gMain['id'
 check('workout survives its group being deleted', $woRepo->find($grouped['id']) !== null, $failures);
 check('workout is ungrouped afterwards', $woRepo->find($grouped['id'])['group_id'] === null, $failures);
 
+// --- Pickers: is_used flag and recently trained workouts (BACKLOG #38, #42) ---
+$pickNow = gmdate('Y-m-d\TH:i:s\Z');
+$pickOld = gmdate('Y-m-d\TH:i:s\Z', time() - 200 * 86400);
+$pdo->exec("INSERT INTO exercises (id, name, created_at, updated_at) VALUES
+    ('pick-ex-wo', 'Used In Workout', '$pickNow', '$pickNow'),
+    ('pick-ex-set', 'Used By Sets', '$pickNow', '$pickNow'),
+    ('pick-ex-unused', 'Never Used', '$pickNow', '$pickNow')");
+$pdo->exec("INSERT INTO workouts (id, name, mode_id, archived, created_at, updated_at) VALUES
+    ('pick-wo-recent', 'Recent Workout', 1, 0, '$pickNow', '$pickNow'),
+    ('pick-wo-old', 'Old Workout', 1, 0, '$pickOld', '$pickOld')");
+$pdo->exec("INSERT INTO workout_exercises (id, workout_id, exercise_id, position, planned_sets, created_at, updated_at) VALUES
+    ('pick-we-1', 'pick-wo-recent', 'pick-ex-wo', 0, 3, '$pickNow', '$pickNow')");
+$pdo->exec("INSERT INTO sessions (id, workout_id, started_at, created_at, updated_at) VALUES
+    ('pick-sess-recent', 'pick-wo-recent', '$pickNow', '$pickNow', '$pickNow'),
+    ('pick-sess-old', 'pick-wo-old', '$pickOld', '$pickOld', '$pickOld')");
+$pdo->exec("INSERT INTO sets (id, session_id, exercise_id, set_index, weight_kg, reps, performed_at, created_at, updated_at) VALUES
+    ('pick-set-1', 'pick-sess-old', 'pick-ex-set', 0, 20, 10, '$pickOld', '$pickOld', '$pickOld')");
+$usedFlags = array_column($exRepo->list(null, null, null), 'is_used', 'id');
+check('is_used marks an exercise that sits in a workout', ($usedFlags['pick-ex-wo'] ?? null) === 1, $failures);
+check('is_used marks an exercise that has logged sets', ($usedFlags['pick-ex-set'] ?? null) === 1, $failures);
+check('is_used leaves an untouched exercise unmarked', ($usedFlags['pick-ex-unused'] ?? null) === 0, $failures);
+$recentIds = array_column((new WorkoutRepository())->recentlyUsed(90), 'id');
+check('recentlyUsed includes a workout trained within the window', in_array('pick-wo-recent', $recentIds, true), $failures);
+check('recentlyUsed leaves out a workout last trained 200 days ago', !in_array('pick-wo-old', $recentIds, true), $failures);
+$woExercises = $exRepo->listForWorkout('pick-wo-recent');
+check(
+    'listForWorkout returns the workout\'s exercises in the list shape',
+    count($woExercises) === 1 && $woExercises[0]['id'] === 'pick-ex-wo'
+        && isset($woExercises[0]['display_name']) && $woExercises[0]['is_used'] === 1,
+    $failures
+);
+
 @unlink($dbPath);
 
 if ($failures) {

@@ -18,6 +18,25 @@ final class WorkoutRepository extends BaseRepository
         );
     }
 
+    // Workouts trained within the last $days, most recently used first --
+    // the entry list of the pickers' "browse by workout" path. Archived ones
+    // count too: if it was trained last month, its exercises are what the
+    // user is looking for.
+    public function recentlyUsed(int $days): array
+    {
+        $cutoff = gmdate('Y-m-d\TH:i:s\Z', time() - $days * 86400);
+        return $this->fetchAll(
+            'SELECT w.id, w.name, MAX(s.started_at) AS last_used,
+                (SELECT COUNT(*) FROM workout_exercises we WHERE we.workout_id = w.id AND we.deleted_at IS NULL) AS exercise_count
+             FROM workouts w
+             JOIN sessions s ON s.workout_id = w.id AND s.deleted_at IS NULL
+             WHERE w.deleted_at IS NULL AND s.started_at >= ?
+             GROUP BY w.id, w.name
+             ORDER BY last_used DESC',
+            [$cutoff]
+        );
+    }
+
     public function find(string $id): ?array
     {
         $workout = $this->fetchOne(

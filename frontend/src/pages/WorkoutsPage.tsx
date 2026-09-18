@@ -2,17 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { WorkoutGroup, WorkoutListItem } from '@/types'
+import { groupWorkouts, type WorkoutSection } from '@/lib/workoutGrouping'
 import { PageHeader } from '@/components/PageHeader'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
-interface Section {
-  id: string | null
-  name: string
-  workouts: WorkoutListItem[]
-}
+type Section = WorkoutSection
 
 const UNGROUPED = '__ungrouped__'
 
@@ -58,27 +55,7 @@ export function WorkoutsPage() {
     })
   }
 
-  // Groups in their configured order, then whatever has no group. An empty
-  // group still shows, so a group made in advance is visibly there.
-  const sections: Section[] = useMemo(() => {
-    const byGroup = new Map<string, WorkoutListItem[]>()
-    const ungrouped: WorkoutListItem[] = []
-    for (const w of workouts) {
-      if (w.group_id) {
-        const list = byGroup.get(w.group_id) ?? []
-        list.push(w)
-        byGroup.set(w.group_id, list)
-      } else {
-        ungrouped.push(w)
-      }
-    }
-
-    const out: Section[] = groups.map((g) => ({ id: g.id, name: g.name, workouts: byGroup.get(g.id) ?? [] }))
-    if (ungrouped.length > 0) {
-      out.push({ id: null, name: groups.length > 0 ? 'Ungrouped' : 'All workouts', workouts: ungrouped })
-    }
-    return out
-  }, [workouts, groups])
+  const sections: Section[] = useMemo(() => groupWorkouts(workouts, groups), [workouts, groups])
 
   const card = (w: WorkoutListItem) => (
     <Card key={w.id} className="cursor-pointer px-3 py-2.5" onClick={() => navigate(`/workouts/${w.id}/edit`)}>

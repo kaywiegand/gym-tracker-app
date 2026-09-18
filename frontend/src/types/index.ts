@@ -47,6 +47,17 @@ export interface ExerciseListItem extends ExerciseNames {
   default_increment_kg: number | null
   region: string | null
   primary_muscle: string | null
+  // 1 when the exercise sits in a workout or has ever been logged -- the
+  // pickers mark these (BACKLOG #38).
+  is_used: number
+}
+
+export interface RecentWorkout {
+  id: string
+  name: string
+  last_used: string
+  exercise_count: number
+  exercises: ExerciseListItem[]
 }
 
 export interface ExerciseNamingVocabulary {

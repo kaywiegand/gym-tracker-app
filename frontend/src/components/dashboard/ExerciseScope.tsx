@@ -7,8 +7,8 @@ import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ExerciseSelector } from '@/components/ExerciseSelector'
 
 interface Rung {
   sessionId: string
@@ -38,26 +38,12 @@ function buildLadder(summaries: ExerciseSessionSummary[]): Rung[] {
 
 export function ExerciseScope() {
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<ExerciseListItem[]>([])
   const [selected, setSelected] = useState<ExerciseListItem | null>(null)
   const [history, setHistory] = useState<ExerciseHistoryEntry[]>([])
   const [summaries, setSummaries] = useState<ExerciseSessionSummary[]>([])
   const [settings, setSettings] = useState<Settings | null>(null)
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (selected) return
-    const timer = setTimeout(() => {
-      if (!query.trim()) {
-        setResults([])
-        return
-      }
-      api.get<ExerciseListItem[]>(`/exercises?q=${encodeURIComponent(query.trim())}`).then(setResults)
-    }, 200)
-    return () => clearTimeout(timer)
-  }, [query, selected])
 
   useEffect(() => {
     if (!selected) return
@@ -82,27 +68,10 @@ export function ExerciseScope() {
     <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
   )
 
+  // Choosing comes first and alone -- the range switch only means something
+  // once an exercise is picked (BACKLOG #36). Same selector as everywhere.
   if (!selected) {
-    return (
-      <div className="flex flex-col gap-2">
-        {rangeSwitch}
-        <Input placeholder="Search an exercise…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        {results.map((r) => (
-          <Card
-            key={r.id}
-            className="cursor-pointer px-3 py-2.5"
-            onClick={() => {
-              setSelected(r)
-              setQuery('')
-              setResults([])
-            }}
-          >
-            <div className="text-[14px] font-semibold">{r.display_name}</div>
-            <div className="text-[11.5px] text-muted-foreground">{[r.display_subtitle, r.equipment].filter(Boolean).join(' · ')}</div>
-          </Card>
-        ))}
-      </div>
-    )
+    return <ExerciseSelector onSelect={setSelected} />
   }
 
   const ladder = buildLadder(summaries)

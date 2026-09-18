@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
-import type { RegionMetrics, WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
+import type { RegionMetrics, WorkoutGroup, WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
+import { groupWorkouts } from '@/lib/workoutGrouping'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { KpiTile } from '@/components/KpiTile'
@@ -23,9 +24,11 @@ export function WorkoutScope() {
   const [selected, setSelected] = useState<WorkoutListItem | null>(null)
   const [split, setSplit] = useState<WorkoutMuscleSplitResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const [groups, setGroups] = useState<WorkoutGroup[]>([])
 
   useEffect(() => {
     api.get<WorkoutListItem[]>('/workouts').then(setWorkouts)
+    api.get<WorkoutGroup[]>('/workout-groups').then(setGroups)
   }, [])
 
   useEffect(() => {
@@ -42,15 +45,36 @@ export function WorkoutScope() {
     <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
   )
 
+  // First step is only the choice -- the range switch belongs to the
+  // analysis of a chosen workout and confused the picker. Grouped exactly as
+  // on the Workouts page, empty groups left out: nothing to pick there.
   if (!selected) {
+    const sections = groupWorkouts(workouts, groups).filter((s) => s.workouts.length > 0)
     return (
-      <div className="flex flex-col gap-2">
-        {rangeSwitch}
-        {workouts.map((w) => (
-          <Card key={w.id} className="cursor-pointer px-3 py-2.5" onClick={() => setSelected(w)}>
-            <div className="text-[14px] font-semibold">{w.name}</div>
-            <div className="text-[11.5px] text-muted-foreground">{w.exercise_count} exercises</div>
-          </Card>
+      <div className="flex flex-col">
+        {sections.map((section) => (
+          <div key={section.id ?? 'ungrouped'}>
+            <div className="mt-3 mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              {section.name}
+              <span className="h-px flex-1 bg-border" />
+              <span>{section.workouts.length}</span>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {section.workouts.map((w) => (
+                <Card
+                  key={w.id}
+                  className="cursor-pointer flex-row items-center justify-between gap-2 px-3 py-2.5"
+                  onClick={() => setSelected(w)}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[14px] font-semibold">{w.name}</div>
+                    <div className="text-[11.5px] text-muted-foreground">{w.exercise_count} exercises</div>
+                  </div>
+                  <span className="shrink-0 text-muted-foreground">›</span>
+                </Card>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     )
@@ -135,6 +159,20 @@ export function WorkoutScope() {
                   grid: { line: { stroke: 'var(--border)' } },
                 }}
               />
+            </div>
+            {/* Region colours are fixed app-wide (CLAUDE.md §7) but meant
+                nothing here without a key. Only the regions that occur in
+                these sessions, in the fixed order -- a legend of six entries
+                for a two-colour chart is noise. */}
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+              {regionKeys
+                .filter((r) => sessions.some((s) => (s.by_region[r] ?? 0) > 0))
+                .map((r) => (
+                  <span key={r} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <span className="size-2.5 rounded-sm" style={{ background: `var(--muscle-${r})` }} />
+                    {REGION_LABELS[r]}
+                  </span>
+                ))}
             </div>
           </Card>
 

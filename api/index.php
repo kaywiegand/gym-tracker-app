@@ -81,6 +81,9 @@ try {
         handleDeleteWorkoutGroup($segments[1]);
     } elseif ($method === 'GET' && $path === '/workouts') {
         handleListWorkouts();
+    // Above the two-segment GET below, which would read "recent" as an id.
+    } elseif ($method === 'GET' && $path === '/workouts/recent') {
+        handleRecentWorkouts();
     } elseif ($method === 'POST' && $path === '/workouts') {
         handleCreateWorkout();
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'workouts' && $segments[2] === 'last-session-volume') {

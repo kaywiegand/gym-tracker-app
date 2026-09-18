@@ -15,13 +15,25 @@ final class ExerciseRepository extends BaseRepository
         WHERE em.exercise_id = e.id AND em.role = 'primary'
         ORDER BY mu.sort LIMIT 1)";
 
+    // "Used" = the exercise sits in a live workout or has ever been logged.
+    // The pickers mark these, so the handful of exercises someone actually
+    // trains stands out among the 800+ in the library.
+    private const IS_USED_EXPRESSION = "CASE WHEN EXISTS (
+            SELECT 1 FROM workout_exercises we JOIN workouts w ON w.id = we.workout_id
+            WHERE we.exercise_id = e.id AND we.deleted_at IS NULL AND w.deleted_at IS NULL)
+          OR EXISTS (SELECT 1 FROM sets s WHERE s.exercise_id = e.id AND s.deleted_at IS NULL)
+        THEN 1 ELSE 0 END";
+
+    private const LIST_COLUMNS = 'e.id, e.name, e.movement, e.variant, e.display_alias, e.is_curated,
+              e.equipment, e.mechanic, e.category, e.default_increment_kg,
+              ' . self::PRIMARY_REGION_SUBQUERY . ' AS region,
+              ' . self::PRIMARY_MUSCLE_SUBQUERY . ' AS primary_muscle,
+              ' . self::IS_USED_EXPRESSION . ' AS is_used';
+
     public function list(?string $q, ?string $region, ?string $mechanic, bool $curatedOnly = false): array
     {
         $sql = 'SELECT * FROM (
-            SELECT e.id, e.name, e.movement, e.variant, e.display_alias, e.is_curated,
-              e.equipment, e.mechanic, e.category, e.default_increment_kg,
-              ' . self::PRIMARY_REGION_SUBQUERY . ' AS region,
-              ' . self::PRIMARY_MUSCLE_SUBQUERY . ' AS primary_muscle
+            SELECT ' . self::LIST_COLUMNS . '
             FROM exercises e
             WHERE e.deleted_at IS NULL
         ) t WHERE 1=1';
@@ -50,9 +62,34 @@ final class ExerciseRepository extends BaseRepository
         // with that muscle. Uncurated rows sort last, by their source name.
         $sql .= ' ORDER BY t.region, t.movement IS NULL, t.primary_muscle, t.movement, t.equipment, t.variant, t.name';
 
-        $rows = ExerciseNaming::decorateAll($this->fetchAll($sql, $params));
+        $rows = self::castUsed(ExerciseNaming::decorateAll($this->fetchAll($sql, $params)));
 
         return $q === null || trim($q) === '' ? $rows : self::filterByQuery($rows, $q);
+    }
+
+    // One workout's exercises in workout order, in the same shape as list()
+    // -- the "browse by workout" path of the pickers renders them with the
+    // very same list item.
+    public function listForWorkout(string $workoutId): array
+    {
+        return self::castUsed(ExerciseNaming::decorateAll($this->fetchAll(
+            'SELECT ' . self::LIST_COLUMNS . '
+             FROM workout_exercises wx
+             JOIN exercises e ON e.id = wx.exercise_id AND e.deleted_at IS NULL
+             WHERE wx.workout_id = ? AND wx.deleted_at IS NULL
+             ORDER BY wx.position',
+            [$workoutId]
+        )));
+    }
+
+    // SQLite hands the flag back as a string, and "0" is truthy in the
+    // browser -- every row would read as used.
+    private static function castUsed(array $rows): array
+    {
+        return array_map(static function (array $row): array {
+            $row['is_used'] = (int) ($row['is_used'] ?? 0);
+            return $row;
+        }, $rows);
     }
 
     // Every word of the query must appear somewhere in the exercise: the

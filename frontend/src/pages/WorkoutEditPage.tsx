@@ -15,6 +15,10 @@ interface DraftExercise {
   tempId: string
   exercise_id: string
   exercise_name: string
+  // The common gym name -- the second line everywhere else. Without it the
+  // editor showed only the structured title, and an exercise was hard to
+  // recognise here while being plain on every other screen (BACKLOG #44).
+  exercise_subtitle: string
   planned_sets: number
   rep_low_override: number | null
   rep_high_override: number | null
@@ -63,6 +67,7 @@ export function WorkoutEditPage() {
           tempId: e.id,
           exercise_id: e.exercise_id,
           exercise_name: e.exercise_display_name,
+          exercise_subtitle: e.exercise_display_subtitle,
           planned_sets: e.planned_sets,
           rep_low_override: e.rep_low_override,
           rep_high_override: e.rep_high_override,
@@ -81,6 +86,7 @@ export function WorkoutEditPage() {
         tempId: crypto.randomUUID(),
         exercise_id: ex.id,
         exercise_name: ex.display_name,
+        exercise_subtitle: ex.display_subtitle,
         planned_sets: 3,
         rep_low_override: null,
         rep_high_override: null,
@@ -221,9 +227,13 @@ export function WorkoutEditPage() {
               <div className="flex items-center gap-2.5">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13.5px] font-bold">{ex.exercise_name}</div>
+                  <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">{ex.exercise_subtitle}</div>
+                  {/* "no fixed target weight" used to follow here: true (the
+                      weight is suggested while tracking, CLAUDE.md §8) but
+                      noise on every row (BACKLOG #45). */}
                   <div className="mt-0.5 text-[11px] text-muted-foreground">
                     {repLow !== undefined && repHigh !== undefined ? `${repLow}–${repHigh} reps` : ''}
-                    {hasOverride ? ' (custom)' : ''} · no fixed target weight
+                    {hasOverride ? ' (custom)' : ''}
                   </div>
                 </div>
                 <NumberField width="3.5rem" value={ex.planned_sets} onChange={(v) => updatePlannedSets(ex.tempId, v)} aria-label={`${ex.exercise_name} planned sets`} />

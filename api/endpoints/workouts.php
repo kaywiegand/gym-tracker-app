@@ -101,3 +101,18 @@ function handleDeleteWorkoutGroup(string $id): void
     }
     Http::respond(['deleted' => true]);
 }
+
+// Recently trained workouts, each with its exercises inline in the pickers'
+// list shape -- one request for the "browse by workout" path instead of one
+// per tapped workout.
+function handleRecentWorkouts(): void
+{
+    Auth::require();
+    $days = isset($_GET['days']) ? max(1, min(365, (int) $_GET['days'])) : 90;
+    $exRepo = new ExerciseRepository();
+    Http::respond(array_map(static function (array $w) use ($exRepo): array {
+        $w['exercise_count'] = (int) $w['exercise_count'];
+        $w['exercises'] = $exRepo->listForWorkout($w['id']);
+        return $w;
+    }, (new WorkoutRepository())->recentlyUsed($days)));
+}
