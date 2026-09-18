@@ -136,7 +136,7 @@ final class SetRepository extends BaseRepository
     {
         $cutoff = gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400);
         return $this->fetchAll(
-            'SELECT st.performed_at, st.weight_kg, st.reps, em.weight AS muscle_weight, mu.region
+            'SELECT st.performed_at, st.weight_kg, st.reps, em.weight AS muscle_weight, em.role, mu.region
              FROM sets st
              JOIN exercise_muscles em ON em.exercise_id = st.exercise_id
              JOIN muscles mu ON mu.id = em.muscle_id
@@ -157,9 +157,18 @@ final class SetRepository extends BaseRepository
         );
     }
 
-    // Weighted sets-per-region for the last $limit sessions of one workout
-    // (Stage 4 workout-scope muscle split) -- same primary+secondary join as
-    // rawSetsWithMuscles(), scoped to a single workout's own history.
+    // Weighted sets/volume/e1RM per region for the last $limit sessions of one
+    // workout (Stage 4 workout-scope muscle split) -- same primary+secondary
+    // join as rawSetsWithMuscles(), scoped to a single workout's own history.
+    //
+    // by_region stays weighted sets as a plain number -- an installed PWA can
+    // run the previous bundle for one launch after a deploy, and that bundle
+    // reads by_region as a number. metrics_by_region adds all three metrics
+    // for the radar switch. Sets and volume are weighted by the muscle's share
+    // (secondary x0.5). e1RM only counts sets where the region is the PRIMARY
+    // muscle: a bench press would otherwise set the arms' e1RM through its
+    // triceps involvement and the radar would read the heaviest compound lift
+    // into every region it touches.
     public function muscleSplitForWorkout(string $workoutId, int $limit = 6, ?int $sinceDays = null): array
     {
         $innerParams = [$workoutId];
@@ -172,7 +181,10 @@ final class SetRepository extends BaseRepository
         $innerSql .= ' ORDER BY started_at DESC LIMIT ' . (int) $limit;
 
         $rows = $this->fetchAll(
-            "SELECT st.session_id, s.started_at, s.ended_at, mu.region, SUM(em.weight) AS sets
+            "SELECT st.session_id, s.started_at, s.ended_at, mu.region,
+                    SUM(em.weight) AS sets,
+                    SUM(st.weight_kg * st.reps * em.weight) AS volume_kg,
+                    MAX(CASE WHEN em.role = 'primary' THEN st.weight_kg * (1 + st.reps / 30.0) END) AS best_e1rm
              FROM sessions s
              JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
              JOIN exercise_muscles em ON em.exercise_id = st.exercise_id
@@ -192,8 +204,14 @@ final class SetRepository extends BaseRepository
                 'started_at' => $row['started_at'],
                 'ended_at' => $row['ended_at'],
                 'by_region' => [],
+                'metrics_by_region' => [],
             ];
             $bySession[$sessionId]['by_region'][$row['region']] = (float) $row['sets'];
+            $bySession[$sessionId]['metrics_by_region'][$row['region']] = [
+                'sets' => (float) $row['sets'],
+                'volume_kg' => (float) $row['volume_kg'],
+                'best_e1rm' => (float) ($row['best_e1rm'] ?? 0),
+            ];
         }
         return array_values($bySession);
     }

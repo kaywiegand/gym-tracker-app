@@ -51,7 +51,8 @@ export const GLOSSARY: GlossaryEntry[] = [
   {
     term: 'Signature',
     label: "Workout signature",
-    definition: 'A workout’s typical muscle-group distribution — average sets per region across its recent sessions.',
+    definition:
+      'A workout’s typical footprint per muscle group across its recent sessions — average sets or volume per region, or the best e1RM reached on exercises that train that region as their primary muscle.',
   },
   {
     term: 'Plateau',

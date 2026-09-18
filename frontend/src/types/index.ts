@@ -203,11 +203,20 @@ export interface ExerciseSessionSummary {
   sets: { weight_kg: number; reps: number }[]
 }
 
+export interface RegionMetrics {
+  sets: number
+  volume_kg: number
+  best_e1rm: number
+}
+
 export interface WorkoutMuscleSplitSession {
   session_id: string
   started_at: string
   ended_at: string | null
+  // Weighted sets per region -- unchanged shape, so a cached older client
+  // keeps working after a deploy.
   by_region: Record<string, number>
+  metrics_by_region: Record<string, RegionMetrics>
 }
 
 export interface WorkoutMuscleSplitResponse {

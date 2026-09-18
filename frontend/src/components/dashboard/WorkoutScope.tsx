@@ -2,15 +2,20 @@ import { useEffect, useState } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
 import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
-import type { WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
+import type { RegionMetrics, WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { KpiTile } from '@/components/KpiTile'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+
+type RadarMetric = keyof RegionMetrics
+const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_kg: 'Volume', best_e1rm: 'e1RM' }
 
 export function WorkoutScope() {
+  const [radarMetric, setRadarMetric] = useState<RadarMetric>('best_e1rm')
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([])
   const [selected, setSelected] = useState<WorkoutListItem | null>(null)
@@ -65,11 +70,18 @@ export function WorkoutScope() {
     return row
   })
 
-  const averages: Record<string, number> = {}
+  // Sets and volume average across the sessions -- that is what a typical
+  // run of this workout puts on each region. e1RM is a personal best, and the
+  // average of several bests is not one, so it takes the top value instead.
+  const radarValues: Record<string, number> = {}
   regionKeys.forEach((r) => {
-    averages[r] = sessions.reduce((a, s) => a + (s.by_region[r] ?? 0), 0) / Math.max(1, sessions.length)
+    const values = sessions.map((s) => s.metrics_by_region?.[r]?.[radarMetric] ?? 0)
+    radarValues[r] =
+      radarMetric === 'best_e1rm'
+        ? Math.max(0, ...values)
+        : values.reduce((a, b) => a + b, 0) / Math.max(1, values.length)
   })
-  const radarSeries: MuscleRadarSeries[] = [{ label: selected.name, color: 'var(--brand-accent)', values: averages }]
+  const radarSeries: MuscleRadarSeries[] = [{ label: selected.name, color: 'var(--brand-accent)', values: radarValues }]
 
   return (
     <div className="flex flex-col gap-3">
@@ -128,6 +140,13 @@ export function WorkoutScope() {
             <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
               This workout's signature
               <InfoButton term="Signature" />
+            </div>
+            <div className="mb-1 flex gap-1.5">
+              {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
+                <Button key={m} type="button" size="sm" variant={radarMetric === m ? 'default' : 'outline'} onClick={() => setRadarMetric(m)}>
+                  {RADAR_METRIC_LABELS[m]}
+                </Button>
+              ))}
             </div>
             <MuscleRadar series={radarSeries} />
           </Card>

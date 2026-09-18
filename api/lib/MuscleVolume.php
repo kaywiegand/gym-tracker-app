@@ -25,7 +25,9 @@ final class MuscleVolume
     // for exactly $weeks week-buckets ending at the current week. Sets and
     // volume are weighted by muscle_weight (secondary ×0.5); best_e1rm is a
     // peak, never weighted or summed (adding e1RM across exercises is
-    // meaningless -- CLAUDE.md §8).
+    // meaningless -- CLAUDE.md §8), and it only counts rows where the region
+    // is the primary muscle -- otherwise the bench press sets the arms' e1RM.
+    // Rows without a role (older callers) count as primary.
     public static function weeklyByRegion(array $rows, int $weeks, ?string $nowIso = null): array
     {
         $currentWeekStart = self::isoWeekStart($nowIso ?? gmdate('Y-m-d\TH:i:s\Z'));
@@ -48,7 +50,9 @@ final class MuscleVolume
             $byRegion[$region] ??= array_fill_keys($weekStarts, $emptyWeek);
             $byRegion[$region][$weekStart]['sets'] += $muscleWeight;
             $byRegion[$region][$weekStart]['volume_kg'] += $weight * $reps * $muscleWeight;
-            $byRegion[$region][$weekStart]['best_e1rm'] = max($byRegion[$region][$weekStart]['best_e1rm'], $e1rm);
+            if (($row['role'] ?? 'primary') === 'primary') {
+                $byRegion[$region][$weekStart]['best_e1rm'] = max($byRegion[$region][$weekStart]['best_e1rm'], $e1rm);
+            }
         }
 
         $lastWeekStart = $weekStarts[count($weekStarts) - 2] ?? $currentWeekStart;

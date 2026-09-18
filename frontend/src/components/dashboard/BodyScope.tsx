@@ -120,6 +120,7 @@ export function BodyScope() {
     muscle: pickBiaKpi(s.values, 'skeletalMuscleMass'),
     fat: pickBiaKpi(s.values, 'fatMass'),
     target: pickBiaKpi(s.values, 'targetWeight'),
+    fitScore: pickBiaKpi(s.values, 'fitnessScore'),
   }))
 
   const delta = (key: BiaKpiKey) => {
@@ -170,6 +171,16 @@ export function BodyScope() {
             )
           })}
         </div>
+      </Card>
+
+      {/* The gauge above only shows the newest scan and the step from the one
+          before. Whether the score has been climbing for a year or just
+          bounced back is the actual question, and that needs the line. */}
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          FitScore over time
+        </div>
+        <BiaTrendChart points={trend} keys={['fitScore']} height={200} />
       </Card>
 
       <Card className="p-3.5">

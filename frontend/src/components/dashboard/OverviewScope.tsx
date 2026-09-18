@@ -22,7 +22,9 @@ const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { sets: 'Sets', volume_
 // is explicitly picked.
 export function OverviewScope() {
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
-  const [radarMetric, setRadarMetric] = useState<RadarMetric>('sets')
+  // e1RM first: sets say how much was done, e1RM says how strong it made
+  // you -- that is the question the week-over-week comparison is asked.
+  const [radarMetric, setRadarMetric] = useState<RadarMetric>('best_e1rm')
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [trainingLoad, setTrainingLoad] = useState<TrainingLoadResponse | null>(null)
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeResponse | null>(null)

@@ -225,6 +225,16 @@ check(
 check('weeklyByRegion carries last week\'s data separately', abs($byRegion['chest']['last_week']['sets'] - 1.0) < 0.001, $failures);
 check('weeklyByRegion zero-fills a region\'s week with no sets', $byRegion['arms']['last_week']['sets'] === 0.0, $failures);
 check('weeklyByRegion omits a region with no rows at all', !array_key_exists('shoulders', $byRegion), $failures);
+$secondaryHeavy = MuscleVolume::weeklyByRegion([
+    ['performed_at' => '2026-02-17T10:00:00Z', 'weight_kg' => 30, 'reps' => 10, 'muscle_weight' => 1.0, 'role' => 'primary', 'region' => 'arms'],
+    ['performed_at' => '2026-02-17T10:05:00Z', 'weight_kg' => 100, 'reps' => 5, 'muscle_weight' => 0.5, 'role' => 'secondary', 'region' => 'arms'],
+], 8, '2026-02-18T12:00:00Z');
+check(
+    'weeklyByRegion best_e1rm ignores a heavier secondary-muscle set',
+    abs($secondaryHeavy['arms']['this_week']['best_e1rm'] - 30 * (1 + 10 / 30)) < 0.001
+        && abs($secondaryHeavy['arms']['this_week']['sets'] - 1.5) < 0.001,
+    $failures
+);
 
 $dailyRows = [
     ['performed_at' => '2026-03-01T09:00:00Z', 'weight_kg' => 100, 'reps' => 10],
@@ -318,6 +328,22 @@ check('muscleSplitForWorkout returns one entry per session', count($split) === 2
 check('muscleSplitForWorkout orders oldest first', $split[0]['session_id'] === 'sess-split-1', $failures);
 check('muscleSplitForWorkout weights the primary region 1.0', abs($split[0]['by_region']['chest'] - 1.0) < 0.001, $failures);
 check('muscleSplitForWorkout weights the secondary region 0.5', abs($split[0]['by_region']['shoulders'] - 0.5) < 0.001, $failures);
+check(
+    'muscleSplitForWorkout metrics repeat the weighted sets',
+    abs($split[0]['metrics_by_region']['shoulders']['sets'] - 0.5) < 0.001,
+    $failures
+);
+check(
+    'muscleSplitForWorkout weights volume by the muscle share',
+    abs($split[0]['metrics_by_region']['shoulders']['volume_kg'] - $split[0]['metrics_by_region']['chest']['volume_kg'] * 0.5) < 0.001,
+    $failures
+);
+check(
+    'muscleSplitForWorkout counts e1RM on the primary muscle only',
+    $split[0]['metrics_by_region']['chest']['best_e1rm'] > 0
+        && $split[0]['metrics_by_region']['shoulders']['best_e1rm'] === 0.0,
+    $failures
+);
 check('muscleSplitForWorkout carries ended_at', $split[1]['ended_at'] === '2026-04-08T10:45:00Z', $failures);
 check(
     'muscleSplitForWorkout sinceDays excludes sessions outside the window',
