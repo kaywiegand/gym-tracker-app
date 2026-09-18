@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-// Weekly working-set volume landmarks (MEV/MAV/MRV) per muscle region --
-// approximate, widely-cited starting points (evidence-based hypertrophy
-// literature), not a hard science fact. Adjustable later via a settings UI
-// (BACKLOG.md), not part of this stage.
+// Weekly working-set targets (MEV/MAV/MRV) per muscle region, derived from
+// per-muscle landmarks -- see api/lib/VolumeLandmarks.php and
+// docs/volume-landmarks.md for the numbers, their sources and the method.
+// Only seeds an empty table: values edited in Settings are never overwritten.
 return function (PDO $pdo, array $args): void {
     $existing = (int) $pdo->query('SELECT COUNT(*) FROM muscle_volume_targets')->fetchColumn();
     if ($existing > 0) {
@@ -12,18 +12,12 @@ return function (PDO $pdo, array $args): void {
         return;
     }
 
-    $targets = [
-        ['region' => 'chest', 'mev' => 8, 'mav' => 16, 'mrv' => 22],
-        ['region' => 'back', 'mev' => 10, 'mav' => 18, 'mrv' => 25],
-        ['region' => 'shoulders', 'mev' => 8, 'mav' => 16, 'mrv' => 24],
-        ['region' => 'arms', 'mev' => 6, 'mav' => 14, 'mrv' => 22],
-        ['region' => 'legs', 'mev' => 8, 'mav' => 16, 'mrv' => 22],
-        ['region' => 'core', 'mev' => 6, 'mav' => 12, 'mrv' => 18],
-    ];
+    $muscles = $pdo->query('SELECT name_en, region FROM muscles')->fetchAll(PDO::FETCH_ASSOC);
+    $targets = VolumeLandmarks::regionTargets($muscles);
 
     $stmt = $pdo->prepare('INSERT INTO muscle_volume_targets (region, mev, mav, mrv) VALUES (?, ?, ?, ?)');
-    foreach ($targets as $t) {
-        $stmt->execute([$t['region'], $t['mev'], $t['mav'], $t['mrv']]);
+    foreach ($targets as $region => $t) {
+        $stmt->execute([$region, $t['mev'], $t['mav'], $t['mrv']]);
     }
     echo "   inserted " . count($targets) . " muscle volume targets\n";
 };

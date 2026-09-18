@@ -224,6 +224,15 @@ check(
 );
 check('weeklyByRegion carries last week\'s data separately', abs($byRegion['chest']['last_week']['sets'] - 1.0) < 0.001, $failures);
 check('weeklyByRegion zero-fills a region\'s week with no sets', $byRegion['arms']['last_week']['sets'] === 0.0, $failures);
+check(
+    'VolumeLandmarks sums per-muscle landmarks into region targets',
+    VolumeLandmarks::regionTargets([
+        ['name_en' => 'Biceps', 'region' => 'arms'],
+        ['name_en' => 'Triceps', 'region' => 'arms'],
+        ['name_en' => 'Neck', 'region' => 'core'],
+    ]) === ['arms' => ['mev' => 16, 'mav' => 36, 'mrv' => 46], 'core' => ['mev' => 0, 'mav' => 0, 'mrv' => 0]],
+    $failures
+);
 check('weeklyByRegion omits a region with no rows at all', !array_key_exists('shoulders', $byRegion), $failures);
 check('weeklyByRegion zero-fills prev_7_days for a region with no rows in that window', $byRegion['arms']['prev_7_days']['sets'] === 0.0, $failures);
 
@@ -654,7 +663,7 @@ check(
     ExerciseNaming::displayName([
         'primary_muscle' => 'Lats', 'movement' => 'Row',
         'equipment' => 'machine', 'variant' => 'Machine', 'name' => 'Machine Row',
-    ]) === 'Lats Row Machine',
+    ]) === 'Row Machine',
     $failures
 );
 check(
@@ -687,6 +696,30 @@ check(
             'name' => 'Stiff-Legged Dumbbell Deadlift', 'movement' => 'Deadlift', 'variant' => 'Stiff-Legged',
             'equipment' => 'dumbbell', 'primary_muscle' => 'Hamstrings',
         ]) === 'Deadlift Dumbbell Stiff-Legged',
+    $failures
+);
+check(
+    'ExerciseNaming titles a Row without its muscle and puts the muscle in the subtitle',
+    ExerciseNaming::displayName([
+        'name' => 'Seated Cable Rows', 'movement' => 'Row', 'variant' => 'Seated',
+        'equipment' => 'cable', 'primary_muscle' => 'Middle Back',
+    ]) === 'Row Cable Seated'
+        && ExerciseNaming::displaySubtitle([
+            'name' => 'Seated Cable Rows', 'movement' => 'Row', 'display_alias' => 'Seated Cable Row',
+            'primary_muscle' => 'Middle Back',
+        ]) === 'Seated Cable Row · Mid Back',
+    $failures
+);
+check(
+    'ExerciseNaming keeps the subtitle plain for titles that carry their muscle',
+    ExerciseNaming::displaySubtitle([
+        'name' => 'Dumbbell Bicep Curl', 'movement' => 'Curl', 'display_alias' => 'Dumbbell Curl',
+        'primary_muscle' => 'Biceps',
+    ]) === 'Dumbbell Curl'
+        && ExerciseNaming::displaySubtitle([
+            'name' => 'Upright Barbell Row', 'movement' => 'Upright Row', 'display_alias' => 'Upright Row',
+            'primary_muscle' => 'Shoulders',
+        ]) === 'Upright Row',
     $failures
 );
 check(
@@ -806,7 +839,7 @@ check('update does not write the source name into display_alias', $plainRaw['dis
 $exRepo->update($plainId, ['movement' => 'Row', 'variant' => 'Bent-Over', 'display_alias' => 'Barbell Row']);
 $curated = $exRepo->find($plainId);
 check('update curates an existing exercise in place', (int) $curated['is_curated'] === 1, $failures);
-check('curated in place gets the structured name', $curated['display_name'] === 'Chest Row Dumbbell Bent-Over', $failures);
+check('curated in place gets the structured name', $curated['display_name'] === 'Row Dumbbell Bent-Over', $failures);
 
 // Clearing the movement has to un-curate: without it there is no structured
 // name to show, so leaving is_curated = 1 would list a blank-named exercise.

@@ -31,6 +31,9 @@ final class BackupRepository extends BaseRepository
     {
         $tables = [];
         $tables['settings'] = $this->fetchAll('SELECT key, value FROM settings');
+        // Editable in Settings since BACKLOG #9, so user data -- it has to
+        // survive a restore like any other setting.
+        $tables['muscle_volume_targets'] = $this->fetchAll('SELECT region, mev, mav, mrv FROM muscle_volume_targets');
 
         $customExercises = $this->fetchAll("SELECT * FROM exercises WHERE source != 'fedb'");
         $tables['exercises'] = $customExercises;
@@ -68,6 +71,7 @@ final class BackupRepository extends BaseRepository
     {
         $summary = [];
         $summary['settings'] = $this->importSettings($tables['settings'] ?? []);
+        $summary['muscle_volume_targets'] = $this->importVolumeTargets($tables['muscle_volume_targets'] ?? []);
 
         foreach (self::UPSERT_ORDER as $table) {
             $summary[$table] = $this->importUpsertTable($table, $tables[$table] ?? []);
@@ -84,6 +88,31 @@ final class BackupRepository extends BaseRepository
     private function placeholders(array $values): string
     {
         return implode(', ', array_fill(0, count($values), '?'));
+    }
+
+    // Upsert by region, like settings by key. Only the three numbers are
+    // taken; a region the muscles table does not know is still stored, so a
+    // restore never silently drops data.
+    private function importVolumeTargets(array $rows): array
+    {
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        foreach ($rows as $row) {
+            if (!isset($row['region'], $row['mev'], $row['mav'], $row['mrv'])) {
+                $skipped++;
+                continue;
+            }
+            $values = [(int) $row['mev'], (int) $row['mav'], (int) $row['mrv'], (string) $row['region']];
+            if ($this->fetchOne('SELECT region FROM muscle_volume_targets WHERE region = ?', [$row['region']]) === null) {
+                $this->execute('INSERT INTO muscle_volume_targets (mev, mav, mrv, region) VALUES (?, ?, ?, ?)', $values);
+                $inserted++;
+            } else {
+                $this->execute('UPDATE muscle_volume_targets SET mev = ?, mav = ?, mrv = ? WHERE region = ?', $values);
+                $updated++;
+            }
+        }
+        return ['inserted' => $inserted, 'updated' => $updated, 'skipped' => $skipped];
     }
 
     private function importSettings(array $rows): array

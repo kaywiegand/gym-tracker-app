@@ -252,7 +252,7 @@ function muscleLabel(muscle: string, movement: string): string {
   return MUSCLE_LABELS[key] ?? muscle
 }
 
-const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift']
+const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift', 'Row']
 
 function joinSingleLeg(words: string[]): string[] {
   const out: string[] = []

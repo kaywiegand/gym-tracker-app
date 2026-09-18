@@ -51,10 +51,12 @@ final class ExerciseNaming
     private const LEG_TITLE_MUSCLES = ['quadriceps', 'hamstrings'];
     private const LEG_TITLE_MOVEMENTS = ['Curl', 'Extension', 'Press'];
 
-    // Movements whose name already says what they train. "Quads Squat" and
-    // "Hamstrings Deadlift" only put a muscle in front of a word that needs
-    // none; the gym says "Squat" and "Deadlift".
-    private const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift'];
+    // Movements whose name already says what they train. "Quads Squat",
+    // "Hamstrings Deadlift", "Mid Back Row" only put a muscle in front of a
+    // word that needs none; the gym says "Squat", "Deadlift", "Row". The
+    // muscle moves to the subtitle instead (displaySubtitle()). Upright Row is
+    // a movement of its own and keeps its muscle.
+    private const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift', 'Row'];
 
     public static function muscleLabel(?string $muscle): string
     {
@@ -418,6 +420,24 @@ final class ExerciseNaming
         return $alias !== '' ? $alias : (string) ($row['name'] ?? '');
     }
 
+    // The second line. For a title without a muscle (Squat, Deadlift, Row) the
+    // muscle is appended here -- "Seated Cable Row · Mid Back" -- so it is
+    // still on screen where the title no longer says it, and it tells a
+    // Romanian deadlift (hamstrings) from a conventional one (lower back).
+    public static function displaySubtitle(array $row): string
+    {
+        $alias = self::displayAlias($row);
+        $movement = trim((string) ($row['movement'] ?? ''));
+        if ($movement === '') {
+            $movement = (string) (self::inferMovement($row['name'] ?? null, $row['category'] ?? null) ?? '');
+        }
+        $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
+        if ($muscle === '' || !in_array($movement, self::MUSCLE_FREE_MOVEMENTS, true)) {
+            return $alias;
+        }
+        return $alias !== '' ? "{$alias} · {$muscle}" : $muscle;
+    }
+
     // Adds the two rendered fields, in place of doing it in SQL (keeps the
     // string logic in one testable place, and portable to MySQL).
     //
@@ -427,7 +447,7 @@ final class ExerciseNaming
     public static function decorate(array $row): array
     {
         $row['display_name'] = self::displayName($row);
-        $row['display_subtitle'] = self::displayAlias($row);
+        $row['display_subtitle'] = self::displaySubtitle($row);
         $row['is_curated'] = (int) (!empty($row['is_curated']) || self::isCurated($row));
         return $row;
     }
@@ -464,7 +484,7 @@ final class ExerciseNaming
             $inner[$key] = $row[$prefix . $key] ?? null;
         }
         $row[$prefix . 'display_name'] = self::displayName($inner);
-        $row[$prefix . 'display_subtitle'] = self::displayAlias($inner);
+        $row[$prefix . 'display_subtitle'] = self::displaySubtitle($inner);
         return $row;
     }
 

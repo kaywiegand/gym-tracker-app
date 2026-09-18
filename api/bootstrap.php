@@ -5,6 +5,7 @@ require_once __DIR__ . '/lib/Db.php';
 require_once __DIR__ . '/lib/Uuid.php';
 require_once __DIR__ . '/lib/BaseRepository.php';
 require_once __DIR__ . '/lib/MuscleVolume.php';
+require_once __DIR__ . '/lib/VolumeLandmarks.php';
 require_once __DIR__ . '/lib/ExerciseNaming.php';
 require_once __DIR__ . '/lib/BiaImport.php';
 require_once __DIR__ . '/lib/HrImport.php';
