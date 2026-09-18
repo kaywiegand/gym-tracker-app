@@ -21,11 +21,14 @@ final class ExerciseNaming
         'dumbbell' => 'Dumbbell',
         'cable' => 'Cable',
         'machine' => 'Machine',
-        'body only' => 'Bodyweight',
         'kettlebells' => 'Kettlebell',
         'bands' => 'Band',
         'e-z curl bar' => 'EZ-Bar',
         'medicine ball' => 'Medicine Ball',
+        // A title names only the equipment actually used (BACKLOG #48); a
+        // bodyweight exercise uses none, so "Bodyweight" is not equipment
+        // and gets dropped like "other" below.
+        'body only' => '',
         // One word per part: "Exercise Ball" split across the equipment slot
         // read like equipment + variant. Stays distinct from Medicine Ball,
         // which always carries its first word.
@@ -57,6 +60,15 @@ final class ExerciseNaming
     // muscle moves to the subtitle instead (displaySubtitle()). Upright Row is
     // a movement of its own and keeps its muscle.
     private const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift', 'Row'];
+
+    // Source names whose muscle part reads wrong in the gym and that no
+    // general rule should catch. The source files "Front Leg Raises" under
+    // hamstrings, but nobody looks for a leg raise there -- while a general
+    // "Raise on a leg muscle = Legs" rule would also retitle the glute-ham
+    // raise. Named one by one, like VARIANT_BY_NAME.
+    private const TITLE_MUSCLE_BY_NAME = [
+        'front leg raises' => 'Legs',
+    ];
 
     public static function muscleLabel(?string $muscle): string
     {
@@ -244,6 +256,45 @@ final class ExerciseNaming
         // "from" is filler; the deficit is what sets it apart from the plain
         // Romanian deadlift, whose muscles it shares.
         'romanian deadlift from deficit' => 'Romanian Deficit',
+        // BACKLOG #48 (dropping "Bodyweight" from the equipment slot) surfaced
+        // several collisions that a missing equipment word used to mask by
+        // accident. Each entry below restores the one word that made two
+        // exercises distinguishable, exactly like "Clean" above.
+        //
+        // "Stretch" is a movement word (matches the Stretch pattern) and gets
+        // stripped by the general rule; without it this collides with
+        // "Body-Up" (also Triceps Extension) once neither carries "Bodyweight".
+        'triceps stretch' => 'Stretch',
+        // "Side" is a movement word (matches the Side Bend pattern) and
+        // "Chins" matches the Pull-Up pattern -- both stripped, leaving no
+        // variant and colliding with "Pullups" (also Lats Pull-Up).
+        'side to side chins' => 'Side-To-Side',
+        // Its own words are fully consumed by the muscle/movement parts,
+        // leaving no variant -- collides with the curated "Hyperextensions
+        // With No Hyperextension Bench" (also Lower Back Extension, curated
+        // empty on purpose: that one IS the no-equipment version). This is
+        // the other FEDB entry for the same movement, done on a bench.
+        'hyperextensions (back extensions)' => 'Bench',
+        // "Sit" is a movement word (matches the Sit-Up pattern) and gets
+        // stripped, leaving no variant -- collides with the curated
+        // "Bodyweight Squat" (also plain "Squat", curated empty on purpose).
+        'sit squats' => 'Sit',
+        // The muscle part is stored plural ("Hamstrings"); this source name
+        // uses the singular, so the general rule fails to recognise it as
+        // already-said and leaves "Hamstring" as the "variant" -- which
+        // collides with "Hamstring Stretch" (also Hamstrings Stretch, same
+        // leftover-word bug on the other side). "90/90" is this stretch's
+        // actual name.
+        '90/90 hamstring' => '90/90',
+        // "Side" is a movement word (matches the Side Bend pattern) and gets
+        // stripped, leaving the same variant as "Standing Long Jump" (also
+        // Quads Jump Standing Long) once neither carries "Bodyweight".
+        'side standing long jump' => 'Side',
+        // "Bench" matches the Press pattern before "Jump" is ever checked
+        // (Press is earlier in MOVEMENT_PATTERNS), and "Jump" itself is a
+        // movement word everywhere, so no variant is left -- collides with
+        // "Bench Sprint" (also Legs Press) once neither carries "Bodyweight".
+        'bench jump' => 'Jump',
     ];
 
     // Words that carry no distinguishing information in a variant.
@@ -345,6 +396,7 @@ final class ExerciseNaming
             && in_array($movement, self::LEG_TITLE_MOVEMENTS, true)) {
             $muscle = 'Legs';
         }
+        $muscle = self::TITLE_MUSCLE_BY_NAME[strtolower(trim((string) ($row['name'] ?? '')))] ?? $muscle;
         if (in_array($movement, self::MUSCLE_FREE_MOVEMENTS, true)) {
             $muscle = '';
         }

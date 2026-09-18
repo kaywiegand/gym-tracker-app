@@ -64,7 +64,7 @@ export function ExerciseEditPage() {
   const previewName =
     movement.trim() === ''
       ? name
-      : previewTitle(exercise?.primary_muscle ?? '', movement.trim(), equipment, variant.trim())
+      : previewTitle(exercise?.primary_muscle ?? '', movement.trim(), equipment, variant.trim(), name)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -253,6 +253,8 @@ function muscleLabel(muscle: string, movement: string): string {
 }
 
 const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift', 'Row']
+// Mirror of ExerciseNaming::TITLE_MUSCLE_BY_NAME (keyed by the source name).
+const TITLE_MUSCLE_BY_NAME: Record<string, string> = { 'front leg raises': 'Legs' }
 
 function joinSingleLeg(words: string[]): string[] {
   const out: string[] = []
@@ -272,8 +274,10 @@ function joinSingleLeg(words: string[]): string[] {
 // in the same order: muscle-free Squat/Deadlift, Smith into the equipment
 // slot, Single-Leg as one word, no stray "Leg" in a Legs title, no variant
 // that only repeats another part.
-function previewTitle(primaryMuscle: string, movement: string, equipment: string, variant: string): string {
-  const muscle = MUSCLE_FREE_MOVEMENTS.includes(movement) ? '' : muscleLabel(primaryMuscle, movement)
+function previewTitle(primaryMuscle: string, movement: string, equipment: string, variant: string, sourceName: string): string {
+  const muscle = MUSCLE_FREE_MOVEMENTS.includes(movement)
+    ? ''
+    : (TITLE_MUSCLE_BY_NAME[sourceName.trim().toLowerCase()] ?? muscleLabel(primaryMuscle, movement))
   let equipmentText = equipmentLabel(equipment)
   let words = variant.split(/\s+/).filter((w) => w !== '')
   const withoutSmith = words.filter((w) => w.toLowerCase() !== 'smith')
@@ -297,11 +301,14 @@ const EQUIPMENT_LABELS: Record<string, string> = {
   dumbbell: 'Dumbbell',
   cable: 'Cable',
   machine: 'Machine',
-  'body only': 'Bodyweight',
   kettlebells: 'Kettlebell',
   bands: 'Band',
   'e-z curl bar': 'EZ-Bar',
   'medicine ball': 'Medicine Ball',
+  // A title names only the equipment actually used (BACKLOG #48); a
+  // bodyweight exercise uses none, so "Bodyweight" is not equipment
+  // and gets dropped like "other" below.
+  'body only': '',
   'exercise ball': 'Ball',
   'foam roll': 'Foam Roller',
   other: '',

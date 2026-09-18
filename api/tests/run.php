@@ -658,6 +658,27 @@ check(
     ]) === 'Chest Press',
     $failures
 );
+// BACKLOG #48: a title names only the equipment actually used -- a
+// bodyweight exercise uses none, so "Bodyweight" must not appear.
+check(
+    'ExerciseNaming drops the equipment part for a bodyweight exercise',
+    ExerciseNaming::displayName([
+        'primary_muscle' => 'Chest', 'movement' => 'Press',
+        'equipment' => 'body only', 'variant' => null, 'name' => 'Push-Up',
+    ]) === 'Chest Press',
+    $failures
+);
+// The stutter check (variant === equipment) now compares two empty strings
+// for a muscle-free, bodyweight, variant-less exercise -- must stay a no-op
+// (empty stays empty) rather than swallow a real part or leave a stray space.
+check(
+    'ExerciseNaming stutter check is a no-op when both variant and equipment are empty',
+    ExerciseNaming::displayName([
+        'name' => 'Pistol Squat', 'movement' => 'Squat', 'variant' => '',
+        'equipment' => 'body only', 'primary_muscle' => 'Quadriceps',
+    ]) === 'Squat',
+    $failures
+);
 check(
     'ExerciseNaming drops a variant that only repeats the equipment',
     ExerciseNaming::displayName([
@@ -671,7 +692,7 @@ check(
     ExerciseNaming::displayName([
         'primary_muscle' => 'Lower Back', 'movement' => 'Extension',
         'equipment' => 'body only', 'variant' => 'lower back', 'name' => 'Back Extension',
-    ]) === 'Lower Back Extension Bodyweight',
+    ]) === 'Lower Back Extension',
     $failures
 );
 check(
@@ -720,6 +741,18 @@ check(
             'name' => 'Upright Barbell Row', 'movement' => 'Upright Row', 'display_alias' => 'Upright Row',
             'primary_muscle' => 'Shoulders',
         ]) === 'Upright Row',
+    $failures
+);
+check(
+    'ExerciseNaming titles the front leg raise under Legs, by source name only',
+    ExerciseNaming::displayName([
+        'name' => 'Front Leg Raises', 'movement' => 'Raise', 'variant' => 'Front',
+        'equipment' => 'body only', 'primary_muscle' => 'Hamstrings',
+    ]) === 'Legs Raise Front'
+        && ExerciseNaming::displayName([
+            'name' => 'Glute Ham Raise', 'movement' => 'Raise', 'variant' => '',
+            'equipment' => 'body only', 'primary_muscle' => 'Hamstrings',
+        ]) === 'Hamstrings Raise',
     $failures
 );
 check(
