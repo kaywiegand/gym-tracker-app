@@ -331,3 +331,14 @@
 - Metriken als Violett-Familie (e1RM `#7c4fd1`, Volumen `#d369bd`, Sätze `#0091b0`); Körperwerte referenzieren sie. Sätze ≈ Back ist bekannt und von Kay so gewählt — die beiden erscheinen nie im selben View.
 
 **Nächster Schritt:** Kay spielt #56 ein und prüft live.
+
+---
+
+## Session 2026-09-19 — Restore live eingespielt, Aufräumen
+
+**Was passiert ist:**
+- Vor dem Einspielen frischen Pull der Live-DB gezogen und `uploads/live-20260918-final2.json` dagegen erneut getestet (Live-Stand war seit dem 18.09. unverändert: 3314 Sätze, 227 Sessions) — erst danach `deploy/restore.sh` live ausgeführt.
+- Ergebnis live verifiziert: Sätze 3314 → 3335 (inkl. Mittwoch 16.09., Session `FB26 Wendsday` 16:47–17:44 Uhr, vorher unbeendet), `Deadlift Dumbbell Romanian`, Smith-Duplikat gefaltet, neue Volume-Targets, `Squat Barbell Split` (#49), `26 FB`-Workouts nach `FB26` umgehängt und archiviert (#52), 0 Kollisionen.
+- Gefundene und mit Kays Erlaubnis gelöschte Leiche: `frontend/backups/20260904-172326/fitness.db` (0 Byte, nicht getrackt) — lag seit dem 04.09. versehentlich in `frontend/` statt im Projekt-`backups/`-Ordner und hat jeden Deploy als `-dirty` markiert.
+
+**Nächster Schritt:** #47 (Titel-Durchsicht FB26 mit Kay) und #21 Teil 2 (Gainsfire-Mapping-Durchsicht).

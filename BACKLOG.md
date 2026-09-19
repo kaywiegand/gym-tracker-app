@@ -117,13 +117,13 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 44 | ~~Edit Workout: Untertitel fehlen~~ — ✅ erledigt 2026-09-18 (`f1975a6`) | — |
 | 45 | ~~Edit Workout: „no fixed target weight"~~ — ✅ erledigt 2026-09-18 (`f1975a6`): Hinweis entfernt | — |
 | 46 | ~~Weekly volume targets begründen~~ — ✅ erledigt 2026-09-18 (`2a977cb`): Richtwerte pro Muskel (RP), Region = Summe; Methode und Quellen in `docs/volume-landmarks.md`. Live-Werte kommen mit #24 | — |
-| 47 | **Titel-Durchsicht der aktiven Workouts** — Befund bei der Browserprüfung 18.09.: die erste Übung in FB26 Wendsday heißt `Hamstrings Raise Bodyweight Front` (Front Leg Raise) — genau die Art Titel, an der Kay im Gym aussteigt (#30). Alle Übungen der FB26-Workouts mit Kay durchgehen und unklare Titel kuratieren, zusammen mit #43. | 1 |
+| 47 | **Titel-Durchsicht der aktiven Workouts** — Befund bei der Browserprüfung 18.09.: die erste Übung in FB26 Wendsday heißt `Hamstrings Raise Bodyweight Front` (Front Leg Raise) — genau die Art Titel, an der Kay im Gym aussteigt (#30). Das konkrete Beispiel ist mit #48 gelöst (`Legs Raise Front`). Trotzdem alle Übungen der FB26-Workouts einmal mit Kay durchgehen und unklare Titel kuratieren. | 1 |
 | 48 | ✅ erledigt 2026-09-18 (`3519720`): `Legs Raise Front`, „Bodyweight" aus allen Titeln | — |
-| 49 | ✅ Daten vorbereitet: `Squat Barbell Split` · „Bulgarian Squat" — kommt mit #56 | — |
+| 49 | ~~`Squat Barbell Bulgarian` generischer benennen~~ — ✅ erledigt 2026-09-19 (live eingespielt): `Squat Barbell Split` · „Bulgarian Squat". | — |
 | 50 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Kopfbereiche fixiert | — |
 | 51 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Gruppen wie auf der Workouts-Seite | — |
-| 52 | ✅ Daten vorbereitet: `26 FB` → `FB26`, `26 FB` archiviert — kommt mit #56 | — |
+| 52 | ~~Workouts doppelt in Dashboard/Exercise~~ — ✅ erledigt 2026-09-19 (live eingespielt): `26 FB` → `FB26` umgehängt, `26 FB` archiviert. | — |
 | 53 | ✅ erledigt 2026-09-18 (`8d4fbd8`): kg mit schmalem Tausender-Abstand, max. 1 Nachkommastelle | — |
 | 54 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Min/Max: Wert oben, Beschriftung darunter | — |
 | 55 | ✅ erledigt 2026-09-18 (`8d4fbd8`): neutrale Nutzungslinie | — |
-| 56 | **Live-Daten einspielen (Kay)** — `./deploy/restore.sh uploads/live-20260918-final2.json`: Deadlift Dumbbell Romanian, Smith-Duplikat, Volume-Targets (#46), Bulgarian (#49), 21 Gainsfire-Sätze + 2 Sessions beendet (#21), `26 FB` → `FB26` (#52), Push-Up-Variante. Gegen Backup 18.09. 16:41 getestet. | 1 |
+| 56 | ~~Live-Daten einspielen~~ — ✅ erledigt 2026-09-19: `./deploy/restore.sh uploads/live-20260918-final2.json` live eingespielt (frisch gegen Live-DB re-verifiziert vor dem Einspielen). Deadlift Dumbbell Romanian, Smith-Duplikat gefaltet, Volume-Targets (#46), Bulgarian (#49), 21 Gainsfire-Sätze inkl. Mittwoch 16.09. + 2 Sessions beendet (#21), `26 FB` → `FB26` (#52), Push-Up-Variante. Sätze 3314 → 3335, 0 Kollisionen. | — |
