@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Search, BicepsFlexed } from 'lucide-react'
+import { Search, BicepsFlexed, SlidersHorizontal } from 'lucide-react'
 import { api } from '@/lib/api'
 import { sortByDisplayName } from '@/lib/exerciseGrouping'
 import type { ExerciseListItem, RecentWorkout } from '@/types'
@@ -13,9 +13,16 @@ import { cn } from '@/lib/utils'
 const REGION_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core']
 const MECHANIC_FILTERS = ['All', 'Compound', 'Isolation']
 
-// Which extra area, if any, is open above the filter chips (#59). 'filter'
-// is the compact resting state -- just the two chip rows and the list.
+// Exactly one mechanism is visible at a time (#62/#63): the filter chips, a
+// search input, or the browse-by-workout drill-down. 'filter' is the default.
 type SelectorMode = 'filter' | 'search' | 'workout'
+
+const MODE_META: Record<SelectorMode, { label: string; icon: typeof Search }> = {
+  filter: { label: 'Filter', icon: SlidersHorizontal },
+  search: { label: 'Search', icon: Search },
+  workout: { label: 'Browse by workout', icon: BicepsFlexed },
+}
+const ALL_MODES: SelectorMode[] = ['filter', 'search', 'workout']
 
 // One list item for an exercise, wherever one is chosen. Title and subtitle
 // sit close together, the chevron says "tap me", and exercises the user
@@ -109,48 +116,42 @@ function useExerciseSelectorState(excludeIds: string[]) {
     }
   }, [mode, recent, reloadKey])
 
-  // Picking a chip filter applies to the exercise list, which workout
-  // browsing doesn't show -- so it drops back to plain filtering. It never
-  // needs to touch 'search': filtering and searching combine (both are
-  // ANDed into the same request above).
-  const leaveWorkout = <T,>(set: (v: T) => void) => (v: T) => {
-    set(v)
-    setMode((m) => (m === 'workout' ? 'filter' : m))
-  }
-
   const visible = exercises.filter((e) => !excludeIds.includes(e.id))
   const sorted = sortByDisplayName(visible)
+
+  // Each mode is independent (#62): what you see is exactly what filters the
+  // list. Leaving 'filter' resets the chips to All/Any so a stale chip
+  // selection can't silently narrow search/workout results; leaving
+  // 'search' clears its query for the same reason. Chips themselves can
+  // only be touched while 'filter' is active, since that's the only mode
+  // that renders them.
+  const switchMode = (next: SelectorMode) => {
+    setMode((current) => {
+      if (current === next) return current
+      if (current === 'search') setQuery('')
+      if (current === 'filter') {
+        setRegionRaw('All')
+        setMechanicRaw('All')
+      }
+      if (next === 'workout') setOpenWorkout(null)
+      return next
+    })
+  }
 
   return {
     query,
     setQuery,
     region,
-    setRegion: leaveWorkout(setRegionRaw),
+    setRegion: setRegionRaw,
     mechanic,
-    setMechanic: leaveWorkout(setMechanicRaw),
+    setMechanic: setMechanicRaw,
     exercises,
     sorted,
     loading,
     error,
     retry: () => setReloadKey((k) => k + 1),
     mode,
-    // Tapping the active icon again closes back to plain filtering (#59).
-    // Closing search also clears its query -- a stale query hidden behind a
-    // collapsed input would otherwise keep narrowing "filter" mode results
-    // with no visible reason why.
-    toggleSearch: () => {
-      setMode((m) => {
-        if (m === 'search') {
-          setQuery('')
-          return 'filter'
-        }
-        return 'search'
-      })
-    },
-    toggleWorkout: () => {
-      setMode((m) => (m === 'workout' ? 'filter' : 'workout'))
-      setOpenWorkout(null)
-    },
+    switchMode,
     recent,
     recentError,
     openWorkout,
@@ -171,71 +172,62 @@ function ErrorLine({ message, onRetry }: { message: string; onRetry: () => void 
   )
 }
 
-// A mode-toggle icon button next to the filter chips (#59). Active state
-// uses --brand-accent -- the only allowed UI-accent colour (CLAUDE.md §7) --
-// never a status colour, since this isn't reporting good/warn/bad.
-function ModeButton({
-  active,
-  label,
-  onClick,
-  children,
-}: {
-  active: boolean
-  label: string
-  onClick: () => void
-  children: ReactNode
-}) {
+// Switches to one of the two currently hidden modes (#62). No "active" icon
+// state is needed any more -- only hidden modes ever get a button.
+function ModeButton({ mode, onClick }: { mode: SelectorMode; onClick: () => void }) {
+  const { label, icon: Icon } = MODE_META[mode]
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon-sm"
-      aria-pressed={active}
-      aria-label={label}
-      className={cn(active && 'border-brand-accent text-brand-accent')}
-      onClick={onClick}
-    >
-      {children}
+    <Button type="button" variant="outline" size="icon-sm" aria-label={label} onClick={onClick}>
+      <Icon className="size-4" />
     </Button>
   )
 }
 
-// Search, both filter-chip rows and the search/browse-by-workout toggles --
-// the part of the selector a page may want pinned in its own sticky header
-// (BACKLOG #50). Compact by default (#59): just the chip rows plus two icon
-// buttons: only search or workout-browsing being active opens its own area
-// above the chips.
+// Search, the filter-chip rows and the browse-by-workout line -- the part of
+// the selector a page may want pinned in its own sticky header (BACKLOG
+// #50). Exactly one mechanism is visible at a time (#62/#63): the active
+// mode's content sits on the left, icons for the two hidden modes on the
+// right. Filter mode's content is two chip rows, so its icons stack
+// vertically to match; search/workout are a single line, so their icons sit
+// side by side at the same height as that line.
 export function ExerciseSelectorControls({ state: s }: { state: ExerciseSelectorState }) {
-  return (
-    <>
-      {s.mode === 'search' && (
-        <Input
-          autoFocus
-          placeholder="Search exercises…"
-          value={s.query}
-          onChange={(e) => s.setQuery(e.target.value)}
-          className="mb-2"
-        />
-      )}
-      {s.mode === 'workout' && (
-        <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-[12.5px] font-semibold text-muted-foreground">
-          <span>Browsing by workout</span>
-          <span className="shrink-0 text-[11px] font-normal">last 3 months</span>
-        </div>
-      )}
-      <div className="flex items-center gap-1.5">
-        <FilterChips className="min-w-0 flex-1" options={REGION_FILTERS} value={s.region} onChange={s.setRegion} />
-        <div className="flex shrink-0 items-center gap-1">
-          <ModeButton active={s.mode === 'search'} label="Search exercises" onClick={s.toggleSearch}>
-            <Search className="size-4" />
-          </ModeButton>
-          <ModeButton active={s.mode === 'workout'} label="Browse by workout" onClick={s.toggleWorkout}>
-            <BicepsFlexed className="size-4" />
-          </ModeButton>
-        </div>
+  const hiddenModes = ALL_MODES.filter((m) => m !== s.mode)
+
+  let content: ReactNode
+  if (s.mode === 'filter') {
+    content = (
+      <div className="flex min-w-0 flex-col gap-1">
+        <FilterChips options={REGION_FILTERS} value={s.region} onChange={s.setRegion} />
+        <FilterChips options={MECHANIC_FILTERS} value={s.mechanic} onChange={s.setMechanic} />
       </div>
-      <FilterChips className="mt-1" options={MECHANIC_FILTERS} value={s.mechanic} onChange={s.setMechanic} />
-    </>
+    )
+  } else if (s.mode === 'search') {
+    content = (
+      <Input
+        autoFocus
+        placeholder="Search exercises…"
+        value={s.query}
+        onChange={(e) => s.setQuery(e.target.value)}
+      />
+    )
+  } else {
+    content = (
+      <div className="flex h-8 items-center text-[12.5px] font-semibold text-muted-foreground">
+        <span>Workouts</span>
+        <span className="ml-1 font-normal">· last 3 months</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn('flex gap-1.5', s.mode === 'filter' ? 'items-start' : 'items-center')}>
+      <div className="min-w-0 flex-1">{content}</div>
+      <div className={cn('flex shrink-0 gap-1', s.mode === 'filter' ? 'flex-col' : 'flex-row items-center')}>
+        {hiddenModes.map((m) => (
+          <ModeButton key={m} mode={m} onClick={() => s.switchMode(m)} />
+        ))}
+      </div>
+    </div>
   )
 }
 
