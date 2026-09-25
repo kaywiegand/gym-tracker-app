@@ -31,3 +31,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20260918-2019-7c83c3f-dirty` | `7c83c3f` | 2026-09-18T20:19:41Z | `backups/20260918-2019-7c83c3f-dirty/` | pinned headers, workout groups, overview min/max, exercise tab (load, max weight, volume), no Bodyweight in titles |
 | `20260918-2154-a2f9ec5-dirty` | `a2f9ec5` | 2026-09-18T21:54:06Z | `backups/20260918-2154-a2f9ec5-dirty/` | colour palette: blue UI only, blue-grey muscles, violet metrics |
 | `20260919-0646-c84786f-dirty` | `c84786f` | 2026-09-19T06:46:13Z | `backups/20260919-0646-c84786f-dirty/` | colour palette live, docs |
+| `20260925-1529-fca442d-dirty` | `fca442d` | 2026-09-25T15:29:42Z | `backups/20260925-1529-fca442d-dirty/` | Sticky headers fix, browse-by-workout button |
