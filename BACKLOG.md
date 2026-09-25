@@ -133,3 +133,13 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
 | 57 | **Uncurated Subtitle zeigt Quellname statt Muskel** — Fund bei #47: `displaySubtitle()` (`api/lib/ExerciseNaming.php`) zeigt für eine unkuratierte Übung wie „Front Leg Raises" (Titel `Legs Raise Front`) den rohen FEDB-Namen im Subtitel, nicht „Hamstrings". Kay 19.09.: aktueller Stand passt so nicht, aber erstmal zurückgestellt bis nach der großen Titel-Durchsicht (#47). | 3 |
+
+---
+
+## Kays Meldungen 2026-09-25
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 58 | **Sticky Header: durchgehender Hintergrund** — der fixierte Kopfbereich hat nur hinter den einzelnen Elementen Hintergrund, dazwischen scheint der gescrollte Inhalt durch. Der ganze Header-Block braucht einen durchgehenden Hintergrund. | 1 |
+| 59 | **Übungsauswahl kompakter (Dashboard/Exercise + Hauptmenü Exercises)** — Textsuche, Filter und Workout-Auswahl nehmen zu viel Platz. Initial nur die Filter-Chips, Liste darunter; daneben zwei Icons: Lupe öffnet das Suchfeld, Bizeps-Icon öffnet die Workout-Auswahl — beide in derselben Fläche über den Filtern. Eine Komponente, man schaltet zwischen den drei Suchen um. | 1 |
+| 60 | **Übungsliste flach alphabetisch** — statt nach Muskelgruppe sortiert mit Trennern eine flache alphabetische Liste, sonst kann man nicht sinnvoll scrollen. Gilt für Dashboard/Exercise und Hauptmenü Exercises. | 1 |

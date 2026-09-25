@@ -1,22 +1,9 @@
 import type { ExerciseListItem } from '@/types'
 
-export interface ExerciseGroup {
-  region: string
-  items: ExerciseListItem[]
-}
-
-// Backend already returns exercises sorted by region then name, so this is
-// just a client-side split on adjacent items -- no re-sort needed.
-export function groupByRegion(items: ExerciseListItem[]): ExerciseGroup[] {
-  const groups: ExerciseGroup[] = []
-  for (const item of items) {
-    const region = item.region ?? 'other'
-    const last = groups[groups.length - 1]
-    if (last && last.region === region) {
-      last.items.push(item)
-    } else {
-      groups.push({ region, items: [item] })
-    }
-  }
-  return groups
+// Flat, case-insensitive alphabetical order by the displayed title (#60) --
+// replaces the former per-muscle grouping. `localeCompare` with base
+// sensitivity ignores case (and accents), matching how a user scans a list
+// for a name regardless of how they typed it.
+export function sortByDisplayName(items: ExerciseListItem[]): ExerciseListItem[] {
+  return [...items].sort((a, b) => a.display_name.localeCompare(b.display_name, undefined, { sensitivity: 'base' }))
 }

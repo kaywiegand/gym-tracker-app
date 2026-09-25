@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Search, BicepsFlexed } from 'lucide-react'
 import { api } from '@/lib/api'
-import { regionLabel } from '@/lib/muscleColors'
-import { groupByRegion } from '@/lib/exerciseGrouping'
+import { sortByDisplayName } from '@/lib/exerciseGrouping'
 import type { ExerciseListItem, RecentWorkout } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { FilterChips } from '@/components/FilterChips'
+import { StickyHeader } from '@/components/StickyHeader'
+import { cn } from '@/lib/utils'
 
 const REGION_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core']
 const MECHANIC_FILTERS = ['All', 'Compound', 'Isolation']
+
+// Which extra area, if any, is open above the filter chips (#59). 'filter'
+// is the compact resting state -- just the two chip rows and the list.
+type SelectorMode = 'filter' | 'search' | 'workout'
 
 // One list item for an exercise, wherever one is chosen. Title and subtitle
 // sit close together, the chevron says "tap me", and exercises the user
@@ -36,7 +43,7 @@ export function ExerciseRow({ item, onClick }: { item: ExerciseListItem; onClick
 // inside its own sticky PageHeader -- while everything using the plain
 // <ExerciseSelector> below keeps getting both in one piece.
 function useExerciseSelectorState(excludeIds: string[]) {
-  const [query, setQueryRaw] = useState('')
+  const [query, setQuery] = useState('')
   const [region, setRegionRaw] = useState('All')
   const [mechanic, setMechanicRaw] = useState('All')
   const [exercises, setExercises] = useState<ExerciseListItem[]>([])
@@ -45,7 +52,7 @@ function useExerciseSelectorState(excludeIds: string[]) {
   // same empty list and read as "this exercise does not exist".
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  const [browsing, setBrowsing] = useState(false)
+  const [mode, setMode] = useState<SelectorMode>('filter')
   const [recent, setRecent] = useState<RecentWorkout[] | null>(null)
   const [recentError, setRecentError] = useState<string | null>(null)
   const [openWorkout, setOpenWorkout] = useState<RecentWorkout | null>(null)
@@ -85,7 +92,7 @@ function useExerciseSelectorState(excludeIds: string[]) {
   }, [query, region, mechanic, reloadKey])
 
   useEffect(() => {
-    if (!browsing || recent !== null) return
+    if (mode !== 'workout' || recent !== null) return
     let current = true
     api
       .get<RecentWorkout[]>('/workouts/recent?days=90')
@@ -100,32 +107,48 @@ function useExerciseSelectorState(excludeIds: string[]) {
     return () => {
       current = false
     }
-  }, [browsing, recent, reloadKey])
+  }, [mode, recent, reloadKey])
 
-  // Typing or filtering means "search" -- leave the workout path for it.
-  const search = <T,>(set: (v: T) => void) => (v: T) => {
+  // Picking a chip filter applies to the exercise list, which workout
+  // browsing doesn't show -- so it drops back to plain filtering. It never
+  // needs to touch 'search': filtering and searching combine (both are
+  // ANDed into the same request above).
+  const leaveWorkout = <T,>(set: (v: T) => void) => (v: T) => {
     set(v)
-    setBrowsing(false)
+    setMode((m) => (m === 'workout' ? 'filter' : m))
   }
 
   const visible = exercises.filter((e) => !excludeIds.includes(e.id))
-  const groups = groupByRegion(visible)
+  const sorted = sortByDisplayName(visible)
 
   return {
     query,
-    setQuery: search(setQueryRaw),
+    setQuery,
     region,
-    setRegion: search(setRegionRaw),
+    setRegion: leaveWorkout(setRegionRaw),
     mechanic,
-    setMechanic: search(setMechanicRaw),
+    setMechanic: leaveWorkout(setMechanicRaw),
     exercises,
-    groups,
+    sorted,
     loading,
     error,
     retry: () => setReloadKey((k) => k + 1),
-    browsing,
-    toggleBrowsing: () => {
-      setBrowsing((b) => !b)
+    mode,
+    // Tapping the active icon again closes back to plain filtering (#59).
+    // Closing search also clears its query -- a stale query hidden behind a
+    // collapsed input would otherwise keep narrowing "filter" mode results
+    // with no visible reason why.
+    toggleSearch: () => {
+      setMode((m) => {
+        if (m === 'search') {
+          setQuery('')
+          return 'filter'
+        }
+        return 'search'
+      })
+    },
+    toggleWorkout: () => {
+      setMode((m) => (m === 'workout' ? 'filter' : 'workout'))
       setOpenWorkout(null)
     },
     recent,
@@ -148,31 +171,77 @@ function ErrorLine({ message, onRetry }: { message: string; onRetry: () => void 
   )
 }
 
-// Search, both filter-chip rows and "Browse by workout" -- the part of the
-// selector a page may want pinned in its own sticky header (BACKLOG #50).
+// A mode-toggle icon button next to the filter chips (#59). Active state
+// uses --brand-accent -- the only allowed UI-accent colour (CLAUDE.md §7) --
+// never a status colour, since this isn't reporting good/warn/bad.
+function ModeButton({
+  active,
+  label,
+  onClick,
+  children,
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      aria-pressed={active}
+      aria-label={label}
+      className={cn(active && 'border-brand-accent text-brand-accent')}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  )
+}
+
+// Search, both filter-chip rows and the search/browse-by-workout toggles --
+// the part of the selector a page may want pinned in its own sticky header
+// (BACKLOG #50). Compact by default (#59): just the chip rows plus two icon
+// buttons: only search or workout-browsing being active opens its own area
+// above the chips.
 export function ExerciseSelectorControls({ state: s }: { state: ExerciseSelectorState }) {
   return (
     <>
-      <Input placeholder="Search exercises…" value={s.query} onChange={(e) => s.setQuery(e.target.value)} />
-      <FilterChips className="mt-2" options={REGION_FILTERS} value={s.region} onChange={s.setRegion} />
+      {s.mode === 'search' && (
+        <Input
+          autoFocus
+          placeholder="Search exercises…"
+          value={s.query}
+          onChange={(e) => s.setQuery(e.target.value)}
+          className="mb-2"
+        />
+      )}
+      {s.mode === 'workout' && (
+        <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-[12.5px] font-semibold text-muted-foreground">
+          <span>Browsing by workout</span>
+          <span className="shrink-0 text-[11px] font-normal">last 3 months</span>
+        </div>
+      )}
+      <div className="flex items-center gap-1.5">
+        <FilterChips className="min-w-0 flex-1" options={REGION_FILTERS} value={s.region} onChange={s.setRegion} />
+        <div className="flex shrink-0 items-center gap-1">
+          <ModeButton active={s.mode === 'search'} label="Search exercises" onClick={s.toggleSearch}>
+            <Search className="size-4" />
+          </ModeButton>
+          <ModeButton active={s.mode === 'workout'} label="Browse by workout" onClick={s.toggleWorkout}>
+            <BicepsFlexed className="size-4" />
+          </ModeButton>
+        </div>
+      </div>
       <FilterChips className="mt-1" options={MECHANIC_FILTERS} value={s.mechanic} onChange={s.setMechanic} />
-      <button
-        type="button"
-        className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-left text-[12.5px] font-semibold"
-        onClick={s.toggleBrowsing}
-      >
-        <span>{s.browsing ? '‹ Back to search' : 'Browse by workout'}</span>
-        {!s.browsing && (
-          <span className="shrink-0 text-[11px] font-normal text-muted-foreground">last 3 months ›</span>
-        )}
-      </button>
     </>
   )
 }
 
-// The list itself -- either search results grouped by muscle, or the
-// "browse by workout" drill-down. Scrolls under whatever renders the
-// controls above it.
+// The list itself -- either search results in one flat alphabetical list
+// (#60), or the "browse by workout" drill-down, which keeps its own
+// per-workout structure. Scrolls under whatever renders the controls above it.
 export function ExerciseSelectorResults({
   state: s,
   onSelect,
@@ -182,7 +251,7 @@ export function ExerciseSelectorResults({
   onSelect: (exercise: ExerciseListItem) => void
   excludeIds?: string[]
 }) {
-  if (s.browsing) {
+  if (s.mode === 'workout') {
     if (s.recentError !== null) return <ErrorLine message={s.recentError} onRetry={s.retry} />
     if (s.recent === null) return <p className="mt-6 text-center text-sm text-muted-foreground">Loading…</p>
     if (s.openWorkout === null) {
@@ -242,23 +311,14 @@ export function ExerciseSelectorResults({
     <>
       {/* Exercises already in the workout are filtered out. Saying so beats
           an unexplained gap where the user knows an exercise should be. */}
-      {s.exercises.length > 0 && s.groups.length === 0 && (
+      {s.exercises.length > 0 && s.sorted.length === 0 && (
         <p className="mt-6 text-center text-sm text-muted-foreground">Every match is already in this workout.</p>
       )}
-      {s.groups.map((group) => (
-        <div key={group.region}>
-          <div className="mt-4 mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-            {regionLabel(group.region)}
-            <span className="h-px flex-1 bg-border" />
-            <span>{group.items.length}</span>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            {group.items.map((item) => (
-              <ExerciseRow key={item.id} item={item} onClick={() => onSelect(item)} />
-            ))}
-          </div>
-        </div>
-      ))}
+      <div className="mt-3 flex flex-col gap-1.5">
+        {s.sorted.map((item) => (
+          <ExerciseRow key={item.id} item={item} onClick={() => onSelect(item)} />
+        ))}
+      </div>
     </>
   )
 }
@@ -278,18 +338,18 @@ interface ExerciseSelectorProps {
 
 // The one way to find an exercise (BACKLOG #40). The Exercises page, the
 // workout editor's picker and the dashboard used to be three different
-// widgets, which read as three different libraries. Search and filters for
-// anything new; "browse by workout" for what is already being trained --
-// two taps instead of typing.
+// widgets, which read as three different libraries. Chips for browsing by
+// muscle/mechanic, a search icon for typing a name, a biceps icon for
+// "browse by workout" -- one compact control that opens only what's needed.
 export function ExerciseSelector({ onSelect, excludeIds = [], sticky = true }: ExerciseSelectorProps) {
   const state = useExerciseSelectorState(excludeIds)
 
   return (
     <div className="flex flex-col">
       {sticky ? (
-        <div className="sticky top-0 z-10 -mx-4 bg-background px-4 pb-2 pt-2">
+        <StickyHeader className="-mx-4 px-4 pt-2 pb-2">
           <ExerciseSelectorControls state={state} />
-        </div>
+        </StickyHeader>
       ) : (
         <ExerciseSelectorControls state={state} />
       )}

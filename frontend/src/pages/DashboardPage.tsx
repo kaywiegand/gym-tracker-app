@@ -18,7 +18,7 @@ export function DashboardPage() {
   // publishes its own second sticky block -- range switch, and on
   // Workout/Exercise the selected item's header -- flush beneath it via
   // this measured height, passed down as a CSS variable (BACKLOG #50).
-  const { ref: headerRef, offset: headerOffset } = useStickyOffset<HTMLElement>()
+  const { ref: headerRef, offset: headerOffset } = useStickyOffset<HTMLDivElement>()
 
   return (
     <div style={{ '--dashboard-sticky-top': `${headerOffset}px` } as CSSProperties}>
