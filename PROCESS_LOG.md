@@ -342,3 +342,19 @@
 - Gefundene und mit Kays Erlaubnis gelöschte Leiche: `frontend/backups/20260904-172326/fitness.db` (0 Byte, nicht getrackt) — lag seit dem 04.09. versehentlich in `frontend/` statt im Projekt-`backups/`-Ordner und hat jeden Deploy als `-dirty` markiert.
 
 **Nächster Schritt:** #47 (Titel-Durchsicht FB26 mit Kay) und #21 Teil 2 (Gainsfire-Mapping-Durchsicht).
+
+---
+
+## Session 2026-09-19 — Backlog-Klärung
+
+**Was passiert ist:** Offene Backlog-Punkte mit Kay durchgegangen, ohne Deploy.
+- #30 und #1 gelöscht (Kay: nicht mehr relevant) — #30s Root Cause (Namen/Wiedererkennbarkeit) ist bereits als eigene Erkenntnis im Eintrag zum 2026-08-23 festgehalten, #1 war ohnehin nur eine spätere Icon-Entscheidung, kein offener Bug.
+- #21 geprüft: Mittwoch 16.09. ist vollständig im Live-Stand — 18 Sätze über 6 Übungen (3 aus Kays App-Tracking + 15 per Gainsfire-Import), gegen `backups/post-restore-20260919/fitness.db` und die 6 Quell-CSVs aus `/Users/kaywiegand/Projects/GYM-Fitness/trainings /20260918` verifiziert. Teil 2 (Mapping-Durchsicht) bleibt offen.
+- #14 geschlossen: alle 1746 `media`-Zeilen sind externe FEDB-URLs, keine lokalen Bilddateien vorhanden — nichts an `/uploads` verloren, wenn ein Backup Bilder ausließe. Herkunft steht in README.md.
+- #11, #23, #26 waren nur unklar formuliert, Kay wollte lediglich die Erklärung — Inhalt unverändert, keine Code-Änderung.
+- #47 korrigiert: betrifft nicht nur FB26, sondern die ganze Library. Dafür `scripts/export-exercise-titles.php` gebaut (nutzt `ExerciseNaming::decorateAll` direkt, damit die Liste exakt das zeigt was die App anzeigt) und `uploads/exercise-titles-20260919.csv` (822 Übungen, gegen `backups/post-restore-20260919/fitness.db`) an Kay geschickt.
+- #57 neu: beim Bauen der Liste aufgefallen, dass eine unkuratierte Übung wie „Front Leg Raises" im Subtitel den rohen FEDB-Namen zeigt statt „Hamstrings". Kay: zurückstellen bis nach der Titel-Durchsicht.
+
+- Frontend-Fix: fixierte Kopfbereiche (#50) blieben nicht stehen, weil die ganze Seite statt `main` scrollte — `AppShell` jetzt `h-dvh` + `min-h-0`. Außerdem „Browse by workout"-Button: Zusatz „last 3 months" bricht nicht mehr um.
+
+**Nächster Schritt:** Kay geht `exercise-titles-20260919.csv` durch (#47). Danach #21 Teil 2 und #57.

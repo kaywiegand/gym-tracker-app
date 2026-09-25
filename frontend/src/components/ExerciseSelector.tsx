@@ -158,11 +158,13 @@ export function ExerciseSelectorControls({ state: s }: { state: ExerciseSelector
       <FilterChips className="mt-1" options={MECHANIC_FILTERS} value={s.mechanic} onChange={s.setMechanic} />
       <button
         type="button"
-        className="mt-2 flex items-center justify-between rounded-lg border border-dashed border-border px-3 py-2 text-left text-[12.5px] font-semibold"
+        className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-left text-[12.5px] font-semibold"
         onClick={s.toggleBrowsing}
       >
-        {s.browsing ? '‹ Back to search' : 'Browse by workout'}
-        {!s.browsing && <span className="text-[11px] font-normal text-muted-foreground">last 3 months ›</span>}
+        <span>{s.browsing ? '‹ Back to search' : 'Browse by workout'}</span>
+        {!s.browsing && (
+          <span className="shrink-0 text-[11px] font-normal text-muted-foreground">last 3 months ›</span>
+        )}
       </button>
     </>
   )

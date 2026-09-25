@@ -12,7 +12,6 @@ Prio: `1` = hoch · `2` = mittel · `3` = niedrig
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 1 | **Muskel-Icon-Set** — Prototyp-Icons sind bewusst Platzhalter (CLAUDE.md §7). Listen sind in Stufe 1 bewusst ohne Icons gebaut (Namen reichen). Falls später ein besserer Original-Icon-Satz kommt: Entscheidung treffen ob er in Listen zurückkommt oder nur in Detail-Ansichten bleibt. | 3 |
 | 2 | ~~"In your workouts" / Most trained im Exercise-Picker~~ — ✅ verworfen 2026-09-18: Kay — „Most trained" gibt es schon im Dashboard-Overview; der Picker soll allein über die Suche gut funktionieren. | — |
 | 3 | ~~Muskel-Zuordnung im Exercise-Editor~~ — ✅ verworfen 2026-09-02: Kay — die FEDB-Zuordnung ist richtig (Deadlift auf Lower Back, RDL auf Hamstrings), keine Relevanz. | — |
 
@@ -49,7 +48,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 11 | **BIA-Referenzbereiche nicht strukturiert gespeichert** — `bia_values.ref_low`/`ref_high` bleiben beim Import `NULL`; die "Bereich"-Zeile liegt als Text daneben. Das Frontend paart sie seit 2026-09-02 zur Laufzeit (`pickBanded`), damit bereits importierte Scans keine Neuimport brauchen. Sauberer wäre Parsing beim Import — dann bräuchte es aber einen Backfill für vorhandene Daten. | 3 |
 | 12 | **Kein "Strength × Composition"-Decouple-Chart** — Prototyp überlagert e1RM-Trend mit BIA-Verlauf; bräuchte echte Korrelationslogik zwischen zwei unterschiedlich getakteten Zeitreihen (Training wöchentlich, BIA-Scans ein paar Mal im Jahr). Bewusst zurückgestellt, keine erfundene Formel. | 3 |
 | 13 | **Body-Scope-Zeitraum-Switch** — ✅ erledigt 2026-09-02, filtert jetzt Chart, Segmente, Kennzahlen und Historie. | — |
-| 14 | **Backup enthält keine Bilddateien** — `media`-Zeilen (Pfade) sind im JSON-Backup enthalten, die eigentlichen Bild-Dateien in `/uploads` nicht. Für echte Portabilität müsste `/uploads` klassisch per Dateisystem-Backup (rsync o.ä.) gesichert werden. | 3 |
+| 14 | ~~Backup enthält keine Bilddateien~~ — ✅ geprüft und geschlossen 2026-09-19: geprüft, es gibt keine lokalen Bilddateien. Alle 1746 `media`-Zeilen sind `exercise_photo` mit vollem `raw.githubusercontent.com`-Pfad zur vendored FEDB-Kopie, kein lokaler Datei-Upload; `/uploads` enthält aktuell nur Daten-Exports (CSV/JSON), keine Bilder. Herkunft ist in README.md dokumentiert. Nichts an `/uploads` verloren, wenn ein Backup es ausließe. | — |
 
 ---
 
@@ -60,7 +59,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 15 | **Kalorien-Schätzung** — HR-Daten fehlen. Über BIA allein geht nur eine MET-Faustformel (Krafttraining 3–6 MET × Gewicht × Dauer), die je nach Annahme um Faktor 2 streut. Zurückgestellt bis HR-Daten da sind. | 3 |
 | 18 | ~~Workouts gruppieren~~ — ✅ erledigt 2026-09-02: `workout_groups` + optionale `workouts.group_id`, aufklappbare Abschnitte in der Liste, Verwaltung unter /workout-groups. | — |
 | 19 | ~~Farb-Dubletten in der Palette~~ — ✅ erledigt 2026-09-18: Blau nur UI-Akzent; Muskeln eigene Blau-Grau-Palette; Metriken e1RM `#7c4fd1` / Volumen `#d369bd` / Sätze `#0091b0`, Körperwerte teilen sie. Regel in CLAUDE.md §7. Sätze `#0091b0` ≈ Back `#0891b2` bewusst von Kay so gewählt (erscheinen nie im selben View). | — |
-| 21 | **Frischer Gainsfire-Export** — Kay 18.09.: die Übungen aus `/Users/kaywiegand/Projects/GYM-Fitness/trainings /20260918` in die Datenbank übernehmen (enthält u. a. das nur in Gainsfire getrackte Training vom 16.09., #30). Danach Mapping-Durchsicht (`uploads/gainsfire-exercise-mapping.csv`). | 1 |
+| 21 | **Frischer Gainsfire-Export** — Import erledigt und geprüft 2026-09-19: Mittwoch 16.09. ist vollständig drin — 18 Sätze über 6 Übungen (Cable Rows, Incline Bench, Lat Pulldown, Bicep Curl, Rear Delt Fly, Overhead Tricep Extension), 3 davon schon aus Kays App-Tracking (Cable Rows), 15 per Gainsfire-Import nachgezogen; im Post-Restore-Backup gegen die 6 Quell-CSVs verifiziert. Offen bleibt Teil 2: Mapping-Durchsicht (`uploads/gainsfire-exercise-mapping.csv`). | 2 |
 | 20 | ~~Maskable-Icon 5 % zu groß~~ — ✅ bewusst so belassen 2026-09-02: Kay nutzt iOS, dort wird nicht beschnitten. Auf Android würden G und M an den Außenkanten fehlen. | — |
 
 ---
@@ -100,7 +99,6 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 27 | ~~Metrik-Reihenfolge e1RM → Volume → Sets~~ — ✅ erledigt 2026-09-18 (`ca29b75`): beide Radar-Schalter; Trend-Panels passten schon. | — |
 | 28 | ~~Overview-Kacheln: Min/Max statt „avg over …"~~ — ✅ erledigt 2026-09-18 (`ca29b75`): Min/Max über abgeschlossene Trainingswochen, ACWR behält seinen Status. | — |
 | 29 | ~~Dashboard-Trenner deutlicher~~ — ✅ erledigt 2026-09-18 (`ca29b75`): gemeinsame `SectionDivider`-Komponente. | — |
-| 30 | **Tracking am Mi 16.09. wieder nicht möglich** — Kay: das Training vom Mittwoch musste er wieder in Gainsfire tracken, in der App ging es „leider wieder nicht". Ursache noch unklar (was genau ging nicht?). Folge: die Sätze fehlen in der App, „Muscle load this week" zeigt alles unter MEV. Sätze später über den Gainsfire-Export nachziehen (#21). **Befund Live-DB 18.09.:** gleiches Muster wie Fr 12.09. — Session „FB26 Wendsday" 16.09. 16:47Z, genau 3 Sätze der ersten Übung, danach nichts, nie beendet. Der Session-Fix vom 13.09. (`107db04`) war da schon live — Ursache also woanders. **Kay 18.09.:** er startet das Workout, die Übungsnamen passen nicht oder sind missverständlich, und während des Trainings sucht er nicht herum — dann trackt er nicht. Kein Mechanik-Bug, sondern Namen/Wiedererkennbarkeit: die Titelregeln (`c8b93ea`) kamen erst am 18.09. live, #24 (RDL-Titel) steht noch aus. Verständliche Namen haben höchste Priorität. | 1 |
 | 31 | ~~„This week" → rollierende 7 Tage~~ — ✅ erledigt 2026-09-18 (`ca29b75`): Muscle load, Volume vs. MEV und Radar vergleichen die letzten 7 mit den 7 Tagen davor; Consistency unberührt. | — |
 | 32 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Trainingslast als Prozent des 4-Wochen-Schnitts | — |
 | 33 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Top-Weight-Panel raus, Max-Gewicht über der History | — |
@@ -117,7 +115,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 44 | ~~Edit Workout: Untertitel fehlen~~ — ✅ erledigt 2026-09-18 (`f1975a6`) | — |
 | 45 | ~~Edit Workout: „no fixed target weight"~~ — ✅ erledigt 2026-09-18 (`f1975a6`): Hinweis entfernt | — |
 | 46 | ~~Weekly volume targets begründen~~ — ✅ erledigt 2026-09-18 (`2a977cb`): Richtwerte pro Muskel (RP), Region = Summe; Methode und Quellen in `docs/volume-landmarks.md`. Live-Werte kommen mit #24 | — |
-| 47 | **Titel-Durchsicht der aktiven Workouts** — Befund bei der Browserprüfung 18.09.: die erste Übung in FB26 Wendsday heißt `Hamstrings Raise Bodyweight Front` (Front Leg Raise) — genau die Art Titel, an der Kay im Gym aussteigt (#30). Das konkrete Beispiel ist mit #48 gelöst (`Legs Raise Front`). Trotzdem alle Übungen der FB26-Workouts einmal mit Kay durchgehen und unklare Titel kuratieren. | 1 |
+| 47 | **Titel-Durchsicht — nicht nur FB26, die ganze Library** — Kay 19.09.: betrifft nicht nur die FB26-Workouts, sondern alle Übungen. Braucht dafür eine Liste aller Übungen mit Titel, Subtitel und Original-Name — exportiert als `uploads/exercise-titles-20260919.csv` (822 Übungen, aus `scripts/export-exercise-titles.php` gegen den Post-Restore-Live-Stand). Kay geht die Liste durch, danach hier weiter. Separat: „Front Leg Raises" zeigt aktuell den rohen Quellnamen im Subtitel statt „Hamstrings" — Fix zurückgestellt, siehe #57. | 1 |
 | 48 | ✅ erledigt 2026-09-18 (`3519720`): `Legs Raise Front`, „Bodyweight" aus allen Titeln | — |
 | 49 | ~~`Squat Barbell Bulgarian` generischer benennen~~ — ✅ erledigt 2026-09-19 (live eingespielt): `Squat Barbell Split` · „Bulgarian Squat". | — |
 | 50 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Kopfbereiche fixiert | — |
@@ -127,3 +125,11 @@ PROCESS_LOG und `ExerciseNaming.php`.
 | 54 | ✅ erledigt 2026-09-18 (`8d4fbd8`): Min/Max: Wert oben, Beschriftung darunter | — |
 | 55 | ✅ erledigt 2026-09-18 (`8d4fbd8`): neutrale Nutzungslinie | — |
 | 56 | ~~Live-Daten einspielen~~ — ✅ erledigt 2026-09-19: `./deploy/restore.sh uploads/live-20260918-final2.json` live eingespielt (frisch gegen Live-DB re-verifiziert vor dem Einspielen). Deadlift Dumbbell Romanian, Smith-Duplikat gefaltet, Volume-Targets (#46), Bulgarian (#49), 21 Gainsfire-Sätze inkl. Mittwoch 16.09. + 2 Sessions beendet (#21), `26 FB` → `FB26` (#52), Push-Up-Variante. Sätze 3314 → 3335, 0 Kollisionen. | — |
+
+---
+
+## Kays Meldungen 2026-09-19 (Backlog-Klärung)
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 57 | **Uncurated Subtitle zeigt Quellname statt Muskel** — Fund bei #47: `displaySubtitle()` (`api/lib/ExerciseNaming.php`) zeigt für eine unkuratierte Übung wie „Front Leg Raises" (Titel `Legs Raise Front`) den rohen FEDB-Namen im Subtitel, nicht „Hamstrings". Kay 19.09.: aktueller Stand passt so nicht, aber erstmal zurückgestellt bis nach der großen Titel-Durchsicht (#47). | 3 |
