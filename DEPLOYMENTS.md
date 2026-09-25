@@ -33,3 +33,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20260919-0646-c84786f-dirty` | `c84786f` | 2026-09-19T06:46:13Z | `backups/20260919-0646-c84786f-dirty/` | colour palette live, docs |
 | `20260925-1529-fca442d-dirty` | `fca442d` | 2026-09-25T15:29:42Z | `backups/20260925-1529-fca442d-dirty/` | Sticky headers fix, browse-by-workout button |
 | `20260925-1649-ddc2dbe-dirty` | `ddc2dbe` | 2026-09-25T16:49:38Z | `backups/20260925-1649-ddc2dbe-dirty/` | Opaque sticky headers, compact exercise selector, flat A-Z list (#58-#60) |
+| `20260925-1725-6380dea-dirty` | `6380dea` | 2026-09-25T17:25:46Z | `backups/20260925-1725-6380dea-dirty/` | Fixed header outside scroller, one-mode exercise selector (#61-#63) |
