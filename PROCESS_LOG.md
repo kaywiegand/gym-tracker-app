@@ -358,3 +358,32 @@
 - Frontend-Fix: fixierte Kopfbereiche (#50) blieben nicht stehen, weil die ganze Seite statt `main` scrollte — `AppShell` jetzt `h-dvh` + `min-h-0`. Außerdem „Browse by workout"-Button: Zusatz „last 3 months" bricht nicht mehr um.
 
 **Nächster Schritt:** Kay geht `exercise-titles-20260919.csv` durch (#47). Danach #21 Teil 2 und #57.
+
+---
+
+## Session 2026-09-25 — Fixierter Kopf, Übungsauswahl (nachgetragen 2026-10-05)
+
+**Was passiert ist:** Kays Meldungen #58–#63 in drei Runden umgesetzt und jeweils deployt: `fca442d`, `ddc2dbe`, `6380dea` (Deploys siehe `DEPLOYMENTS.md`). Details in den Commit-Messages.
+
+**Entscheidungen:**
+- Der Kopfbereich liegt jetzt in einem eigenen Slot über `main` statt als `sticky`-Element im Scroller — nur so blitzt auf iOS kein Inhalt darüber durch (#61). `useStickyOffset` entfällt.
+- Übungsauswahl: Filter, Textsuche und Workout-Auswahl schließen sich gegenseitig aus, je ein Icon für die zwei versteckten Modi; der „Browse by workout"-Banner entfällt (#62, #63).
+- Übungsliste flach alphabetisch statt nach Muskelgruppe (#60).
+
+**Offen geblieben:** Abnahme durch Kay; die für #62 erbetene Recherche von UI-Vorbildern ist nicht dokumentiert. Der Eintrag fehlte bis zum 05.10. — das BACKLOG führte #58–#63 solange als offen.
+
+---
+
+## Session 2026-10-05 — Standortbestimmung, Durchlauf vor dem Training
+
+**Was passiert ist:**
+- Stand geklärt: live läuft `6380dea`, kein Deploy offen (danach nur ein Doku-Commit). Live-Stand laut Backup-Manifest vom 25.09. unverändert seit dem 19.09. — seit dem 16.09. wurde nicht getrackt.
+- Tracking-Ablauf lokal im Handy-Viewport gegen eine Kopie des Live-Backups durchgespielt (FB26 Monday). Ablauf läuft durch; fünf Funde als BACKLOG #64–#68.
+- Doku nachgezogen: BACKLOG #58–#63, fehlender Eintrag zum 25.09., `docs/PROJECTS.md`.
+
+**Entscheidungen:**
+- Kay: im Training wird nicht getestet — der Fokus liegt auf dem Training. Jeder Ablauf, den Kay im Gym braucht, wird vorher im Handy-Viewport durchgespielt, bevor er als fertig gilt.
+- Die drei Deploys vom 25.09. zum selben Kopfbereich waren genau dieses Muster: geprüft per Build und Desktop, der Fehler zeigte sich erst auf dem Gerät.
+
+**Nächster Schritt:** #64 und #65 beheben (Untertitel im Tracking, Rückfrage bei Finish), danach #47.
+

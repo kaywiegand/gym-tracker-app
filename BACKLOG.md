@@ -140,9 +140,25 @@ PROCESS_LOG und `ExerciseNaming.php`.
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 58 | **Sticky Header: durchgehender Hintergrund** — der fixierte Kopfbereich hat nur hinter den einzelnen Elementen Hintergrund, dazwischen scheint der gescrollte Inhalt durch. Der ganze Header-Block braucht einen durchgehenden Hintergrund. | 1 |
-| 59 | **Übungsauswahl kompakter (Dashboard/Exercise + Hauptmenü Exercises)** — Textsuche, Filter und Workout-Auswahl nehmen zu viel Platz. Initial nur die Filter-Chips, Liste darunter; daneben zwei Icons: Lupe öffnet das Suchfeld, Bizeps-Icon öffnet die Workout-Auswahl — beide in derselben Fläche über den Filtern. Eine Komponente, man schaltet zwischen den drei Suchen um. | 1 |
-| 60 | **Übungsliste flach alphabetisch** — statt nach Muskelgruppe sortiert mit Trennern eine flache alphabetische Liste, sonst kann man nicht sinnvoll scrollen. Gilt für Dashboard/Exercise und Hauptmenü Exercises. | 1 |
-| 61 | **Über dem fixierten Header blitzt der Inhalt durch** — nach #58 (live `ddc2dbe`) scheint oberhalb des Headers beim Scrollen noch Inhalt durch. Kays Idee: Header-Bereich etwas höher ziehen und/oder alles oben in ein Element. | 1 |
-| 62 | **Übungsauswahl: immer nur ein Mechanismus sichtbar** — auch die Filter toggeln mit: Filter, Textsuche, Workout-Auswahl schließen sich gegenseitig aus. Filter bekommen ebenfalls ein Icon; rechts stehen immer die zwei Icons der gerade versteckten Mechanismen untereinander. Kay bittet vorab um Recherche von UI-Vorbildern. | 1 |
-| 63 | **„Browse by workout": großer Button/Banner entfällt** — mit Icon-Umschaltung überflüssig. | 1 |
+| 58 | **Sticky Header: durchgehender Hintergrund** — der fixierte Kopfbereich hat nur hinter den einzelnen Elementen Hintergrund, dazwischen scheint der gescrollte Inhalt durch. Der ganze Header-Block braucht einen durchgehenden Hintergrund. — ✅ live seit 2026-09-25 (`ddc2dbe`), Abnahme durch Kay offen. Lokal im Handy-Viewport geprüft 2026-10-05: Kopf deckend. | 1 |
+| 59 | **Übungsauswahl kompakter (Dashboard/Exercise + Hauptmenü Exercises)** — Textsuche, Filter und Workout-Auswahl nehmen zu viel Platz. Initial nur die Filter-Chips, Liste darunter; daneben zwei Icons: Lupe öffnet das Suchfeld, Bizeps-Icon öffnet die Workout-Auswahl — beide in derselben Fläche über den Filtern. Eine Komponente, man schaltet zwischen den drei Suchen um. — ✅ live seit 2026-09-25 (`ddc2dbe`, umgebaut in `6380dea`), Abnahme durch Kay offen. | 1 |
+| 60 | **Übungsliste flach alphabetisch** — statt nach Muskelgruppe sortiert mit Trennern eine flache alphabetische Liste, sonst kann man nicht sinnvoll scrollen. Gilt für Dashboard/Exercise und Hauptmenü Exercises. — ✅ live seit 2026-09-25 (`ddc2dbe`), Abnahme durch Kay offen. Lokal geprüft 2026-10-05: flache A–Z-Liste. | 1 |
+| 61 | **Über dem fixierten Header blitzt der Inhalt durch** — nach #58 (live `ddc2dbe`) scheint oberhalb des Headers beim Scrollen noch Inhalt durch. Kays Idee: Header-Bereich etwas höher ziehen und/oder alles oben in ein Element. — ✅ live seit 2026-09-25 (`6380dea`): Kopf liegt außerhalb des Scrollers. Abnahme auf dem iPhone offen — lokal nicht nachstellbar (iOS-Verhalten). | 1 |
+| 62 | **Übungsauswahl: immer nur ein Mechanismus sichtbar** — auch die Filter toggeln mit: Filter, Textsuche, Workout-Auswahl schließen sich gegenseitig aus. Filter bekommen ebenfalls ein Icon; rechts stehen immer die zwei Icons der gerade versteckten Mechanismen untereinander. Kay bittet vorab um Recherche von UI-Vorbildern. — ✅ live seit 2026-09-25 (`6380dea`), Abnahme durch Kay offen. Die erbetene Recherche von UI-Vorbildern ist nirgends dokumentiert — offen. | 1 |
+| 63 | **„Browse by workout": großer Button/Banner entfällt** — mit Icon-Umschaltung überflüssig. — ✅ live seit 2026-09-25 (`6380dea`). | 1 |
+
+---
+
+## Durchlauf vor dem Training 2026-10-05
+
+Tracking-Ablauf lokal im Handy-Viewport (375×812) gegen eine Kopie des Live-Stands durchgespielt
+(FB26 Monday: Start, Sätze loggen, Vorschlag übernehmen, Rest-Timer, verlassen, Resume, Finish).
+Ablauf funktioniert, Sätze und Session-Ende kommen in der DB an. Funde:
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 64 | **Tracking zeigt keine Untertitel** — auf dem Tracking-Screen steht nur der normierte Titel (`Abs Rotation Dumbbell Seated`), der gängige Name aus dem Untertitel fehlt. Alle anderen Listen nutzen `ExerciseRow` mit Untertitel, `TrackingPage.tsx` nicht. Wiedererkennbarkeit ist laut PROCESS_LOG 2026-09-18 die Voraussetzung dafür, dass Kay trackt. | 1 |
+| 65 | **„Finish workout" ohne Rückfrage** — beendet die Session sofort, auch bei 3 von 24 Sätzen. Nach Finish gibt es kein Resume mehr (siehe #22). Ein Fehltipp beendet das Training. | 1 |
+| 66 | **Vorschlag kippt nach Resume** — vor dem Verlassen „12.5 kg × 6 · You hit 10 reps on all sets last time", nach Resume „12.5 kg × 10 · Same weight as last time": die Sätze der laufenden Session zählen als „last time". | 2 |
+| 67 | **Vorschlagstext auf dem Handy abgeschnitten und ungenau** — die Begründung endet mit „…"; sie nennt die Rep-Obergrenze („10 reps") statt der tatsächlich geloggten 16. | 3 |
+| 68 | **Finish-Sheet: Zahlenformat uneinheitlich** — „8,100 kg" mit Komma, „-7740 kg" ohne Trenner; #53 hatte den schmalen Tausender-Abstand festgelegt. | 3 |
