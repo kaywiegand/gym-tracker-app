@@ -35,3 +35,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20260925-1649-ddc2dbe-dirty` | `ddc2dbe` | 2026-09-25T16:49:38Z | `backups/20260925-1649-ddc2dbe-dirty/` | Opaque sticky headers, compact exercise selector, flat A-Z list (#58-#60) |
 | `20260925-1725-6380dea-dirty` | `6380dea` | 2026-09-25T17:25:46Z | `backups/20260925-1725-6380dea-dirty/` | Fixed header outside scroller, one-mode exercise selector (#61-#63) |
 | `20261005-1121-5af4ce4-dirty` | `5af4ce4` | 2026-10-05T11:21:05Z | `backups/20261005-1121-5af4ce4-dirty/` | Tracking: subtitles, finish confirmation, stable suggestion after resume, finish sheet number format (#64-#66, #68) |
+| `20261005-1126-19c224f` | `19c224f` | 2026-10-05T11:26:03Z | `backups/20261005-1126-19c224f/` | Clean build id: .claude ignored, no code change |
