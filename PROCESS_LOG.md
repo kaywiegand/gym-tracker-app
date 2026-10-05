@@ -387,3 +387,15 @@
 
 **Nächster Schritt:** #64 und #65 beheben (Untertitel im Tracking, Rückfrage bei Finish), danach #47.
 
+---
+
+## Session 2026-10-05 (Fortsetzung) — Tracking-Funde behoben, Deploy
+
+**Was passiert ist:** BACKLOG #64, #65, #66, #68 umgesetzt in `5af4ce4` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Jede Änderung vor dem Deploy im Handy-Viewport gegen eine Kopie des Live-Backups durchgespielt. Verwaiste `api/config.local.php` mit Kays Erlaubnis gelöscht — sie zeigte auf eine Scratch-DB einer früheren Session.
+
+**Entscheidungen:**
+- Kay: nach einem Resume stehen die Werte wie zu Beginn der Session. Umgesetzt serverseitig (`last-sets?exclude_session=`), nicht über einen lokal gemerkten Stand — so gilt es auch nach einem Neustart der App. Folge: ein übernommener, aber nicht abgehakter Vorschlag ist nach dem Resume wieder der Anfangswert.
+- Rückfrage bei „Finish workout" nur solange Sätze offen sind; „Keep training" ist die Hauptaktion. Ein vollständiges Training beendet ohne Zwischenschritt.
+
+**Nächster Schritt:** Kay nimmt #58–#66 und #68 im Training ab. Danach #67, #69 und #47.
+
