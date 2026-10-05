@@ -61,7 +61,8 @@ function handleUpdateExercise(string $id): void
 function handleLastSetsForExercise(string $id): void
 {
     Auth::require();
-    Http::respond((new SetRepository())->lastSetsForExercise($id));
+    $exclude = isset($_GET['exclude_session']) ? (string) $_GET['exclude_session'] : null;
+    Http::respond((new SetRepository())->lastSetsForExercise($id, $exclude));
 }
 
 function handleExerciseHistory(string $id): void

@@ -8,6 +8,7 @@ import { playRestDoneSound, primeAudio, vibrateRestDone } from '@/lib/sound'
 import { keepScreenAwake } from '@/lib/wakeLock'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
+import { formatNumber } from '@/lib/format'
 import { useTrackingStore } from '@/store/useTrackingStore'
 import type { PreviousSession, Settings, SetEntry, Workout } from '@/types'
 import { TrackShell } from '@/components/TrackShell'
@@ -16,6 +17,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface Summary {
   setsDone: number
@@ -32,6 +34,7 @@ interface OpenSessionOption {
 
 interface PendingResumeChoice {
   workout: Workout
+  settings: Settings
   restSeconds: number
   lastSetsByExercise: Record<string, SetEntry[]>
   openSessions: OpenSessionOption[]
@@ -53,6 +56,37 @@ function formatSessionStart(iso: string): string {
   return `${started.toLocaleDateString(undefined, { day: '2-digit', month: 'short' })} ${time}`
 }
 
+// excludeSessionId is the session being resumed -- its own sets must not
+// count as "last time", or prefill and suggestion change on every reopen.
+async function fetchLastSets(
+  workout: Workout,
+  excludeSessionId?: string,
+): Promise<PromiseSettledResult<SetEntry[]>[]> {
+  const query = excludeSessionId ? `?exclude_session=${excludeSessionId}` : ''
+  return Promise.allSettled(
+    workout.exercises.map((we) => api.get<SetEntry[]>(`/exercises/${we.exercise_id}/last-sets${query}`)),
+  )
+}
+
+function buildSuggestions(
+  workout: Workout,
+  settings: Settings,
+  lastSetsByExercise: Record<string, SetEntry[]>,
+): Record<string, Suggestion> {
+  const byWorkoutExerciseId: Record<string, Suggestion> = {}
+  workout.exercises.forEach((we) => {
+    byWorkoutExerciseId[we.id] = suggestNext({
+      lastSets: lastSetsByExercise[we.exercise_id] ?? [],
+      repLow: we.rep_low_override ?? workout.rep_low,
+      repHigh: we.rep_high_override ?? workout.rep_high,
+      incrementKg: we.increment_override_kg ?? we.exercise_default_increment_kg ?? parseFloat(settings.default_increment_kg),
+      roundingKg: parseFloat(settings.rounding_kg),
+      trigger: settings.progression_trigger,
+    })
+  })
+  return byWorkoutExerciseId
+}
+
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
@@ -66,6 +100,7 @@ export function TrackingPage() {
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(() => Date.now())
   const [finishOpen, setFinishOpen] = useState(false)
+  const [confirmFinishOpen, setConfirmFinishOpen] = useState(false)
   const [summary, setSummary] = useState<Summary | null>(null)
   const [previous, setPrevious] = useState<PreviousSession | null>(null)
   const [comparingVolume, setComparingVolume] = useState(false)
@@ -82,9 +117,7 @@ export function TrackingPage() {
         api.get<Workout>(`/workouts/${wid}`),
         api.get<Settings>('/settings'),
       ])
-      const lastSetsResults = await Promise.allSettled(
-        workout.exercises.map((we) => api.get<SetEntry[]>(`/exercises/${we.exercise_id}/last-sets`)),
-      )
+      const lastSetsResults = await fetchLastSets(workout)
       const lastSetsByExercise: Record<string, SetEntry[]> = {}
       workout.exercises.forEach((we, i) => {
         const result = lastSetsResults[i]
@@ -92,19 +125,8 @@ export function TrackingPage() {
       })
       const restSeconds = parseInt(settings.rest_seconds, 10)
 
-      const suggestionsByWorkoutExerciseId: Record<string, Suggestion> = {}
-      workout.exercises.forEach((we) => {
-        suggestionsByWorkoutExerciseId[we.id] = suggestNext({
-          lastSets: lastSetsByExercise[we.exercise_id] ?? [],
-          repLow: we.rep_low_override ?? workout.rep_low,
-          repHigh: we.rep_high_override ?? workout.rep_high,
-          incrementKg: we.increment_override_kg ?? we.exercise_default_increment_kg ?? parseFloat(settings.default_increment_kg),
-          roundingKg: parseFloat(settings.rounding_kg),
-          trigger: settings.progression_trigger,
-        })
-      })
       if (cancelled) return
-      setSuggestions(suggestionsByWorkoutExerciseId)
+      setSuggestions(buildSuggestions(workout, settings, lastSetsByExercise))
 
       // A session left ended_at:null means it was abandoned (browser
       // closed / navigated away without "Finish workout") -- its sets are
@@ -119,7 +141,7 @@ export function TrackingPage() {
           options.push({ session, loggedSets: await getSetsForSession(session.id) })
         }
         if (cancelled) return
-        setPendingChoice({ workout, restSeconds, lastSetsByExercise, openSessions: options })
+        setPendingChoice({ workout, settings, restSeconds, lastSetsByExercise, openSessions: options })
       } else {
         useTrackingStore.getState().start(workout, lastSetsByExercise, restSeconds)
       }
@@ -166,9 +188,17 @@ export function TrackingPage() {
     }
   }, [store.restEndAt, now])
 
-  function handleResume(option: OpenSessionOption) {
+  async function handleResume(option: OpenSessionOption) {
     if (!pendingChoice) return
-    const { workout, restSeconds, lastSetsByExercise } = pendingChoice
+    const { workout, settings, restSeconds } = pendingChoice
+    // Offline the refetch fails -- then the sets loaded above stay in place.
+    const results = await fetchLastSets(workout, option.session.id)
+    const lastSetsByExercise = { ...pendingChoice.lastSetsByExercise }
+    workout.exercises.forEach((we, i) => {
+      const result = results[i]
+      if (result.status === 'fulfilled') lastSetsByExercise[we.exercise_id] = result.value
+    })
+    setSuggestions(buildSuggestions(workout, settings, lastSetsByExercise))
     useTrackingStore.getState().resume(workout, option.session, option.loggedSets, lastSetsByExercise, restSeconds)
     setPendingChoice(null)
   }
@@ -275,7 +305,18 @@ export function TrackingPage() {
   const volumeDelta = summary && previousVolume !== null ? summary.volumeKg - previousVolume : null
   const volumeDeltaPct = volumeDelta !== null && previousVolume ? Math.round((volumeDelta / previousVolume) * 100) : null
 
+  // A finished session cannot be resumed, so one stray tap with sets still
+  // open would end the training -- ask first in that case.
+  function requestFinish() {
+    if (doneSets < totalSets) {
+      setConfirmFinishOpen(true)
+      return
+    }
+    handleFinish()
+  }
+
   async function handleFinish() {
+    setConfirmFinishOpen(false)
     const workoutIdForCompare = store.workoutId
     const sessionIdForCompare = store.sessionId
     const result = await store.finish()
@@ -329,6 +370,9 @@ export function TrackingPage() {
               <div className="flex cursor-pointer items-center gap-2.5 px-3" onClick={() => store.toggleOpen(exIndex)}>
                 <div className="min-w-0 flex-1 py-2.5">
                   <div className="truncate text-[14.5px] font-bold">{ex.exerciseName}</div>
+                  {ex.exerciseSubtitle && (
+                    <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{ex.exerciseSubtitle}</div>
+                  )}
                 </div>
                 {allDone ? (
                   <Badge className="bg-status-good/15 text-status-good" variant="secondary">
@@ -441,9 +485,28 @@ export function TrackingPage() {
         </div>
       )}
 
-      <Button type="button" className="mb-10 mt-4 w-full bg-status-good text-white hover:bg-status-good/90" onClick={handleFinish}>
+      <Button type="button" className="mb-10 mt-4 w-full bg-status-good text-white hover:bg-status-good/90" onClick={requestFinish}>
         Finish workout
       </Button>
+
+      <Dialog open={confirmFinishOpen} onOpenChange={setConfirmFinishOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Finish workout?</DialogTitle>
+            <DialogDescription>
+              {totalSets - doneSets} of {totalSets} sets are still open. A finished session cannot be resumed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleFinish}>
+              Finish anyway
+            </Button>
+            <Button type="button" onClick={() => setConfirmFinishOpen(false)}>
+              Keep training
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Sheet open={finishOpen} onOpenChange={setFinishOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl">
@@ -453,7 +516,7 @@ export function TrackingPage() {
           <div className="grid grid-cols-2 gap-2 px-4">
             <div className="rounded-xl border border-border p-3">
               <div className="text-[10.5px] font-semibold text-muted-foreground">Volume</div>
-              <div className="text-[21px] font-bold">{summary ? `${Math.round(summary.volumeKg)} kg` : '—'}</div>
+              <div className="text-[21px] font-bold">{summary ? `${formatNumber(summary.volumeKg)} kg` : '—'}</div>
             </div>
             <div className="rounded-xl border border-border p-3">
               <div className="text-[10.5px] font-semibold text-muted-foreground">Duration</div>
@@ -474,13 +537,13 @@ export function TrackingPage() {
                     }`}
                   >
                     {volumeDelta > 0 ? '+' : ''}
-                    {Math.round(volumeDelta)} kg{volumeDeltaPct !== null ? ` (${volumeDelta > 0 ? '+' : ''}${volumeDeltaPct}%)` : ''}
+                    {formatNumber(volumeDelta)} kg{volumeDeltaPct !== null ? ` (${volumeDelta > 0 ? '+' : ''}${volumeDeltaPct}%)` : ''}
                   </p>
                   {/* Which session this is measured against -- comparing to a
                       different workout is a weaker signal, so it says so. */}
                   <p className="text-[11px] text-muted-foreground">
                     vs {previous?.scope === 'same_workout' ? 'last time' : previous?.workout_name ?? 'last session'} ·{' '}
-                    {previous?.started_at.slice(0, 10)} · {Math.round(previousVolume).toLocaleString()} kg
+                    {previous?.started_at.slice(0, 10)} · {formatNumber(previousVolume)} kg
                   </p>
                 </>
               )

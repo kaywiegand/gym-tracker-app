@@ -16,6 +16,7 @@ interface ExerciseTrack {
   workoutExerciseId: string
   exerciseId: string
   exerciseName: string
+  exerciseSubtitle: string
   plannedSets: number
   sets: DraftSet[]
   open: boolean
@@ -63,6 +64,7 @@ function buildExercises(
       workoutExerciseId: we.id,
       exerciseId: we.exercise_id,
       exerciseName: we.exercise_display_name,
+      exerciseSubtitle: we.exercise_display_subtitle,
       plannedSets: we.planned_sets,
       sets,
       open: i === 0,

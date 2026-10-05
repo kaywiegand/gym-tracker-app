@@ -141,6 +141,8 @@ check('lastSetsForExercise returns only the most recent session', count($lastSet
 check('lastSetsForExercise excludes older session', !in_array('sess-old', array_column($lastSets, 'session_id'), true), $failures);
 check('lastSetsForExercise orders by set_index', $lastSets[0]['set_index'] === 0 && $lastSets[1]['set_index'] === 1, $failures);
 check('lastSetsForExercise for unknown exercise is empty', $setRepo->lastSetsForExercise('nope') === [], $failures);
+$beforeResume = $setRepo->lastSetsForExercise($created['id'], 'sess-1');
+check('lastSetsForExercise skips the excluded session', array_column($beforeResume, 'session_id') === ['sess-old'], $failures);
 
 $histExercise = $exRepo->create(['name' => 'Test History Exercise', 'muscles' => []]);
 $sessionRepo->upsert(['id' => 'sess-hist-1', 'workout_id' => $wo['id'], 'started_at' => '2026-02-01T10:00:00Z', 'updated_at' => '2026-02-01T10:00:00Z']);

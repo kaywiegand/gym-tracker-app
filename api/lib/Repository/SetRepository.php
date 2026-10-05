@@ -34,12 +34,19 @@ final class SetRepository extends BaseRepository
     // Most recent session's sets for this exercise -- used to pre-fill a
     // new tracking session with last time's actual weight/reps. No
     // computed suggestion here (that's Stage 3's progression engine).
-    public function lastSetsForExercise(string $exerciseId): array
+    //
+    // $excludeSessionId is the session being resumed: its own sets are the
+    // newest ones, and without the exclusion "last time" would turn into
+    // "a few minutes ago" the moment a session is left and reopened.
+    public function lastSetsForExercise(string $exerciseId, ?string $excludeSessionId = null): array
     {
-        $lastSession = $this->fetchOne(
-            'SELECT session_id FROM sets WHERE exercise_id = ? AND deleted_at IS NULL ORDER BY performed_at DESC LIMIT 1',
-            [$exerciseId]
-        );
+        $sql = 'SELECT session_id FROM sets WHERE exercise_id = ? AND deleted_at IS NULL';
+        $params = [$exerciseId];
+        if ($excludeSessionId !== null) {
+            $sql .= ' AND session_id <> ?';
+            $params[] = $excludeSessionId;
+        }
+        $lastSession = $this->fetchOne($sql . ' ORDER BY performed_at DESC LIMIT 1', $params);
         if ($lastSession === null) {
             return [];
         }
