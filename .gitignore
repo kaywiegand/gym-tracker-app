@@ -37,3 +37,6 @@ api/config.local.php
 
 # Python bytecode from the scripts/
 __pycache__/
+
+# Claude Code session files (dev-server launch config, worktrees) -- local only
+/.claude/
