@@ -168,7 +168,7 @@ export function WorkoutEditPage() {
   if (loading) {
     return (
       <>
-        <PageHeader title={isEditing ? 'Edit workout' : 'New workout'} subtitle="Template" showThemeToggle={false} />
+        <PageHeader title={isEditing ? 'Edit workout' : 'New workout'} subtitle="Template" showThemeToggle={false} onBack={() => navigate('/workouts')} />
         <p className="text-sm text-muted-foreground">Loading…</p>
       </>
     )
@@ -178,7 +178,7 @@ export function WorkoutEditPage() {
 
   return (
     <>
-      <PageHeader title={isEditing ? 'Edit workout' : 'New workout'} subtitle="Template" showThemeToggle={false} />
+      <PageHeader title={isEditing ? 'Edit workout' : 'New workout'} subtitle="Template" showThemeToggle={false} onBack={() => navigate('/workouts')} />
 
       <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Name</div>
       <Input placeholder="e.g. Push" value={name} onChange={(e) => setName(e.target.value)} />

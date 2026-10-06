@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import { RANGE_WEEKS } from '@/lib/dashboardRanges'
 import { pickBiaKpi, type BiaKpiKey } from '@/lib/biaMetrics'
@@ -54,8 +55,8 @@ export function ReportPage() {
     <div className="mx-auto max-w-[680px] px-5 py-6 print:max-w-none print:p-0">
       <div className="mb-5 flex items-center gap-2 print:hidden">
         <Link to="/settings">
-          <Button type="button" variant="outline" size="sm">
-            ‹ Back
+          <Button type="button" variant="outline" size="icon" className="size-[34px] rounded-lg" aria-label="Back">
+            <ArrowLeft className="size-[18px]" />
           </Button>
         </Link>
         <Button type="button" size="sm" onClick={() => window.print()} disabled={!data}>

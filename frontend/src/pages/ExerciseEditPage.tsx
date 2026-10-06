@@ -93,7 +93,7 @@ export function ExerciseEditPage() {
   if (!exercise) {
     return (
       <>
-        <PageHeader title="Edit exercise" showThemeToggle={false} />
+        <PageHeader title="Edit exercise" showThemeToggle={false} onBack={() => navigate('/exercises')} />
         <p className="text-sm text-muted-foreground">Loading…</p>
       </>
     )
@@ -105,6 +105,7 @@ export function ExerciseEditPage() {
         title="Edit exercise"
         subtitle={exercise.source === 'custom' ? 'Your copy' : `Library entry · ${exercise.name}`}
         showThemeToggle={false}
+        onBack={() => navigate('/exercises')}
       />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">

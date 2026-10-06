@@ -51,7 +51,7 @@ export function WorkoutGroupsPage() {
 
   return (
     <>
-      <PageHeader title="Workout groups" subtitle="Sections in your workout list" showThemeToggle={false} />
+      <PageHeader title="Workout groups" subtitle="Sections in your workout list" showThemeToggle={false} onBack={() => navigate('/workouts')} />
 
       <form onSubmit={handleAdd} className="mb-3 flex gap-2">
         <Input placeholder="New group, e.g. Warm ups" value={name} onChange={(e) => setName(e.target.value)} />

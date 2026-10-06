@@ -19,6 +19,7 @@ export const BIA_KPI_METRICS = {
   targetWeight: { category: 'Gewichtsempfehlung', subcategory: null, metric: 'Ziel Gewicht' },
   fatControl: { category: 'Gewichtsempfehlung', subcategory: null, metric: 'Fett Kontrolle' },
   muscleControl: { category: 'Gewichtsempfehlung', subcategory: null, metric: 'Muskel Kontrolle' },
+  height: { category: 'Allgemeine Daten', subcategory: null, metric: 'Körpergrösse' },
 } as const
 
 export type BiaKpiKey = keyof typeof BIA_KPI_METRICS
@@ -58,6 +59,14 @@ function find(values: BiaValue[], category: string, subcategory: string | null, 
 export function pickBiaKpi(values: BiaValue[], key: BiaKpiKey): number | null {
   const spec = BIA_KPI_METRICS[key]
   return find(values, spec.category, spec.subcategory, spec.metric)?.value_num ?? null
+}
+
+// The scan stores sex as German text ("Männlich" / "Weiblich").
+export function pickBiaSex(values: BiaValue[]): 'male' | 'female' | null {
+  const text = find(values, 'Allgemeine Daten', null, 'Geschlecht')?.value_text?.toLowerCase() ?? ''
+  if (text.startsWith('m')) return 'male'
+  if (text.startsWith('w') || text.startsWith('f')) return 'female'
+  return null
 }
 
 export interface BandedReading {

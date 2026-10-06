@@ -10,6 +10,7 @@ import type {
   BackupImportResult,
   BiaImportResult,
   BiaMeasurement,
+  BiaSeriesEntry,
   Bodyweight,
   HrImportResult,
   MuscleVolumeTarget,
@@ -18,6 +19,8 @@ import type {
 } from '@/types'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { buildInfo, formatBuildTime } from '@/lib/buildInfo'
+import { PROFILE_KEYS, ageFromBirthDate, profileHeightCm, type ProfileSex } from '@/lib/bodyProfile'
+import { pickBiaKpi, pickBiaSex } from '@/lib/biaMetrics'
 import { PageHeader } from '@/components/PageHeader'
 import { NumberField } from '@/components/NumberField'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -282,6 +285,7 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      <ProfileCard settings={settings} onSave={saveSettings} />
       <BodyweightCard />
       <BodyMeasurementCard />
       <BiaCard />
@@ -356,6 +360,102 @@ function ChangePasswordCard() {
               {submitting ? 'Saving…' : 'Change password'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+    </>
+  )
+}
+
+// Height, birth date and sex. Height feeds the BMI on the Body dashboard;
+// birth date and sex are stored for the later calorie estimate. Until a
+// value is set here, height and sex are shown from the last body scan.
+function ProfileCard({ settings, onSave }: { settings: Settings; onSave: (patch: Partial<Settings>) => Promise<void> }) {
+  const [scan, setScan] = useState<BiaSeriesEntry | null>(null)
+  const [heightDraft, setHeightDraft] = useState<number | null>(null)
+
+  useEffect(() => {
+    api
+      .get<BiaSeriesEntry[]>('/bia/series')
+      .then((scans) => setScan(scans[scans.length - 1] ?? null))
+      .catch(() => {
+        // non-fatal -- the fields just start empty
+      })
+  }, [])
+
+  const savedHeight = profileHeightCm(settings)
+  const scanHeight = scan ? pickBiaKpi(scan.values, 'height') : null
+  const height = heightDraft ?? savedHeight ?? scanHeight ?? 0
+
+  const savedSex = settings[PROFILE_KEYS.sex] as ProfileSex | undefined
+  const sex: ProfileSex | '' = savedSex ?? (scan ? pickBiaSex(scan.values) : null) ?? ''
+
+  const [birthDate, setBirthDate] = useState(settings[PROFILE_KEYS.birthDate] ?? '')
+  const age = ageFromBirthDate(birthDate)
+  const fromScan = (savedHeight === null && scanHeight !== null) || (!savedSex && sex !== '')
+
+  return (
+    <>
+      <div className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Profile</div>
+      <Card>
+        <CardContent className="flex flex-col gap-3 py-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[14px] font-bold">Height</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">used for your BMI</div>
+            </div>
+            <NumberField
+              width="6rem"
+              unit="cm"
+              min={0}
+              value={height}
+              onChange={setHeightDraft}
+              onBlur={() => {
+                if (heightDraft !== null && heightDraft > 0) onSave({ [PROFILE_KEYS.heightCm]: String(heightDraft) })
+              }}
+              aria-label="Height"
+            />
+          </div>
+
+          <div className="h-px bg-border" />
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[14px] font-bold">Date of birth</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">{age !== null ? `Age ${age}` : 'not set'}</div>
+            </div>
+            <Input
+              type="date"
+              className="w-[10.5rem]"
+              value={birthDate}
+              max={nowIso().slice(0, 10)}
+              onChange={(e) => {
+                setBirthDate(e.target.value)
+                if (ageFromBirthDate(e.target.value) !== null) onSave({ [PROFILE_KEYS.birthDate]: e.target.value })
+              }}
+              aria-label="Date of birth"
+            />
+          </div>
+
+          <div className="h-px bg-border" />
+
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[14px] font-bold">Sex</span>
+            <SegmentedControl<ProfileSex | ''>
+              className="w-[150px]"
+              value={sex}
+              onChange={(v) => onSave({ [PROFILE_KEYS.sex]: v })}
+              options={[
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+              ]}
+            />
+          </div>
+
+          {fromScan && (
+            <p className="text-[11px] text-muted-foreground">
+              Height and sex are shown from your last body scan until you set them here.
+            </p>
+          )}
         </CardContent>
       </Card>
     </>

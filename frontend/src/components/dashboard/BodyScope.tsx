@@ -8,7 +8,9 @@ import {
   type BiaKpiKey,
   type SegmentKind,
 } from '@/lib/biaMetrics'
-import type { BiaSeriesEntry } from '@/types'
+import { currentBmi, profileHeightCm } from '@/lib/bodyProfile'
+import { formatNumber } from '@/lib/format'
+import type { BiaSeriesEntry, Bodyweight, Settings } from '@/types'
 import { FilterChips } from '@/components/FilterChips'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { SectionDivider } from '@/components/SectionDivider'
@@ -64,6 +66,17 @@ export function BodyScope() {
   const [scans, setScans] = useState<BiaSeriesEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [openMeasurementId, setOpenMeasurementId] = useState<string | null>(null)
+  const [settings, setSettings] = useState<Settings | null>(null)
+  const [loggedWeight, setLoggedWeight] = useState<Bodyweight | null>(null)
+
+  // Only feeds the BMI -- if either request fails the scan's own BMI stands.
+  useEffect(() => {
+    api.get<Settings>('/settings').then(setSettings).catch(() => {})
+    api
+      .get<Bodyweight[]>('/bodyweight?limit=1')
+      .then((rows) => setLoggedWeight(rows[0] ?? null))
+      .catch(() => {})
+  }, [])
 
   // One request for everything. This used to be the measurement list plus one
   // detail request per scan, all awaited before the first paint.
@@ -118,6 +131,15 @@ export function BodyScope() {
   const previous = shown.length > 1 ? shown[shown.length - 2] : null
 
   const kpi = (key: BiaKpiKey, from = latest) => pickBiaKpi(from.values, key)
+  // Always against the newest scan overall: a weight logged since then makes
+  // the BMI current even when the last scan is months old.
+  const newestScan = scans[scans.length - 1]
+  const bmi = currentBmi({
+    scanBmi: kpi('bmi'),
+    scanDate: newestScan.measured_at,
+    heightCm: profileHeightCm(settings) ?? pickBiaKpi(newestScan.values, 'height'),
+    loggedWeight,
+  })
   const trend: BiaTrendPoint[] = shown.map((s) => ({
     date: s.measured_at.slice(0, 10),
     weight: pickBiaKpi(s.values, 'weight'),
@@ -269,7 +291,14 @@ export function BodyScope() {
         {BIA_BANDED_METRICS.map((m) => (
           <BiaRangeBar key={m.subcategory} label={m.label} unit={m.unit} reading={pickBanded(latest.values, m.subcategory)} />
         ))}
-        <BiaBandBar label="BMI" value={kpi('bmi')} bands={BMI_BANDS} min={15} max={40} />
+        <BiaBandBar
+          label="BMI"
+          value={bmi.value}
+          caption={bmi.basis ? `${formatNumber(bmi.basis.weightKg, 1)} kg · ${bmi.basis.date}` : undefined}
+          bands={BMI_BANDS}
+          min={15}
+          max={40}
+        />
       </Card>
 
       <BiaMeasurementDetailSheet measurementId={openMeasurementId} onOpenChange={(open) => !open && setOpenMeasurementId(null)} />

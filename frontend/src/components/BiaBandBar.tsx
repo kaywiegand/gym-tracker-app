@@ -21,20 +21,25 @@ interface BiaBandBarProps {
   label: string
   value: number | null
   unit?: string
+  /** what the value is based on, shown under the label */
+  caption?: string
   bands: ScaleBand[]
   /** where the drawn scale starts; the last band is drawn up to `max` */
   min: number
   max: number
 }
 
-export function BiaBandBar({ label, value, unit, bands, min, max }: BiaBandBarProps) {
+export function BiaBandBar({ label, value, unit, caption, bands, min, max }: BiaBandBarProps) {
   const pos = (v: number) => ((Math.max(min, Math.min(max, v)) - min) / (max - min)) * 100
   const active = value === null ? null : (bands.find((b) => value < b.to) ?? bands[bands.length - 1])
 
   return (
     <div className="py-2">
       <div className="flex items-baseline justify-between">
-        <span className="text-[12.5px] text-foreground/80">{label}</span>
+        <span className="text-[12.5px] text-foreground/80">
+          {label}
+          {caption && <span className="ml-1.5 text-[10.5px] text-muted-foreground">{caption}</span>}
+        </span>
         <span className="text-[13px] font-bold tabular-nums" style={{ color: active ? TONE_VAR[active.tone] : undefined }}>
           {value !== null ? value.toFixed(1) : '—'}
           {unit && <span className="ml-0.5 text-[10.5px] font-semibold text-muted-foreground">{unit}</span>}

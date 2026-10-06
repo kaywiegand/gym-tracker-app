@@ -163,3 +163,14 @@ Ablauf funktioniert, Sätze und Session-Ende kommen in der DB an. Funde:
 | 67 | **Vorschlagstext auf dem Handy abgeschnitten und ungenau** — die Begründung endet mit „…"; sie nennt die Rep-Obergrenze („10 reps") statt der tatsächlich geloggten 16. | 3 |
 | 68 | **Finish-Sheet: Zahlenformat uneinheitlich** — „8,100 kg" mit Komma, „-7740 kg" ohne Trenner; #53 hatte den schmalen Tausender-Abstand festgelegt. — ✅ umgesetzt 2026-10-05, im Handy-Viewport geprüft, live seit 2026-10-05 (`5af4ce4`), Abnahme durch Kay offen: Finish-Sheet nutzt `formatNumber`. | 3 |
 | 69 | **Leere Session beim Öffnen** — der Tracking-Screen legt die Session schon beim Öffnen an, nicht beim ersten Satz. Ein Reload ohne geloggten Satz hinterlässt eine „Unfinished session · 0 sets logged“, die erst über Resume oder Discard verschwindet. | 3 |
+
+---
+
+## Kays Meldungen 2026-10-05
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 70 | **Profil in Settings: Alter, Größe, Geschlecht** — in Settings lässt sich das Gewicht eingeben, Alter, Größe und Geschlecht aber nicht. Mit der Größe könnte die App den BMI selbst berechnen und aktuell halten, auch wenn der letzte Bodycheck (BIA-Scan) länger her ist — wie jetzt. — ✅ umgesetzt 2026-10-05, im Handy-Viewport geprüft, noch nicht deployt: Profil-Block in Settings (Größe, Geburtsdatum, Geschlecht; `settings`-Keys `profile_*`), Body-Ansicht zeigt einen BMI — berechnet aus dem geloggten Gewicht, sobald es neuer ist als der letzte Scan, sonst den Scan-Wert. Alter und Geschlecht werden nur gespeichert (für #15). | 2 |
+| 71 | **Untertitel von `Abs Rotation Dumbbell Seated`** — Kay: warum steht dort nicht „Russian Twist Dumbbell"? Das wäre der umgangssprachliche Name. — Befund: `display_alias` „Core Twist Dumbbell“ wurde am 2026-09-13 auf Kays Regel gesetzt (Rotation ↔ Core Twist); die Quellübung heißt „Russian Twist“. Entscheidung Kay offen. | 2 |
+| 72 | **Workouts: aus einem geöffneten Workout gibt es kein Zurück** — geht man unter Workouts in ein Workout, fehlt der Weg zurück zur Liste. — ✅ umgesetzt 2026-10-05, im Handy-Viewport geprüft, noch nicht deployt: Zurück-Button im `PageHeader`, genutzt in Workout-Editor, Übungs-Editor und Workout-Gruppen. | 1 |
+| 73 | **FB26 Wendsday: `Legs Raise Front` ist die falsche Übung** — Kay macht immer das liegende Leg Raise. Die Übung fehlt offenbar in der Library — warum? — Befund: die Übung existiert als `Abs Raise Lying` · „Lying Leg Raise“ (67 Sätze, zuletzt 09.09. in FB26 Wendsday per Gainsfire-Import). Im Template steht stattdessen `Legs Raise Front`; darauf liegen 3 Sätze vom 02.09. Offen: Template tauschen, 3 Sätze umhängen. | 1 |
