@@ -36,3 +36,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20260925-1725-6380dea-dirty` | `6380dea` | 2026-09-25T17:25:46Z | `backups/20260925-1725-6380dea-dirty/` | Fixed header outside scroller, one-mode exercise selector (#61-#63) |
 | `20261005-1121-5af4ce4-dirty` | `5af4ce4` | 2026-10-05T11:21:05Z | `backups/20261005-1121-5af4ce4-dirty/` | Tracking: subtitles, finish confirmation, stable suggestion after resume, finish sheet number format (#64-#66, #68) |
 | `20261005-1126-19c224f` | `19c224f` | 2026-10-05T11:26:03Z | `backups/20261005-1126-19c224f/` | Clean build id: .claude ignored, no code change |
+| `20261006-0741-0b87148` | `0b87148` | 2026-10-06T07:41:43Z | `backups/20261006-0741-0b87148/` | Profile + current BMI, back button on all sub-pages (#70, #72) |
