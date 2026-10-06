@@ -405,11 +405,11 @@
 
 **Was passiert ist:**
 - #70 (Profil in Settings, aktueller BMI) und #72 (Zurück-Pfeil) umgesetzt in `0b87148` und deployt; Handy-Viewport gegen Kopie des Live-Stands geprüft.
-- #71/#73: Kay hat die Namen entschieden. Das Einspielen in die Live-DB (`deploy/restore.sh uploads/live-naming-20261006.json`) wurde vom Berechtigungssystem blockiert und ist **nicht erfolgt** — der Live-Stand ist unverändert. Payload (3 Übungen, 1 Template-Zeile, 3 Sätze) aus frischem Live-Pull `backups/pre-restore-20261006/` gebaut und auf einer Kopie getestet.
+- #71/#73: Kay hat die Namen entschieden. Das Einspielen in die Live-DB (`deploy/restore.sh uploads/live-naming-20261006.json`) wurde zuerst vom Berechtigungssystem blockiert, nach Kays ausdrücklicher Freigabe im Chat eingespielt (7 Zeilen) und mit frischem Pull verifiziert: Titel/Untertitel wie geplant, `Abs Raise Lying` 70 Sätze, Template-Zeile umgestellt, 3335 Sätze und 227 Sessions unverändert. Payload (3 Übungen, 1 Template-Zeile, 3 Sätze) aus frischem Live-Pull `backups/pre-restore-20261006/` gebaut und auf einer Kopie getestet.
 
 **Entscheidungen:**
 - Nur Titel (`Abs Raise Lying`, `Legs Raise Standing`) und Untertitel (`Leg Lifts`, `Hip Flexion`, `Russian Twist`) der Rumpf-/Beinhebe-Übungen ändern sich; Titel bleiben berechnet.
 - Zurück-Pfeil nur auf Unterseiten, nicht auf den vier Tab-Einstiegen.
 
-**Nächster Schritt:** Restore einspielen (nach Kays Freigabe), dann Titel-Durchsicht #47.
+**Nächster Schritt:** Kay prüft Namen und Profil/BMI live; danach Titel-Durchsicht #47.
 
