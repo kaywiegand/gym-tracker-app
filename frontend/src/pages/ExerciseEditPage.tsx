@@ -255,7 +255,10 @@ function muscleLabel(muscle: string, movement: string): string {
 
 const MUSCLE_FREE_MOVEMENTS = ['Squat', 'Deadlift', 'Row']
 // Mirror of ExerciseNaming::TITLE_MUSCLE_BY_NAME (keyed by the source name).
-const TITLE_MUSCLE_BY_NAME: Record<string, string> = { 'front leg raises': 'Legs' }
+const TITLE_MUSCLE_BY_NAME: Record<string, string> = {
+  'front leg raises': 'Legs',
+  'flat bench lying leg raise': 'Legs',
+}
 
 function joinSingleLeg(words: string[]): string[] {
   const out: string[] = []

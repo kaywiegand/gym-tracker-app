@@ -68,6 +68,7 @@ final class ExerciseNaming
     // raise. Named one by one, like VARIANT_BY_NAME.
     private const TITLE_MUSCLE_BY_NAME = [
         'front leg raises' => 'Legs',
+        'flat bench lying leg raise' => 'Legs',
     ];
 
     public static function muscleLabel(?string $muscle): string
