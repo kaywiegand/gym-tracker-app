@@ -174,3 +174,13 @@ Ablauf funktioniert, Sätze und Session-Ende kommen in der DB an. Funde:
 | 71 | **Untertitel von `Abs Rotation Dumbbell Seated`** — Kay: warum steht dort nicht „Russian Twist Dumbbell"? Das wäre der umgangssprachliche Name. — Entscheidung Kay 2026-10-06: `Abs Rotation Dumbbell Seated` → Untertitel „Russian Twist“; Kabel-Variante bleibt „Core Twist Cable“. ✅ live eingespielt 2026-10-06 und per frischem Pull verifiziert (`uploads/live-naming-20261006.json`). | 2 |
 | 72 | **Workouts: aus einem geöffneten Workout gibt es kein Zurück** — geht man unter Workouts in ein Workout, fehlt der Weg zurück zur Liste. — ✅ umgesetzt 2026-10-05, im Handy-Viewport geprüft, live seit 2026-10-06 (`0b87148`): Zurück-Pfeil im `PageHeader`, einheitlich in Workout-Editor, Übungs-Editor, Workout-Gruppen und Report. Die vier Tab-Einstiege (Dashboard, Exercises, Workouts, Settings) brauchen keinen — die Tab-Leiste ist ihr Ausgang. | 1 |
 | 73 | **FB26 Wendsday: `Legs Raise Front` ist die falsche Übung** — Kay macht immer das liegende Leg Raise. Die Übung fehlt offenbar in der Library — warum? — Kay 2026-10-06: gemeint ist das liegende. Plan: `Abs Raise Lying` bekommt Untertitel „Leg Lifts“, FB26 Wendsday nutzt es statt `Legs Raise Front`, die 3 Sätze vom 02.09. wandern um; `Legs Raise Front` wird `Legs Raise Standing` mit Untertitel „Hip Flexion“. ✅ live eingespielt 2026-10-06 und per frischem Pull verifiziert (`uploads/live-naming-20261006.json`, gegen Kopie des Live-Stands geprüft: 3 Titel ändern sich, keine Kollision). | 1 |
+
+---
+
+## Kays Meldungen 2026-10-09
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 74 | **Zeitliche Gesamtansicht: langer „Schwanz" ohne Werte** — in der Gesamtansicht über die Zeit hängt rechts (bzw. am Rand) ein riesiger Bereich ohne Daten. Der leere Bereich soll abgeschnitten werden. | 2 |
+| 75 | **Extreme Ausreißer bei einzelnen Übungen** — oft nur in einem Training; vermutlich kg vs. Pfund an einer anderen Maschine. Ausreißer heraussuchen, Liste Kay zeigen, dann bereinigen (Daten in der Live-DB, nur nach Freigabe). | 2 |
+| 76 | **Doppelte Übung „Reverse Machine Flyes" zusammenlegen** — Kay 2026-10-09: taucht doppelt auf (gleiche Übung), soll zu einer zusammengelegt werden. | 2 |

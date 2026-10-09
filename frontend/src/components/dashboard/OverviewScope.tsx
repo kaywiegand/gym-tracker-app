@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import type { AcwrResponse, ConsistencyResponse, MuscleVolumeResponse, TopExercise, TrainingLoadResponse } from '@/types'
-import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, resolveRangeWeeks, type DashboardRange } from '@/lib/dashboardRanges'
 import { formatNumber } from '@/lib/format'
 import { FilterChips } from '@/components/FilterChips'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
@@ -36,18 +36,19 @@ export function OverviewScope() {
   const [consistency, setConsistency] = useState<ConsistencyResponse | null>(null)
   const [topExercises, setTopExercises] = useState<TopExercise[]>([])
   const [loading, setLoading] = useState(true)
+  const [weeks, setWeeks] = useState(0)
 
   useEffect(() => {
-    const weeks = RANGE_WEEKS[range]
     setLoading(true)
-    Promise.all([
+    resolveRangeWeeks(range).then((weeks) => Promise.all([
       api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}`),
       api.get<TrainingLoadResponse>(`/dashboard/training-load?weeks=${weeks}`),
       api.get<MuscleVolumeResponse>(`/dashboard/muscle-volume?weeks=${weeks}`),
       api.get<ConsistencyResponse>(`/dashboard/consistency?days=${weeks * 7}`),
       api.get<TopExercise[]>(`/dashboard/top-exercises?weeks=${weeks}&limit=8`),
-    ])
-      .then(([acwrData, trainingLoadData, muscleVolumeData, consistencyData, topExerciseData]) => {
+    ]).then((res) => [weeks, ...res] as const))
+      .then(([weeks, acwrData, trainingLoadData, muscleVolumeData, consistencyData, topExerciseData]) => {
+        setWeeks(weeks)
         setAcwr(acwrData)
         setTrainingLoad(trainingLoadData)
         setMuscleVolume(muscleVolumeData)
@@ -150,7 +151,7 @@ export function OverviewScope() {
       <Card className="p-3.5">
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
         <p className="mb-2 text-[10.5px] text-muted-foreground">{consistency.dates.length} training days</p>
-        <ConsistencyCalendar dates={consistency.dates} weeks={RANGE_WEEKS[range]} />
+        <ConsistencyCalendar dates={consistency.dates} weeks={weeks} />
       </Card>
 
       <TopExercisesList exercises={topExercises} range={range} />

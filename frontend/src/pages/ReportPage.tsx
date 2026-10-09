@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
-import { RANGE_WEEKS } from '@/lib/dashboardRanges'
+import { resolveRangeWeeks } from '@/lib/dashboardRanges'
 import { pickBiaKpi, type BiaKpiKey } from '@/lib/biaMetrics'
 import type { AcwrResponse, BiaMeasurementDetail, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
@@ -39,14 +39,13 @@ export function ReportPage() {
   const [data, setData] = useState<ReportData | null>(null)
 
   useEffect(() => {
-    const weeks = RANGE_WEEKS.All
-    Promise.all([
+    resolveRangeWeeks('All').then((weeks) => Promise.all([
       api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}`),
       api.get<TrainingLoadResponse>(`/dashboard/training-load?weeks=${weeks}`),
       api.get<MuscleVolumeResponse>(`/dashboard/muscle-volume?weeks=${weeks}`),
       api.get<ConsistencyResponse>(`/dashboard/consistency?days=${weeks * 7}`),
       api.get<{ measurement: BiaMeasurementDetail['measurement'] | null; values: BiaMeasurementDetail['values'] }>('/bia/latest'),
-    ]).then(([acwr, trainingLoad, muscleVolume, consistency, bia]) => {
+    ])).then(([acwr, trainingLoad, muscleVolume, consistency, bia]) => {
       setData({ acwr, trainingLoad, muscleVolume, consistency, bia: bia.measurement ? { measurement: bia.measurement, values: bia.values } : null })
     })
   }, [])

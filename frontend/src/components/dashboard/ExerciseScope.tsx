@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { detectPlateau } from '@/lib/plateau'
 import { formatNumber } from '@/lib/format'
-import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, resolveRangeWeeks, type DashboardRange } from '@/lib/dashboardRanges'
 import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
 import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
@@ -75,14 +75,13 @@ export function ExerciseScope() {
 
   useEffect(() => {
     if (!selected) return
-    const weeks = RANGE_WEEKS[range]
     setLoading(true)
-    Promise.all([
+    resolveRangeWeeks(range).then((weeks) => Promise.all([
       api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history?limit=20&weeks=${weeks}`),
       api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?limit=20&weeks=${weeks}`),
       api.get<Settings>('/settings'),
       api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}`),
-    ])
+    ]))
       .then(([historyData, summariesData, settingsData, acwrData]) => {
         setHistory(historyData)
         setSummaries(summariesData)

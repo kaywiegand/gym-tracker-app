@@ -90,7 +90,8 @@ function weeklySessionCounts(array $dates, int $weeks, string $nowIso): array
 function handleConsistency(): void
 {
     Auth::require();
-    $days = isset($_GET['days']) ? max(7, min(365, (int) $_GET['days'])) : 126;
+    // 1820 = 260 weeks, the longest range ("All") the dashboard asks for.
+    $days = isset($_GET['days']) ? max(7, min(1820, (int) $_GET['days'])) : 126;
     Http::respond(['dates' => (new SessionRepository())->recentDates($days)]);
 }
 
