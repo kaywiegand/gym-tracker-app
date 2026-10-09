@@ -39,3 +39,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261006-0741-0b87148` | `0b87148` | 2026-10-06T07:41:43Z | `backups/20261006-0741-0b87148/` | Profile + current BMI, back button on all sub-pages (#70, #72) |
 | `20261008-2008-2f616c8` | `2f616c8` | 2026-10-08T20:08:26Z | `backups/20261008-2008-2f616c8/` | Legs Raise Lying Titel; Push/Pull/Legs-Übungslisten live |
 | `20261009-1030-2c89417` | `2c89417` | 2026-10-09T10:30:40Z | `backups/20261009-1030-2c89417/` | Dashboard All ab erstem Training; Gainsfire-Import 09.10. |
+| `20261009-1116-bf161af` | `bf161af` | 2026-10-09T11:16:20Z | `backups/20261009-1116-bf161af/` | Dashboard/Exercise: Workout-Ansicht bleibt offen (#78) |
