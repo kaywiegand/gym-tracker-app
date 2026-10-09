@@ -52,8 +52,17 @@ function buildLadder(summaries: ExerciseSessionSummary[]): Rung[] {
 // directly beneath the dashboard's sticky title/tabs (BACKLOG #50) -- the
 // same technique ExercisesPage already uses for its own PageHeader, reusing
 // DashboardStickyBar's offset here instead.
-function ExercisePickerStep({ onSelect }: { onSelect: (exercise: ExerciseListItem) => void }) {
-  const state = useExerciseSelectorState([])
+//
+// The selector state lives in ExerciseScope, not here: this step unmounts as
+// soon as an exercise is chosen, which used to throw away the open workout
+// (#78). Kept in the parent, "change" lands back in the same workout's list.
+function ExercisePickerStep({
+  state,
+  onSelect,
+}: {
+  state: ReturnType<typeof useExerciseSelectorState>
+  onSelect: (exercise: ExerciseListItem) => void
+}) {
   return (
     <div className="flex flex-col gap-3">
       <DashboardStickyBar>
@@ -72,6 +81,7 @@ export function ExerciseScope() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  const pickerState = useExerciseSelectorState([])
 
   useEffect(() => {
     if (!selected) return
@@ -98,7 +108,7 @@ export function ExerciseScope() {
   // Choosing comes first and alone -- the range switch only means something
   // once an exercise is picked (BACKLOG #36).
   if (!selected) {
-    return <ExercisePickerStep onSelect={setSelected} />
+    return <ExercisePickerStep state={pickerState} onSelect={setSelected} />
   }
 
   const ladder = buildLadder(summaries)
