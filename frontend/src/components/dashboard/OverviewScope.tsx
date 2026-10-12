@@ -47,10 +47,12 @@ export function OverviewScope() {
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeResponse | null>(null)
   const [sessionVolumes, setSessionVolumes] = useState<SessionVolumesResponse['sessions']>([])
   const [topExercises, setTopExercises] = useState<TopExercise[]>([])
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setLoading(true)
+    // No loading flag: the previous range's data stays on screen until the
+    // new data arrives, so the page keeps its height and scroll position
+    // while the range is compared (BACKLOG #110).
+    let cancelled = false
     resolveRange(range)
       .then((r) =>
         Promise.all([
@@ -61,16 +63,19 @@ export function OverviewScope() {
         ]).then((res) => [r, ...res] as const),
       )
       .then(([r, acwrData, muscleVolumeData, sessionVolumeData, topExerciseData]) => {
+        if (cancelled) return
         setResolved(r)
         setAcwr(acwrData)
         setMuscleVolume(muscleVolumeData)
         setSessionVolumes(sessionVolumeData.sessions)
         setTopExercises(topExerciseData)
       })
-      .finally(() => setLoading(false))
+    return () => {
+      cancelled = true
+    }
   }, [range])
 
-  if (loading || !resolved || !acwr || !muscleVolume) {
+  if (!resolved || !acwr || !muscleVolume) {
     return (
       <div className="flex flex-col gap-3">
         <DashboardStickyBar>
@@ -81,15 +86,16 @@ export function OverviewScope() {
     )
   }
 
+  // The range the data on screen belongs to; `range` already moved on while
+  // the next response is on its way.
+  const shownRange = resolved.range
   const { weeks, current, previous } = resolved
   const currentDates = resolved.dates.filter((d) => inWindow(d, current))
-  const previousDates = previous ? resolved.dates.filter((d) => inWindow(d, previous)) : []
 
   // Volume per session: one point per finished session in the window,
-  // average as the headline, total as the sub-line (BACKLOG #82/#83).
+  // average as the headline (BACKLOG #82/#83).
   const sessionPoints = sessionVolumes.filter((s) => inWindow(s.date, current)).map((s) => s.volume_kg)
-  const totalVolume = sessionPoints.reduce((a, b) => a + b, 0)
-  const avgVolume = sessionPoints.length ? totalVolume / sessionPoints.length : 0
+  const avgVolume = sessionPoints.length ? sessionPoints.reduce((a, b) => a + b, 0) / sessionPoints.length : 0
   const volumeMinMax =
     sessionPoints.length >= 2
       ? { min: formatNumber(Math.min(...sessionPoints)), max: formatNumber(Math.max(...sessionPoints)) }
@@ -129,12 +135,12 @@ export function OverviewScope() {
         label="Volume/session"
         value={formatNumber(avgVolume)}
         unit="kg"
-        trend={`Total: ${formatNumber(totalVolume)} kg`}
+        valueTag="avg"
         minMax={volumeMinMax}
         chart={sessionPoints.length >= 2 ? sessionPoints : undefined}
         color={COMPARE_COLORS.current}
         infoTerm="Volume"
-        footer={
+        aboveChart={
           <div className="flex items-baseline justify-between">
             <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
               {showWeeklySessions ? 'Sessions/wk' : 'Sessions'}
@@ -151,16 +157,16 @@ export function OverviewScope() {
       <Card className="p-3.5">
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
         <p className="mb-2 text-[10.5px] text-muted-foreground">
-          {currentDates.length} training days{previous ? ` · previous ${previousDates.length}` : ''}
+          {currentDates.length} training {currentDates.length === 1 ? 'day' : 'days'} · {rangeTitle(shownRange).toLowerCase()}
         </p>
         <ConsistencyCalendar dates={resolved.dates} weeks={weeks} />
       </Card>
 
-      <TopExercisesList exercises={topExercises} range={range} />
+      <TopExercisesList exercises={topExercises} range={shownRange} />
 
       <Card className="p-3.5">
         <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {previous ? compareTitle(range) : rangeTitle(range)}
+          {previous ? compareTitle(shownRange) : rangeTitle(shownRange)}
         </div>
         <div className="mb-1 flex gap-1.5">
           {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
@@ -174,7 +180,7 @@ export function OverviewScope() {
 
       {/* Both cards follow the range switch: avg sets per week in the
           window, rated against the weekly MEV/MAV/MRV (BACKLOG #95). */}
-      <SectionDivider>{weeks === 1 ? 'Last 7 days' : `Avg per week · ${rangeTitle(range)}`}</SectionDivider>
+      <SectionDivider>{weeks === 1 ? 'Last 7 days' : `Avg per week · ${rangeTitle(shownRange)}`}</SectionDivider>
 
       <Card className="p-3.5">
         <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">

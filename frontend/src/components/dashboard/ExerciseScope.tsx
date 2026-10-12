@@ -82,6 +82,10 @@ export function ExerciseScope() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  // Exercise the current `history` belongs to. A range change refetches but
+  // keeps the old data on screen (BACKLOG #110); only a different exercise
+  // shows the loading placeholder.
+  const [loadedId, setLoadedId] = useState<string | null>(null)
   const pickerState = useExerciseSelectorState([])
 
   useEffect(() => {
@@ -108,6 +112,7 @@ export function ExerciseScope() {
         setSummaries(summariesData.filter((s) => inRange(s.started_at)))
         setSettings(settingsData)
         setAcwr(acwrData)
+        setLoadedId(selected.id)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -156,7 +161,7 @@ export function ExerciseScope() {
         {rangeSwitch}
       </DashboardStickyBar>
 
-      {loading ? (
+      {loading && loadedId !== selected.id ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : history.length === 0 ? (
         <p className="text-sm text-muted-foreground">No sessions in this period.</p>

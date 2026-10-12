@@ -1,4 +1,4 @@
-import { ResponsiveLine, type PointTooltipProps } from '@nivo/line'
+import { ResponsiveLine } from '@nivo/line'
 
 // Weight, skeletal muscle and fat mass over time. All three are kilograms,
 // so unlike the exercise chart they share one honest axis instead of being
@@ -28,10 +28,6 @@ const SERIES: Record<BiaTrendKey, { id: string; color: string; unit: string; dec
   // unit rather than being squeezed onto a kg axis.
   fitScore: { id: 'FitScore', color: 'var(--brand-accent)', unit: '', decimals: 0 },
 }
-
-const UNIT_BY_SERIES_ID: Record<string, { unit: string; decimals: number }> = Object.fromEntries(
-  Object.values(SERIES).map((s) => [s.id, { unit: s.unit, decimals: s.decimals }])
-)
 
 interface BiaTrendChartProps {
   points: BiaTrendPoint[]
@@ -98,15 +94,7 @@ export function BiaTrendChart({ points, keys, height = 210 }: BiaTrendChartProps
             itemTextColor: 'var(--muted-foreground)',
           },
         ]}
-        tooltip={({ point }: PointTooltipProps<(typeof data)[number]>) => (
-          <div className="rounded-md border border-border bg-popover px-2 py-1 text-[11px] shadow-md">
-            <div className="font-semibold">{(point.data as { date: string }).date}</div>
-            <div className="text-muted-foreground">
-              {point.seriesId}: {Number(point.data.y).toFixed(UNIT_BY_SERIES_ID[point.seriesId]?.decimals ?? 1)}
-              {UNIT_BY_SERIES_ID[point.seriesId]?.unit ? ` ${UNIT_BY_SERIES_ID[point.seriesId].unit}` : ''}
-            </div>
-          </div>
-        )}
+        isInteractive={false}
       />
     </div>
   )

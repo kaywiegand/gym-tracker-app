@@ -48,6 +48,10 @@ export function WorkoutScope() {
   const [selected, setSelected] = useState<WorkoutListItem | null>(null)
   const [split, setSplit] = useState<WorkoutMuscleSplitResponse | null>(null)
   const [loading, setLoading] = useState(false)
+  // Workout the current `split` belongs to. A range change refetches but keeps
+  // the old data on screen (BACKLOG #110); only a different workout shows the
+  // loading placeholder.
+  const [loadedId, setLoadedId] = useState<string | null>(null)
   const [groups, setGroups] = useState<WorkoutGroup[]>([])
   const { collapsed, toggle } = useCollapsedWorkoutGroups()
 
@@ -75,6 +79,7 @@ export function WorkoutScope() {
         if (cancelled) return
         setResolved(r)
         setSplit(data)
+        setLoadedId(selected.id)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -160,7 +165,7 @@ export function WorkoutScope() {
         {rangeSwitch}
       </DashboardStickyBar>
 
-      {loading ? (
+      {loading && loadedId !== selected.id ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : sessionCount === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -189,6 +194,7 @@ export function WorkoutScope() {
                 colors={(bar) => `var(--muscle-${bar.id})`}
                 borderRadius={2}
                 enableLabel={false}
+                isInteractive={false}
                 axisLeft={{ tickSize: 0 }}
                 theme={{
                   axis: { ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } } },

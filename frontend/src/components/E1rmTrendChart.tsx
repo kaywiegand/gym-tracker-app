@@ -38,12 +38,9 @@ export function E1rmTrendChart({ history }: E1rmTrendChartProps) {
             ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } },
           },
           grid: { line: { stroke: 'var(--border)' } },
-          tooltip: {
-            container: { background: 'var(--popover)', color: 'var(--popover-foreground)', fontSize: 12 },
-          },
         }}
         enableArea={false}
-        useMesh
+        isInteractive={false}
       />
     </div>
   )

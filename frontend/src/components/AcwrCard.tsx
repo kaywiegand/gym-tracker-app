@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { InfoButton } from '@/components/InfoButton'
 import type { AcwrDay } from '@/types'
-import { ACWR_HIGH, ACWR_LOW, acwrStatus } from '@/lib/acwr'
+import { ACWR_CRITICAL, ACWR_HIGH, ACWR_LOW, acwrStatus } from '@/lib/acwr'
 
 interface AcwrCardProps {
   // One value per day over the selected range (API: daily_series).
@@ -19,9 +19,11 @@ function shortDate(iso: string): string {
 }
 
 // ACWR (7d vs. 28d, fixed definition) as a daily line over the selected
-// range, with the 0.8-1.3 target band shaded green. Line and number take
-// the status color of the CURRENT value (BACKLOG #83). Hand-rolled SVG like
-// the KPI line charts; the reference labels are HTML so they do not stretch.
+// range, with the 0.8-1.3 target band shaded green. The big number takes the
+// status color of the CURRENT value (BACKLOG #83); the line is coloured
+// piece by piece by the zone it runs through (BACKLOG #102). Hand-rolled SVG
+// like the KPI line charts; the reference labels and the end marker are HTML
+// so they do not stretch.
 export function AcwrCard({ series, ratio, className }: AcwrCardProps) {
   const status = acwrStatus(ratio)
   const values = series.map((d) => d.ratio).filter((v): v is number => v !== null)
@@ -33,18 +35,31 @@ export function AcwrCard({ series, ratio, className }: AcwrCardProps) {
   const y = (v: number) => h - ((v - lo) / (hi - lo)) * h
   const pct = (v: number) => `${((hi - v) / (hi - lo)) * 100}%`
 
-  // Split at null days so before-the-first-session is a gap, not a line to 0.
-  const segments: string[] = []
-  let current: string[] = []
-  series.forEach((d, i) => {
-    if (d.ratio === null) {
-      if (current.length) segments.push(current.join(' '))
-      current = []
-    } else {
-      current.push(`${x(i).toFixed(2)},${y(d.ratio).toFixed(2)}`)
+  // One run per stretch of the same zone. A day-to-day step that crosses a
+  // zone border is cut at the border so the colour changes where the value
+  // does; null days (before the first session) are a gap, not a line to 0.
+  const runs: { color: string; pts: string[] }[] = []
+  const push = (color: string, from: string, to: string) => {
+    const last = runs[runs.length - 1]
+    if (last && last.color === color && last.pts[last.pts.length - 1] === from) last.pts.push(to)
+    else runs.push({ color, pts: [from, to] })
+  }
+  for (let i = 1; i < series.length; i++) {
+    const a = series[i - 1].ratio
+    const b = series[i].ratio
+    if (a === null || b === null) continue
+    const cuts = [ACWR_LOW, ACWR_HIGH, ACWR_CRITICAL]
+      .map((t) => (t - a) / (b - a))
+      .filter((t) => t > 0 && t < 1)
+      .sort((p, q) => p - q)
+    const ts = [0, ...cuts, 1]
+    for (let k = 1; k < ts.length; k++) {
+      const mid = a + (b - a) * ((ts[k - 1] + ts[k]) / 2)
+      const at = (t: number) => `${(x(i - 1) + (x(i) - x(i - 1)) * t).toFixed(2)},${y(a + (b - a) * t).toFixed(2)}`
+      push(acwrStatus(mid).color, at(ts[k - 1]), at(ts[k]))
     }
-  })
-  if (current.length) segments.push(current.join(' '))
+  }
+  const lastRatio = series.length ? series[series.length - 1].ratio : null
 
   const ref = { vectorEffect: 'non-scaling-stroke' as const, strokeDasharray: '3 3', stroke: 'var(--status-good)', strokeWidth: 1, opacity: 0.7 }
 
@@ -55,25 +70,26 @@ export function AcwrCard({ series, ratio, className }: AcwrCardProps) {
         <InfoButton term="ACWR" />
       </div>
       <div className="mt-0.5 flex items-baseline gap-2">
+        <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">Now</span>
         <span className="text-[21px] font-bold" style={{ color: status.color }}>
           {ratio.toFixed(2)}
         </span>
         <span className={`text-[12px] font-semibold ${status.className}`}>{status.label}</span>
       </div>
 
-      {segments.length > 0 && (
+      {runs.length > 0 && (
         <>
           <div className="relative mt-2 h-[96px]">
             <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" role="img" aria-label="ACWR over the selected range">
               <rect x={0} width={w} y={y(ACWR_HIGH)} height={y(ACWR_LOW) - y(ACWR_HIGH)} fill="var(--status-good)" opacity={0.12} />
               <line x1={0} x2={w} y1={y(ACWR_HIGH)} y2={y(ACWR_HIGH)} style={ref} />
               <line x1={0} x2={w} y1={y(ACWR_LOW)} y2={y(ACWR_LOW)} style={ref} />
-              {segments.map((pts, i) => (
+              {runs.map((run, i) => (
                 <polyline
                   key={i}
-                  points={pts}
+                  points={run.pts.join(' ')}
                   fill="none"
-                  stroke={status.color}
+                  stroke={run.color}
                   strokeWidth={1.75}
                   strokeLinejoin="round"
                   strokeLinecap="round"
@@ -81,6 +97,12 @@ export function AcwrCard({ series, ratio, className }: AcwrCardProps) {
                 />
               ))}
             </svg>
+            {lastRatio !== null && (
+              <span
+                className="absolute right-0 z-10 size-2 -translate-y-1/2 translate-x-1/2 rounded-full"
+                style={{ top: pct(lastRatio), background: acwrStatus(lastRatio).color }}
+              />
+            )}
             {[ACWR_HIGH, ACWR_LOW].map((v) => (
               <span
                 key={v}

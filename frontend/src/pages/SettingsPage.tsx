@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, ApiError } from '@/lib/api'
-import { putRow, type LocalBodyMeasurement, type LocalBodyweight } from '@/lib/localDb'
+import { getAllRows, putRow, type LocalBodyMeasurement, type LocalBodyweight } from '@/lib/localDb'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -470,6 +470,7 @@ function BodyweightCard() {
   const [last, setLast] = useState<Bodyweight | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const savingRef = useRef(false)
 
   useEffect(() => {
     api
@@ -485,23 +486,37 @@ function BodyweightCard() {
       })
   }, [])
 
+  // One entry per day: a second save on the same day overwrites that day's
+  // row (same id) instead of adding one. A fresh UUID per tap turned every
+  // double tap into a duplicate, which the per-id sync upsert cannot catch.
   async function handleSave() {
+    if (savingRef.current) return
+    savingRef.current = true
     setSaving(true)
-    const now = nowIso()
-    const row: LocalBodyweight = {
-      id: crypto.randomUUID(),
-      measured_at: now.slice(0, 10),
-      weight_kg: weightKg,
-      note: null,
-      created_at: now,
-      updated_at: now,
-      deleted_at: null,
-      synced: false,
+    try {
+      const now = nowIso()
+      const today = now.slice(0, 10)
+      const local = await getAllRows<LocalBodyweight>('bodyweight')
+      const existing =
+        local.find((r) => r.measured_at === today && r.deleted_at === null) ??
+        (last?.measured_at === today ? last : undefined)
+      const row: LocalBodyweight = {
+        id: existing?.id ?? crypto.randomUUID(),
+        measured_at: today,
+        weight_kg: weightKg,
+        note: existing?.note ?? null,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+        deleted_at: null,
+        synced: false,
+      }
+      await putRow('bodyweight', row)
+      pushPending()
+      setLast(row)
+    } finally {
+      savingRef.current = false
+      setSaving(false)
     }
-    await putRow('bodyweight', row)
-    pushPending()
-    setLast(row)
-    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }

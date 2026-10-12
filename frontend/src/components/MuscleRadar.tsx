@@ -34,6 +34,8 @@ export function MuscleRadar({ series }: MuscleRadarProps) {
             <span key={s.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="h-0.5 w-3.5 rounded-full" style={{ background: s.color }} />
               {s.label}
+              {/* An all-zero series collapses to the centre and looks missing. */}
+              {Object.values(s.values).every((v) => !v) && ' · no training'}
             </span>
           ))}
         </div>
@@ -49,6 +51,7 @@ export function MuscleRadar({ series }: MuscleRadarProps) {
           borderWidth={2}
           dotSize={6}
           gridLabelOffset={20}
+          isInteractive={false}
           theme={{
             axis: { ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } } },
             grid: { line: { stroke: 'var(--border)' } },
