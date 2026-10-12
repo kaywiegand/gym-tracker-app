@@ -413,3 +413,20 @@
 
 **Nächster Schritt:** Kay prüft Namen und Profil/BMI live; danach Titel-Durchsicht #47.
 
+
+---
+
+## Session 2026-10-12 (Abend) — Körpergewicht doppelt, Dashboard-Durchgang, Deploy
+
+**Was passiert ist:**
+- #96: doppelte Gewichtseinträge im Live-Backup bestätigt, Ursache und Fix in `SettingsPage.tsx` (`BodyweightCard`). Die zwei Duplikate nach Kays Freigabe per `deploy/restore.sh uploads/live-bodyweight-20261012.json` soft-gelöscht, mit frischem Pull verifiziert.
+- #97–#111 (Kays Dashboard-Durchgang) umgesetzt in `25009cc`, Details je Punkt in `BACKLOG.md`. Deployt nach Kays Freigabe (siehe `DEPLOYMENTS.md`).
+- Nur der Gewichts-Fix wurde im Browser geprüft. Die Dashboard-Änderungen sind ungesehen live: lokale DB ohne Sessions, Start gegen eine Kopie des Live-Backups vom Berechtigungssystem abgelehnt.
+
+**Entscheidungen:**
+- Körpergewicht: ein Eintrag pro Tag, erneutes Speichern überschreibt (gleiche UUID) — deckt Doppeltipp und Korrektur ab, ohne Schema-Änderung.
+- ACWR bleibt „ACWR · 7d vs. 28d": ein Verhältnis, kein Wert pro Session (#101).
+- Consistency-Kalender: Minimum 8 Wochen statt 4 (#105 ersetzt #88); der Zähler darüber bezieht sich weiter auf den gewählten Zeitraum.
+- #109 ist kein Bug (Vorzeitraum ohne Training); die Legende sagt das jetzt.
+
+**Nächster Schritt:** Kay nimmt #96–#111 auf dem Handy ab.

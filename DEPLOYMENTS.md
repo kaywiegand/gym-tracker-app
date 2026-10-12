@@ -43,3 +43,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261012-0958-acb9400-dirty` | `acb9400` | 2026-10-12T09:58:09Z | `backups/20261012-0958-acb9400-dirty/` | global range 7D-All, vergleich, ACWR chart, workout development |
 | `20261012-1012-69b2aae-dirty` | `69b2aae` | 2026-10-12T10:12:31Z | `backups/20261012-1012-69b2aae-dirty/` | kachel merge, kalender min 4 wochen, sessions mit arbeitssaetzen |
 | `20261012-1351-e704cb2` | `e704cb2` | 2026-10-12T13:51:24Z | `backups/20261012-1351-e704cb2/` | cache buster (version check + banner), no-cache headers, sw api denylist (csv download) |
+| `20261012-1825-43fc1ba` | `43fc1ba` | 2026-10-12T18:25:44Z | `backups/20261012-1825-43fc1ba/` | body weight one entry per day, dashboard pass (#96-#111) |
