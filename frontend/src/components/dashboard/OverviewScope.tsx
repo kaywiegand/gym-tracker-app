@@ -140,13 +140,11 @@ export function OverviewScope() {
         chart={sessionPoints.length >= 2 ? sessionPoints : undefined}
         color={COMPARE_COLORS.current}
         infoTerm="Volume"
-        aboveChart={
-          <div className="flex items-baseline justify-between">
-            <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
-              {showWeeklySessions ? 'Sessions/wk' : 'Sessions'}
-            </span>
-            <span className="text-[15px] font-bold tabular-nums">
-              {showWeeklySessions ? (currentDates.length / weeks).toFixed(1) : currentDates.length}
+        aside={
+          <div className="text-[15px] font-bold tabular-nums">
+            {showWeeklySessions ? (currentDates.length / weeks).toFixed(1) : currentDates.length}
+            <span className="ml-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
+              {showWeeklySessions ? 'sessions/wk' : currentDates.length === 1 ? 'session' : 'sessions'}
             </span>
           </div>
         }

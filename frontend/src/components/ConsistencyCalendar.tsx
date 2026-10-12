@@ -19,7 +19,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 // Activity grid: one column per calendar week (Monday to Sunday), running
-// left to right; the last column is the current week and stops at today.
+// left to right; the last column is the current week, drawn in full.
 // Every row is one fixed weekday (Monday on top), labelled on the left.
 //
 // The grid always spans the full tile width (BACKLOG #107): cells are sized
@@ -44,7 +44,7 @@ export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) 
   const headH = 14
   const colX = (col: number) => labelW + col * step
 
-  const cells: { iso: string; day: number; col: number; active: boolean; dom: number }[] = []
+  const cells: { iso: string; day: number; col: number; active: boolean; dom: number; alt: boolean }[] = []
   const monthTicks: { x: number; label: string }[] = []
   let lastMonthKey = ''
   let lastTickX = -Infinity
@@ -53,8 +53,9 @@ export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) 
     for (let day = 0; day < 7; day++) {
       const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + col * 7 + day)
       const iso = localIso(d)
-      if (iso > today) continue // days of the current week still to come
-      cells.push({ iso, day, col, active: active.has(iso), dom: d.getDate() })
+      // Days of the current week still to come are drawn too, so every week
+      // is a full column (BACKLOG #115).
+      cells.push({ iso, day, col, active: iso <= today && active.has(iso), dom: d.getDate(), alt: (d.getFullYear() * 12 + d.getMonth()) % 2 === 1 })
     }
     const first = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + col * 7)
     // Keyed by year AND month: a 12-month range spans ~13 month boundaries,
@@ -104,6 +105,8 @@ export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) 
               height={cell}
               rx={cell >= 8 ? 3 : 1}
               fill={c.active ? COMPARE_COLORS.current : 'var(--secondary)'}
+              // Every other month a touch lighter, to tell the months apart.
+              fillOpacity={!c.active && c.alt ? 0.55 : 1}
             />
             {big && (
               <text

@@ -22,7 +22,7 @@ function shortDate(iso: string): string {
 // range, with the 0.8-1.3 target band shaded green. The big number takes the
 // status color of the CURRENT value (BACKLOG #83); the line is coloured
 // piece by piece by the zone it runs through (BACKLOG #102). Hand-rolled SVG
-// like the KPI line charts; the reference labels and the end marker are HTML
+// like the KPI line charts; the reference labels are HTML
 // so they do not stretch.
 export function AcwrCard({ series: fullSeries, ratio, className }: AcwrCardProps) {
   // The API returns one entry per day of the range, null before the first
@@ -65,14 +65,13 @@ export function AcwrCard({ series: fullSeries, ratio, className }: AcwrCardProps
       push(acwrStatus(mid).color, at(ts[k - 1]), at(ts[k]))
     }
   }
-  const lastRatio = series.length ? series[series.length - 1].ratio : null
 
   const ref = { vectorEffect: 'non-scaling-stroke' as const, strokeDasharray: '3 3', stroke: 'var(--status-good)', strokeWidth: 1, opacity: 0.7 }
 
   return (
     <Card className={`p-3.5 ${className ?? ''}`}>
       <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-        ACWR · 7d vs. 28d
+        ACWR/session
         <InfoButton term="ACWR" />
       </div>
       <div className="mt-0.5 flex items-baseline gap-2">
@@ -103,12 +102,6 @@ export function AcwrCard({ series: fullSeries, ratio, className }: AcwrCardProps
                 />
               ))}
             </svg>
-            {lastRatio !== null && (
-              <span
-                className="absolute right-0 z-10 size-2 -translate-y-1/2 translate-x-1/2 rounded-full"
-                style={{ top: pct(lastRatio), background: acwrStatus(lastRatio).color }}
-              />
-            )}
             {[ACWR_HIGH, ACWR_LOW].map((v) => (
               <span
                 key={v}

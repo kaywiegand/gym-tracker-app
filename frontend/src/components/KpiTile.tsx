@@ -8,11 +8,8 @@ interface KpiTileProps {
   unit?: string
   trend?: string
   trendClassName?: string
-  // One-row min/max block, replacing `trend` on the Overview tile (#53/#54,
-  // #99) -- a plain "min 5 245 · max 25 798 kg" subtitle was too subtle and
-  // the thousands comma read as a decimal point.
-  // Values arrive pre-formatted (see lib/format); `unit` (already a prop
-  // above) is reused here and shown once, on the max value only.
+  // Min/max of the `chart` series, written at its dashed reference lines
+  // (#113). Values arrive pre-formatted (see lib/format).
   minMax?: { min: string; max: string }
   // Optional: tiles whose number says it all (Workout view, #86) omit it.
   sparkline?: number[]
@@ -21,9 +18,9 @@ interface KpiTileProps {
   chart?: number[]
   color: string
   infoTerm?: string
-  // Compact secondary row above the chart (Overview: Sessions/wk inside
-  // the Volume/session tile, #89/#100).
-  aboveChart?: ReactNode
+  // Secondary figure at the right end of the value row (Overview:
+  // Sessions/wk inside the Volume/session tile, #89/#113).
+  aside?: ReactNode
   // Small tag after the big number, e.g. "avg" when it is an average.
   valueTag?: string
 }
@@ -53,7 +50,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
 // Trend line with the series' min and max as thin dashed reference lines.
 // Single color, no status -- the line is data (CLAUDE.md §7). Fixed aspect
 // ratio; non-scaling strokes keep the lines thin at any tile width.
-function MiniLineChart({ values, color }: { values: number[]; color: string }) {
+function MiniLineChart({ values, color, labels }: { values: number[]; color: string; labels?: { min: string; max: string } }) {
   const w = 100
   const h = 36
   const pad = 3
@@ -64,57 +61,63 @@ function MiniLineChart({ values, color }: { values: number[]; color: string }) {
   const points = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
   const refStyle = { stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '3 3', opacity: 0.6, vectorEffect: 'non-scaling-stroke' as const }
 
+  // Labels are HTML beside the SVG so the text keeps its size and does not
+  // cover the end of the line (#113).
+  const labelClass = 'absolute right-0 -translate-y-1/2 text-[9.5px] tabular-nums text-muted-foreground'
+  const labelled = labels !== undefined && max !== min
+
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 block w-full" role="img" aria-label="Trend with min and max">
-      {max !== min && (
+    <div className={`relative mt-2 ${labelled ? 'pr-[4.25rem]' : ''}`}>
+      <svg viewBox={`0 0 ${w} ${h}`} className="block w-full" role="img" aria-label="Trend with min and max">
+        {max !== min && (
+          <>
+            <line x1={0} x2={w} y1={y(max)} y2={y(max)} style={refStyle} />
+            <line x1={0} x2={w} y1={y(min)} y2={y(min)} style={refStyle} />
+          </>
+        )}
+        {values.length > 1 && (
+          <polyline
+            points={points}
+            fill="none"
+            stroke={color}
+            strokeWidth={1.75}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+      </svg>
+      {labelled && (
         <>
-          <line x1={0} x2={w} y1={y(max)} y2={y(max)} style={refStyle} />
-          <line x1={0} x2={w} y1={y(min)} y2={y(min)} style={refStyle} />
+          <span className={labelClass} style={{ top: `${(y(max) / h) * 100}%` }}>
+            max {labels.max}
+          </span>
+          <span className={labelClass} style={{ top: `${(y(min) / h) * 100}%` }}>
+            min {labels.min}
+          </span>
         </>
       )}
-      {values.length > 1 && (
-        <polyline
-          points={points}
-          fill="none"
-          stroke={color}
-          strokeWidth={1.75}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      )}
-    </svg>
+    </div>
   )
 }
 
-export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm, aboveChart, valueTag }: KpiTileProps) {
+export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm, aside, valueTag }: KpiTileProps) {
   return (
     <Card className="p-3">
       <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
         {label}
         {infoTerm && <InfoButton term={infoTerm} />}
       </div>
-      <div className="mt-0.5 text-[21px] font-bold">
-        {value}
-        {unit && <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">{unit}</span>}
-        {valueTag && <span className="ml-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">{valueTag}</span>}
+      <div className="mt-0.5 flex items-baseline justify-between gap-3">
+        <div className="text-[21px] font-bold">
+          {value}
+          {unit && <span className="ml-0.5 text-[11px] font-normal text-muted-foreground">{unit}</span>}
+          {valueTag && <span className="ml-1.5 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">{valueTag}</span>}
+        </div>
+        {aside}
       </div>
       {trend && <div className={`text-[11px] font-semibold ${trendClassName ?? 'text-muted-foreground'}`}>{trend}</div>}
-      {minMax && (
-        <div className="mt-1 flex items-baseline gap-4 tabular-nums">
-          <span className="text-[13px] font-semibold">
-            <span className="mr-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">min</span>
-            {minMax.min}
-          </span>
-          <span className="text-[13px] font-semibold">
-            <span className="mr-1 text-[9px] font-bold uppercase tracking-wide text-muted-foreground">max</span>
-            {minMax.max}
-            {unit && <span className="ml-0.5 text-[9px] font-normal text-muted-foreground">{unit}</span>}
-          </span>
-        </div>
-      )}
-      {aboveChart && <div className="mt-3 border-t border-border pt-2">{aboveChart}</div>}
-      {chart && chart.length > 0 && <MiniLineChart values={chart} color={color} />}
+      {chart && chart.length > 0 && <MiniLineChart values={chart} color={color} labels={minMax} />}
       {!chart && sparkline && <Sparkline values={sparkline} color={color} />}
     </Card>
   )
