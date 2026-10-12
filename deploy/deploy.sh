@@ -60,7 +60,9 @@ command -v npm >/dev/null || { echo "npm missing." >&2; exit 1; }
 # ---- 1  build id -----------------------------------------------------
 COMMIT=$(git rev-parse --short HEAD)
 DIRTY=""
-if [ -n "$(git status --porcelain)" ]; then
+# DEPLOYMENTS.md is appended by this script itself (step 5) and would make
+# every deploy after the first one look dirty.
+if [ -n "$(git status --porcelain -- . ':(exclude)DEPLOYMENTS.md')" ]; then
     DIRTY="-dirty"
     echo "WARNING: working tree has uncommitted changes -- build id gets a '-dirty' suffix."
 fi

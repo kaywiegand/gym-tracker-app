@@ -1,0 +1,11 @@
+# Docroot headers only -- no rewrite rules here (api/.htaccess owns routing).
+# The files that decide which build the app runs must always be revalidated,
+# otherwise a deployed update stays invisible on the phone (BACKLOG #91).
+# Hashed files in /assets/ are immutable by name and stay cacheable.
+<IfModule mod_headers.c>
+  <FilesMatch "^(build\.json|index\.html|sw\.js|registerSW\.js|manifest\.webmanifest|workbox-.*\.js)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>

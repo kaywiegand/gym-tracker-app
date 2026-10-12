@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { api, UNAUTHORIZED_EVENT } from '@/lib/api'
 import { initSyncListeners, pushPending } from '@/lib/syncService'
+import { initVersionCheck } from '@/lib/versionCheck'
+import { UpdateBanner } from '@/components/UpdateBanner'
 import type { Settings } from '@/types'
 import { RequireAuth } from '@/components/RequireAuth'
 import { AppShell } from '@/components/AppShell'
@@ -31,6 +33,8 @@ export default function App() {
   useEffect(() => {
     initSyncListeners()
   }, [])
+
+  useEffect(() => initVersionCheck(), [])
 
   useEffect(() => {
     // The PHP session can expire while the app stays open. Without this the
@@ -62,6 +66,8 @@ export default function App() {
   }, [status, setTheme])
 
   return (
+    <>
+    <UpdateBanner />
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
@@ -81,5 +87,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
