@@ -170,7 +170,8 @@ export function BodyScope() {
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
           Muscle vs fat vs lean mass
         </div>
-        <BiaTrendChart points={trend} keys={['muscle', 'fat', 'leanMass']} height={200} />
+        {/* Nivo lists the legend in reverse key order -- lean mass first here puts it last there. */}
+        <BiaTrendChart points={trend} keys={['leanMass', 'muscle', 'fat']} height={200} />
       </Card>
 
       {/* Everything above reacts to the range switch. Everything below
