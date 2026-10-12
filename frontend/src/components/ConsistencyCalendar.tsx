@@ -13,25 +13,22 @@ const MIN_WEEKS = 4
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-// Activity grid: one column per week, running left to right, ending today.
-//
-// Columns are rolling 7-day blocks (the dashboard's whole-week windows), not
-// Monday-aligned calendar weeks: a window then consists of complete columns
-// and the last cell is always today. Consequently every row is one fixed weekday -- the rows are
-// labelled with the weekday they stand for, starting at the first column's
-// weekday.
+// Activity grid: one column per calendar week (Monday to Sunday), running
+// left to right; the last column is the current week and stops at today.
+// Every row is one fixed weekday, labelled on the left.
 //
 // Cells shrink with the number of columns so a year still fits without
-// scrolling; below ~3px they stop being
-// readable, so that is the floor. With one or two columns (7D/14D) cells are
-// large and carry their day of month.
+// scrolling; below ~3px they stop being readable, so that is the floor. With
+// few columns (up to 4) cells are large and carry their day of month.
 export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) {
   const active = new Set(dates)
   const columns = Math.max(weeks, MIN_WEEKS)
   const today = localIso(new Date())
-  const start = addDays(today, -(columns * 7 - 1))
+  // Columns are calendar weeks, Monday to Sunday; the last one is the
+  // current week (BACKLOG #93).
+  const todayWeekday = (parseIso(today).getDay() + 6) % 7 // 0 = Mon
+  const start = addDays(today, -todayWeekday - (columns - 1) * 7)
   const startDate = parseIso(start)
-  const firstWeekday = (startDate.getDay() + 6) % 7 // 0 = Mon
 
   const big = columns <= 4
   const cell = big ? 24 : columns <= 14 ? 13 : columns <= 30 ? 8 : columns <= 60 ? 5 : 3
@@ -50,6 +47,7 @@ export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) 
     for (let day = 0; day < 7; day++) {
       const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + col * 7 + day)
       const iso = localIso(d)
+      if (iso > today) continue // days of the current week still to come
       cells.push({ iso, day, col, active: active.has(iso), dom: d.getDate() })
     }
     const first = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + col * 7)
@@ -79,7 +77,7 @@ export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) 
         {labelW > 0 &&
           [0, 2, 4, 6].map((row) => (
             <text key={row} x={0} y={headH + row * step + cell - (big ? 8 : 2)} className="fill-muted-foreground" fontSize={9}>
-              {WEEKDAYS[(firstWeekday + row) % 7]}
+              {WEEKDAYS[row]}
             </text>
           ))}
 
