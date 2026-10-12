@@ -11,6 +11,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Navigations to /api (CSV template, backup and training-log export are
+      // plain <a href> downloads) must reach the server. By default the
+      // service worker answers every navigation with the app shell, so those
+      // downloads returned index.html instead of the file (BACKLOG #92).
+      workbox: {
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       // App-shell precaching only for Stage 1 -- the offline data queue
       // (IndexedDB writes before network) is Stage 2, see CLAUDE.md §10.
       manifest: {
