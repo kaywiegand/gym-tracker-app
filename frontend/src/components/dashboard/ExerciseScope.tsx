@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useScrollAnchor } from '@/lib/useScrollAnchor'
 import { api } from '@/lib/api'
 import { detectPlateau } from '@/lib/plateau'
 import { formatNumber } from '@/lib/format'
@@ -75,6 +76,7 @@ function ExercisePickerStep({
 }
 
 export function ExerciseScope() {
+  const anchorRef = useScrollAnchor<HTMLDivElement>()
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [selected, setSelected] = useState<ExerciseListItem | null>(null)
   const [history, setHistory] = useState<ExerciseHistoryEntry[]>([])
@@ -147,7 +149,7 @@ export function ExerciseScope() {
   )
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={anchorRef} className="flex flex-col gap-3 [overflow-anchor:none]">
       <DashboardStickyBar>
         <button
           type="button"

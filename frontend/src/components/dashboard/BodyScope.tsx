@@ -16,7 +16,6 @@ import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { SectionDivider } from '@/components/SectionDivider'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { FitScoreGauge } from '@/components/FitScoreGauge'
-import { KpiTile } from '@/components/KpiTile'
 import { BiaRangeBar } from '@/components/BiaRangeBar'
 import { BiaBandBar, type ScaleBand } from '@/components/BiaBandBar'
 import { BiaSegmentBody } from '@/components/BiaSegmentBody'
@@ -31,33 +30,6 @@ const BMI_BANDS: ScaleBand[] = [
   { to: 25, label: 'Normal', tone: 'good' },
   { to: 30, label: 'Over', tone: 'warn' },
   { to: 40, label: 'Obese', tone: 'crit' },
-]
-
-// Secondary figures as tiles with their own trend line.
-//
-// These carried a different muscle-group colour each, which was wrong twice
-// over: those hues mean a body region everywhere else in the app, and a green
-// line next to a worsening number reads as approval. Per CLAUDE.md §7 colour
-// is either data or status, never decoration -- so every sparkline now uses
-// one neutral hue, and the only coloured thing is the change, tinted by
-// whether it moved in the good direction.
-//
-// `better` says which way is good. 'none' = no meaningful direction (the
-// device's own control target), so the delta stays neutral rather than
-// pretending a smaller number is an achievement.
-type Direction = 'up' | 'down' | 'none'
-
-const DETAIL_TILES: { key: BiaKpiKey; label: string; unit?: string; decimals: number; better: Direction; hint: string }[] = [
-  { key: 'leanMass', label: 'Lean mass', unit: 'kg', decimals: 1, better: 'up', hint: 'higher is better' },
-  { key: 'softLeanMass', label: 'Soft lean mass', unit: 'kg', decimals: 1, better: 'up', hint: 'higher is better' },
-  { key: 'bmr', label: 'BMR', unit: 'kcal', decimals: 0, better: 'up', hint: 'higher is better' },
-  { key: 'waistHip', label: 'Waist–hip', decimals: 2, better: 'down', hint: 'lower is better' },
-  { key: 'obesityRate', label: 'Obesity rate', unit: '%', decimals: 1, better: 'down', hint: 'lower is better' },
-  // The device calls these "Fett/Muskel Kontrolle" -- the recommended change
-  // to reach its target weight. "Control" says nothing; what it means is how
-  // much to lose or gain, so it is labelled as the target it is.
-  { key: 'fatControl', label: 'Fat target', unit: 'kg', decimals: 1, better: 'none', hint: 'change to reach target' },
-  { key: 'muscleControl', label: 'Muscle target', unit: 'kg', decimals: 1, better: 'none', hint: 'change to reach target' },
 ]
 
 export function BodyScope() {
@@ -145,9 +117,13 @@ export function BodyScope() {
     weight: pickBiaKpi(s.values, 'weight'),
     muscle: pickBiaKpi(s.values, 'skeletalMuscleMass'),
     fat: pickBiaKpi(s.values, 'fatMass'),
+    leanMass: pickBiaKpi(s.values, 'leanMass'),
     target: pickBiaKpi(s.values, 'targetWeight'),
     fitScore: pickBiaKpi(s.values, 'fitnessScore'),
   }))
+
+  // The device's own recommendation ("Fett Kontrolle"): kg of fat to lose or gain.
+  const fatTarget = kpi('fatControl')
 
   const delta = (key: BiaKpiKey) => {
     if (!previous) return null
@@ -173,6 +149,36 @@ export function BodyScope() {
         </p>
       )}
 
+      {/* The gauge further down only shows the newest scan and the step from
+          the one before. Whether the score has been climbing for a year or
+          just bounced back is the actual question, and that needs the line. */}
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          FitScore over time
+        </div>
+        <BiaTrendChart points={trend} keys={['fitScore']} height={200} />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Weight vs target
+        </div>
+        <BiaTrendChart points={trend} keys={['weight', 'target']} height={200} />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Muscle vs fat vs lean mass
+        </div>
+        <BiaTrendChart points={trend} keys={['muscle', 'fat', 'leanMass']} height={200} />
+      </Card>
+
+      {/* Everything above reacts to the range switch. Everything below
+          describes one single scan, so it stays put when the range changes --
+          the split is called out rather than left for the reader to notice.
+          The scan history at the very end is the list of scans in range. */}
+      <SectionDivider>Latest scan · {latest.measured_at.slice(0, 10)}</SectionDivider>
+
       <Card className="px-3 pb-1 pt-3">
         <FitScoreGauge score={kpi('fitnessScore')} previous={previous ? kpi('fitnessScore', previous) : null} />
         <div className="grid grid-cols-4 gap-1 pb-2">
@@ -197,76 +203,13 @@ export function BodyScope() {
             )
           })}
         </div>
+        {fatTarget !== null && fatTarget !== 0 && (
+          <p className="pb-2 text-center text-[11px] text-muted-foreground">
+            Fat target: {fatTarget > 0 ? '+' : ''}
+            {fatTarget.toFixed(1)} kg
+          </p>
+        )}
       </Card>
-
-      {/* The gauge above only shows the newest scan and the step from the one
-          before. Whether the score has been climbing for a year or just
-          bounced back is the actual question, and that needs the line. */}
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          FitScore over time
-        </div>
-        <BiaTrendChart points={trend} keys={['fitScore']} height={200} />
-      </Card>
-
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Weight vs target
-        </div>
-        <BiaTrendChart points={trend} keys={['weight', 'target']} height={200} />
-      </Card>
-
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Muscle vs fat
-        </div>
-        <BiaTrendChart points={trend} keys={['muscle', 'fat']} height={200} />
-      </Card>
-
-      <div className="grid grid-cols-2 gap-2">
-        {DETAIL_TILES.map((tile) => {
-          const value = kpi(tile.key)
-          const d = delta(tile.key)
-          const spark = shown.map((s) => pickBiaKpi(s.values, tile.key)).filter((v): v is number => v !== null)
-          const improved = d === null || d === 0 || tile.better === 'none' ? null : (d > 0) === (tile.better === 'up')
-          return (
-            <KpiTile
-              key={tile.key}
-              label={tile.label}
-              value={value !== null ? value.toFixed(tile.decimals) : '—'}
-              unit={tile.unit}
-              trend={d !== null && d !== 0 ? `${d > 0 ? '▲ +' : '▼ '}${d.toFixed(tile.decimals)} · ${tile.hint}` : tile.hint}
-              trendClassName={improved === null ? 'text-muted-foreground' : improved ? 'text-status-good' : 'text-status-warn'}
-              sparkline={spark.length > 0 ? spark : [0]}
-              color="var(--muted-foreground)"
-            />
-          )
-        })}
-      </div>
-
-      <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Scan history{range !== 'All' && ` · ${shown.length} in ${range}`}
-        </div>
-        <div className="flex flex-col">
-          {[...shown].reverse().map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setOpenMeasurementId(m.id)}
-              className="flex items-center justify-between border-b border-border py-2 text-left last:border-b-0"
-            >
-              <span className="text-[13px] font-semibold">{m.measured_at.slice(0, 10)}</span>
-              <span className="text-[12px] text-muted-foreground">full report ›</span>
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {/* Everything above reacts to the range switch. Everything below
-          describes one single scan, so it stays put when the range changes --
-          the split is called out rather than left for the reader to notice. */}
-      <SectionDivider>Latest scan · {latest.measured_at.slice(0, 10)}</SectionDivider>
 
       <Card className="p-3.5">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -299,6 +242,25 @@ export function BodyScope() {
           min={15}
           max={40}
         />
+      </Card>
+
+      <Card className="p-3.5">
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          Scan history{range !== 'All' && ` · ${shown.length} in ${range}`}
+        </div>
+        <div className="flex flex-col">
+          {[...shown].reverse().map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setOpenMeasurementId(m.id)}
+              className="flex items-center justify-between border-b border-border py-2 text-left last:border-b-0"
+            >
+              <span className="text-[13px] font-semibold">{m.measured_at.slice(0, 10)}</span>
+              <span className="text-[12px] text-muted-foreground">full report ›</span>
+            </button>
+          ))}
+        </div>
       </Card>
 
       <BiaMeasurementDetailSheet measurementId={openMeasurementId} onOpenChange={(open) => !open && setOpenMeasurementId(null)} />

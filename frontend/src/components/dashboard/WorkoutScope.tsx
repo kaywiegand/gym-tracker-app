@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useScrollAnchor } from '@/lib/useScrollAnchor'
 import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
 import {
@@ -35,6 +36,7 @@ const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { best_e1rm: 'e1RM', vo
 type RadarView = 'character' | 'compare'
 
 export function WorkoutScope() {
+  const anchorRef = useScrollAnchor<HTMLDivElement>()
   const [radarView, setRadarView] = useState<RadarView>('character')
   const [resolved, setResolved] = useState<ResolvedRange | null>(null)
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('best_e1rm')
@@ -146,7 +148,7 @@ export function WorkoutScope() {
       : [{ label: selected.name, color: COMPARE_COLORS.current, values: characterValues(sessions, regionKeys, radarMetric) }]
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={anchorRef} className="flex flex-col gap-3 [overflow-anchor:none]">
       <DashboardStickyBar>
         <button
           type="button"

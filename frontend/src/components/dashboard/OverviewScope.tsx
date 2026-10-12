@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useScrollAnchor } from '@/lib/useScrollAnchor'
 import { api } from '@/lib/api'
 import type { AcwrResponse, MuscleVolumeResponse, SessionVolumesResponse, TopExercise } from '@/types'
 import {
@@ -18,7 +19,6 @@ import { FilterChips } from '@/components/FilterChips'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { KpiTile } from '@/components/KpiTile'
 import { AcwrCard } from '@/components/AcwrCard'
-import { SectionDivider } from '@/components/SectionDivider'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
@@ -38,6 +38,7 @@ const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { best_e1rm: 'e1RM', vo
 // with many exercises. e1RM lives in the Exercise scope instead, where one
 // is explicitly picked.
 export function OverviewScope() {
+  const anchorRef = useScrollAnchor<HTMLDivElement>()
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   // e1RM first: sets say how much was done, e1RM says how strong it made
   // you -- that is the question the comparison is asked.
@@ -126,7 +127,7 @@ export function OverviewScope() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={anchorRef} className="flex flex-col gap-3 [overflow-anchor:none]">
       <DashboardStickyBar>
         <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
       </DashboardStickyBar>
@@ -175,8 +176,6 @@ export function OverviewScope() {
 
       {/* Both cards follow the range switch: avg sets per week in the
           window, rated against the weekly MEV/MAV/MRV (BACKLOG #95). */}
-      <SectionDivider>{weeks === 1 ? 'Last 7 days' : `Avg per week · ${rangeTitle(shownRange)}`}</SectionDivider>
-
       <Card className="p-3.5">
         <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
           {weeks === 1 ? 'Muscle load · last 7 days' : 'Muscle load · avg per week'}

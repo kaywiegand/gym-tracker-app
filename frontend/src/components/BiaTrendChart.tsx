@@ -9,11 +9,12 @@ export interface BiaTrendPoint {
   weight: number | null
   muscle: number | null
   fat: number | null
+  leanMass: number | null
   target: number | null
   fitScore: number | null
 }
 
-export type BiaTrendKey = 'weight' | 'muscle' | 'fat' | 'target' | 'fitScore'
+export type BiaTrendKey = 'weight' | 'muscle' | 'fat' | 'leanMass' | 'target' | 'fitScore'
 
 // Plotted in separate charts rather than one: on a shared kg axis running
 // from ~13 (fat) to ~80 (weight), the few kilos between weight and its target
@@ -24,6 +25,8 @@ const SERIES: Record<BiaTrendKey, { id: string; color: string; unit: string; dec
   target: { id: 'Target', color: 'var(--muted-foreground)', unit: 'kg', decimals: 1 },
   muscle: { id: 'Muscle', color: 'var(--body-muscle)', unit: 'kg', decimals: 1 },
   fat: { id: 'Fat', color: 'var(--body-fat)', unit: 'kg', decimals: 1 },
+  // Everything that is not fat; neutral grey, it frames the other two.
+  leanMass: { id: 'Lean mass', color: 'var(--muted-foreground)', unit: 'kg', decimals: 1 },
   // A score out of 100, not a weight -- it gets its own chart and its own
   // unit rather than being squeezed onto a kg axis.
   fitScore: { id: 'FitScore', color: 'var(--brand-accent)', unit: '', decimals: 0 },
