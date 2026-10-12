@@ -63,10 +63,15 @@ function handleAcwr(): void
     // 28 days before its start are loaded too so its first value is a real
     // 7d-vs-28d ratio (BACKLOG #83).
     $days = isset($_GET['days']) ? max(1, min(1820, (int) $_GET['days'])) : $weeks * 7;
-    $now = gmdate('Y-m-d\TH:i:s\Z');
+    // Sets are bucketed by their local day in `tz` and "today" is the local
+    // day (BACKLOG #94); without `tz` this is the UTC day as before. The
+    // series code only reads the date part of $now.
+    $tz = SessionRepository::timeZone((string) ($_GET['tz'] ?? 'UTC'));
+    $now = (new DateTimeImmutable('now', $tz))->format('Y-m-d\T00:00:00\Z');
 
-    $rows = (new SetRepository())->dailyVolume(max($weeks * 7, $days) + 28);
-    $daily = MuscleVolume::dailyTotals($rows);
+    // +1 day of slack for the local-day edge.
+    $rows = (new SetRepository())->dailyVolume(max($weeks * 7, $days) + 29);
+    $daily = MuscleVolume::dailyTotals($rows, $tz);
 
     $result = MuscleVolume::acwr($daily, $now);
     $result['weekly_series'] = MuscleVolume::acwrWeeklySeries($daily, $weeks, $now);

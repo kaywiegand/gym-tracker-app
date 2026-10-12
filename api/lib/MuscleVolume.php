@@ -154,12 +154,15 @@ final class MuscleVolume
 
     // $rows: [{performed_at, weight_kg, reps}, ...] -- no muscle join, ACWR
     // is whole-body training load, not per muscle (CLAUDE.md §8). Returns
-    // [date => volume_kg] for every calendar day a set occurred.
-    public static function dailyTotals(array $rows): array
+    // [date => volume_kg] for every calendar day a set occurred -- the day
+    // in $tz (UTC when null), BACKLOG #94.
+    public static function dailyTotals(array $rows, ?DateTimeZone $tz = null): array
     {
         $byDay = [];
         foreach ($rows as $row) {
-            $day = (new DateTimeImmutable($row['performed_at'], new DateTimeZone('UTC')))->format('Y-m-d');
+            $day = (new DateTimeImmutable($row['performed_at'], new DateTimeZone('UTC')))
+                ->setTimezone($tz ?? new DateTimeZone('UTC'))
+                ->format('Y-m-d');
             $byDay[$day] = ($byDay[$day] ?? 0.0) + (float) $row['weight_kg'] * (float) $row['reps'];
         }
         return $byDay;

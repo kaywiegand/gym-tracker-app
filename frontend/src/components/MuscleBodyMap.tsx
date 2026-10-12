@@ -1,9 +1,11 @@
 import type { MuscleVolumeRegion } from '@/types'
-import { statusFor, STATUS_FILL_VAR } from '@/lib/muscleStatus'
+import { avgSetsPerWeek, statusFor, STATUS_FILL_VAR } from '@/lib/muscleStatus'
 import { BACK_FIGURE, FRONT_FIGURE, type BodyFigure } from '@/components/bodyPaths'
 
 interface MuscleBodyMapProps {
   regions: MuscleVolumeRegion[]
+  // Window length in weeks (1 = last 7 days); value = avg sets per week.
+  weeks?: number
 }
 
 // Front/back body heat map, drawn from the anatomical figures in
@@ -11,7 +13,7 @@ interface MuscleBodyMapProps {
 // regions -- the same taxonomy used by the MEV/MAV/MRV table, the radar and
 // the badges -- and is filled with that region's MEV/MAV/MRV status colour.
 // Head, hands and feet carry no region and stay neutral.
-export function MuscleBodyMap({ regions }: MuscleBodyMapProps) {
+export function MuscleBodyMap({ regions, weeks = 1 }: MuscleBodyMapProps) {
   const byRegion = new Map(regions.map((r) => [r.region, r]))
 
   const fill = (p: { region: string | null; base?: true }): string => {
@@ -21,8 +23,8 @@ export function MuscleBodyMap({ regions }: MuscleBodyMapProps) {
     if (p.region === null) return 'var(--secondary)'
     const r = byRegion.get(p.region)
     if (!r) return 'var(--secondary)'
-    // Rolling last 7 days, not the calendar week -- see MuscleVolumeRegion.
-    return STATUS_FILL_VAR[statusFor(r.last_7_days.sets, r.mev, r.mav, r.mrv)]
+    // Avg sets per week over the selected window (rolling days, not calendar weeks).
+    return STATUS_FILL_VAR[statusFor(avgSetsPerWeek(r, weeks), r.mev, r.mav, r.mrv)]
   }
 
   const figure = (f: BodyFigure, key: string) => (

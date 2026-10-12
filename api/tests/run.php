@@ -285,6 +285,9 @@ $dailyRows = [
 $daily = MuscleVolume::dailyTotals($dailyRows);
 check('dailyTotals sums same-day sets (1000 + 250)', abs($daily['2026-03-01'] - 1250.0) < 0.001, $failures);
 check('dailyTotals keeps separate days apart', abs($daily['2026-03-02'] - 640.0) < 0.001, $failures);
+$tzRows = [['performed_at' => '2026-03-01T23:30:00Z', 'weight_kg' => 100, 'reps' => 5]];
+check('dailyTotals buckets by UTC day without tz', isset(MuscleVolume::dailyTotals($tzRows)['2026-03-01']), $failures);
+check('dailyTotals: 23:30Z in Europe/Berlin lands on the next local day', isset(MuscleVolume::dailyTotals($tzRows, new DateTimeZone('Europe/Berlin'))['2026-03-02']), $failures);
 
 $acwrDaily = [];
 for ($i = 0; $i < 7; $i++) {

@@ -54,7 +54,7 @@ export function OverviewScope() {
     resolveRange(range)
       .then((r) =>
         Promise.all([
-          api.get<AcwrResponse>(`/dashboard/acwr?weeks=${r.weeks}&days=${r.days}`),
+          api.get<AcwrResponse>(`/dashboard/acwr?weeks=${r.weeks}&days=${r.days}&${TZ_PARAM}`),
           api.get<MuscleVolumeResponse>(`/dashboard/muscle-volume?weeks=${r.weeks}&days=${r.days}&${TZ_PARAM}`),
           api.get<SessionVolumesResponse>(`/dashboard/session-volumes?days=${r.days}&${TZ_PARAM}`),
           api.get<TopExercise[]>(`/dashboard/top-exercises?weeks=${r.weeks}&limit=8`),
@@ -172,20 +172,23 @@ export function OverviewScope() {
         <MuscleRadar series={radarSeries} />
       </Card>
 
-      {/* Everything above follows the range switch. The two cards below
-          always describe the rolling last 7 days -- they were interleaved with
-          the range-driven ones, so half the screen looked unresponsive. */}
-      <SectionDivider>Last 7 days</SectionDivider>
+      {/* Both cards follow the range switch: avg sets per week in the
+          window, rated against the weekly MEV/MAV/MRV (BACKLOG #95). */}
+      <SectionDivider>{weeks === 1 ? 'Last 7 days' : `Avg per week · ${rangeTitle(range)}`}</SectionDivider>
 
       <Card className="p-3.5">
         <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Muscle load · last 7 days
+          {weeks === 1 ? 'Muscle load · last 7 days' : 'Muscle load · avg per week'}
           <InfoButton term="MEV" />
         </div>
-        <MuscleBodyMap regions={muscleVolume.regions} />
+        <MuscleBodyMap regions={muscleVolume.regions} weeks={weeks} />
       </Card>
 
-      <MuscleVolumeStatusList regions={muscleVolume.regions} />
+      <MuscleVolumeStatusList
+        regions={muscleVolume.regions}
+        weeks={weeks}
+        title={weeks === 1 ? 'Volume · last 7 days (sets)' : 'Volume · avg sets per week'}
+      />
 
     </div>
   )

@@ -12,6 +12,18 @@ export function statusFor(sets: number, mev: number, mav: number, mrv: number): 
   return 'crit'
 }
 
+// Average weighted sets per week over the selected window: the API's
+// window_current (the last `weeks` * 7 local days) divided by the week count,
+// so the value stays comparable with the per-week MEV/MAV/MRV targets
+// (BACKLOG #95). `weeks` 1 = last 7 days; falls back to last_7_days on an
+// older API.
+export function avgSetsPerWeek(
+  r: { window_current?: { sets: number }; last_7_days: { sets: number } },
+  weeks: number,
+): number {
+  return (r.window_current ?? r.last_7_days).sets / Math.max(1, weeks)
+}
+
 export const STATUS_LABEL: Record<VolumeStatus, string> = {
   under: 'Below MEV',
   good: 'Optimal',

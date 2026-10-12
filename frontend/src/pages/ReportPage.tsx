@@ -40,7 +40,7 @@ export function ReportPage() {
 
   useEffect(() => {
     resolveRangeWeeks('All').then((weeks) => Promise.all([
-      api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}`),
+      api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}&${TZ_PARAM}`),
       api.get<TrainingLoadResponse>(`/dashboard/training-load?weeks=${weeks}&${TZ_PARAM}`),
       api.get<MuscleVolumeResponse>(`/dashboard/muscle-volume?weeks=${weeks}`),
       api.get<ConsistencyResponse>(`/dashboard/consistency?days=${weeks * 7}&${TZ_PARAM}`),

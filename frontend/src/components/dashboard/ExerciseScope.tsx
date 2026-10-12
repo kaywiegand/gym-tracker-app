@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { detectPlateau } from '@/lib/plateau'
 import { formatNumber } from '@/lib/format'
 import { acwrStatus } from '@/lib/acwr'
-import { DEFAULT_RANGE, RANGE_OPTIONS, currentWindow, inWindow, localIso, resolveRangeWeeks, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, currentWindow, inWindow, localIso, resolveRangeWeeks, TZ_PARAM, type DashboardRange } from '@/lib/dashboardRanges'
 import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
 import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
@@ -95,7 +95,7 @@ export function ExerciseScope() {
       api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?weeks=${weeks}`),
       api.get<Settings>('/settings'),
       // ACWR is a fixed 7d-vs-28d ratio; the range does not change it.
-      api.get<AcwrResponse>('/dashboard/acwr?weeks=4'),
+      api.get<AcwrResponse>(`/dashboard/acwr?weeks=4&${TZ_PARAM}`),
       weeks,
     ]))
       .then(([historyData, summariesData, settingsData, acwrData, weeks]) => {
