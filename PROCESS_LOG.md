@@ -430,3 +430,18 @@
 - #109 ist kein Bug (Vorzeitraum ohne Training); die Legende sagt das jetzt.
 
 **Nächster Schritt:** Kay nimmt #96–#111 auf dem Handy ab.
+
+---
+
+## Session 2026-10-12 (spät) — Tracking-Reste, Backlog aufgeräumt, Deploy
+
+**Was passiert ist:**
+- #67, #69, #86 (Rest), #74 (Rest) und #104 umgesetzt in `8e8f04f` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Tracking-Ablauf (öffnen ohne Satz, erster Satz, Finish, neuer Vorschlag) und der Consistency-Kalender lokal im Handy-Viewport geprüft; #74 nicht mit Live-Daten gesehen.
+- Auf Kays Anweisung aus dem BACKLOG entfernt: #11, #62, #75, #96–#111, #112.
+
+**Entscheidungen:**
+- Die Session-Zeile entsteht erst mit dem ersten Satz; `started_at` bleibt der Moment des Öffnens. Vorhandene leere offene Sessions werden nur ausgeblendet, nicht gelöscht.
+- Dauer einer Session ist überall Start bis letzter Satz, Obergrenze 240 min (eine Konstante in `lib/time.ts`).
+- Der Zähler über dem Consistency-Kalender zählt die angezeigten Tage, nicht den gewählten Zeitraum.
+
+**Nächster Schritt:** Kay nimmt den Stand auf dem Handy ab; danach #78.
