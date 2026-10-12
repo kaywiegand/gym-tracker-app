@@ -40,3 +40,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261008-2008-2f616c8` | `2f616c8` | 2026-10-08T20:08:26Z | `backups/20261008-2008-2f616c8/` | Legs Raise Lying Titel; Push/Pull/Legs-Übungslisten live |
 | `20261009-1030-2c89417` | `2c89417` | 2026-10-09T10:30:40Z | `backups/20261009-1030-2c89417/` | Dashboard All ab erstem Training; Gainsfire-Import 09.10. |
 | `20261009-1116-bf161af` | `bf161af` | 2026-10-09T11:16:20Z | `backups/20261009-1116-bf161af/` | Dashboard/Exercise: Workout-Ansicht bleibt offen (#78) |
+| `20261012-0958-acb9400-dirty` | `acb9400` | 2026-10-12T09:58:09Z | `backups/20261012-0958-acb9400-dirty/` | global range 7D-All, vergleich, ACWR chart, workout development |
