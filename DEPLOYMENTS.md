@@ -47,3 +47,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261012-1942-7094336` | `7094336` | 2026-10-12T19:42:35Z | `backups/20261012-1942-7094336/` | tracking: session on first set, suggestion text, finish duration; consistency caption (#67, #69, #74, #86, #104) |
 | `20261012-1956-f42aaa3` | `f42aaa3` | 2026-10-12T19:56:38Z | `backups/20261012-1956-f42aaa3/` | compact volume tile, ACWR/session title, full-week calendar (#113-#115) |
 | `20261012-2047-aaa953f` | `aaa953f` | 2026-10-12T20:47:41Z | `backups/20261012-2047-aaa953f/` | scroll anchor, fixed-height calendar, leaner body view (#115-#121) |
+| `20261012-2111-d2f7477` | `d2f7477` | 2026-10-12T21:11:45Z | `backups/20261012-2111-d2f7477/` | lean mass last in body chart legend (#122) |
