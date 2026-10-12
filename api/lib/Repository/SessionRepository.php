@@ -27,11 +27,12 @@ final class SessionRepository extends BaseRepository
     }
 
     // Distinct local calendar days (in $timeZone, an IANA name, UTC if
-    // invalid) of finished sessions started in the last $days -- feeds the
-    // Sessions/wk KPI and the consistency calendar. Only sessions with
-    // ended_at count (an abandoned/open one is not a training day); the day
-    // is that of started_at, so a session running past midnight stays on
-    // its start day (BACKLOG #79).
+    // invalid) of counting sessions started in the last $days -- feeds the
+    // Sessions/wk KPI and the consistency calendar. A session counts when it
+    // has ended_at OR at least one working set (an unfinished one with logged
+    // sets is still a training day; an empty open one is not). The day is
+    // that of started_at, so a session running past midnight stays on its
+    // start day (BACKLOG #79, #90).
     public function recentDates(int $days, string $timeZone = 'UTC'): array
     {
         $tz = self::timeZone($timeZone);
@@ -40,7 +41,10 @@ final class SessionRepository extends BaseRepository
         // One day of slack on the query; the exact cut is made on the local day.
         $rows = $this->fetchAll(
             'SELECT started_at FROM sessions
-             WHERE deleted_at IS NULL AND ended_at IS NOT NULL AND started_at >= ?',
+             WHERE deleted_at IS NULL AND started_at >= ?
+               AND (ended_at IS NOT NULL OR EXISTS (
+                 SELECT 1 FROM sets st
+                 WHERE st.session_id = sessions.id AND st.is_warmup = 0 AND st.deleted_at IS NULL))',
             [gmdate('Y-m-d\TH:i:s\Z', $cutoffTs - 86400)]
         );
 
@@ -58,10 +62,10 @@ final class SessionRepository extends BaseRepository
         return array_keys($dates);
     }
 
-    // Finished sessions started in the last $days local days (same cut as
-    // recentDates()), each with its working-set volume (warm-ups excluded,
-    // like every other volume figure) -- oldest first. Sessions without any
-    // working set are left out: they have no volume to average.
+    // Counting sessions (same rule and cut as recentDates()), each with its
+    // working-set volume (warm-ups excluded, like every other volume figure)
+    // -- oldest first. The join on working sets already drops sessions without
+    // any: they have no volume to average.
     public function sessionVolumes(int $days, string $timeZone = 'UTC'): array
     {
         $tz = self::timeZone($timeZone);
@@ -71,7 +75,7 @@ final class SessionRepository extends BaseRepository
             'SELECT s.id, s.started_at, SUM(st.weight_kg * st.reps) AS volume_kg
              FROM sessions s
              JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
-             WHERE s.deleted_at IS NULL AND s.ended_at IS NOT NULL AND s.started_at >= ?
+             WHERE s.deleted_at IS NULL AND s.started_at >= ?
              GROUP BY s.id, s.started_at
              ORDER BY s.started_at ASC',
             [gmdate('Y-m-d\TH:i:s\Z', $cutoffTs - 86400)]

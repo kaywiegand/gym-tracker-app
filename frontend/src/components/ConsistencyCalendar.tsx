@@ -2,13 +2,13 @@ import { addDays, COMPARE_COLORS, localIso, parseIso } from '@/lib/dashboardRang
 
 interface ConsistencyCalendarProps {
   dates: string[]
-  // Length of the (current) window in whole weeks.
+  // Length of the window in whole weeks. No previous-period comparison here
+  // (BACKLOG #88): the calendar only shows the selected range, but never
+  // less than MIN_WEEKS -- a calendar of one or two weeks says nothing.
   weeks: number
-  // Also draw the `weeks` weeks directly before it, in grey, set apart by a
-  // gap -- the "selected range vs. previous range" view (BACKLOG #82). Only
-  // pass true when that previous window is fully covered by the data.
-  compare?: boolean
 }
+
+const MIN_WEEKS = 4
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -16,19 +16,18 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // Activity grid: one column per week, running left to right, ending today.
 //
 // Columns are rolling 7-day blocks (the dashboard's whole-week windows), not
-// Monday-aligned calendar weeks: a window then consists of complete columns,
-// the previous window can sit left of a clean gap, and the last cell is
-// always today. Consequently every row is one fixed weekday -- the rows are
+// Monday-aligned calendar weeks: a window then consists of complete columns
+// and the last cell is always today. Consequently every row is one fixed weekday -- the rows are
 // labelled with the weekday they stand for, starting at the first column's
 // weekday.
 //
-// Cells shrink with the number of columns so a year (two with the
-// comparison) still fits without scrolling; below ~3px they stop being
+// Cells shrink with the number of columns so a year still fits without
+// scrolling; below ~3px they stop being
 // readable, so that is the floor. With one or two columns (7D/14D) cells are
 // large and carry their day of month.
-export function ConsistencyCalendar({ dates, weeks, compare = false }: ConsistencyCalendarProps) {
+export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) {
   const active = new Set(dates)
-  const columns = compare ? weeks * 2 : weeks
+  const columns = Math.max(weeks, MIN_WEEKS)
   const today = localIso(new Date())
   const start = addDays(today, -(columns * 7 - 1))
   const startDate = parseIso(start)
@@ -40,10 +39,9 @@ export function ConsistencyCalendar({ dates, weeks, compare = false }: Consisten
   const step = cell + gap
   const labelW = cell >= 8 ? 26 : 0
   const headH = 14
-  const sepGap = compare ? Math.max(6, step) : 0
-  const colX = (col: number) => labelW + col * step + (compare && col >= weeks ? sepGap : 0)
+  const colX = (col: number) => labelW + col * step
 
-  const cells: { iso: string; day: number; col: number; active: boolean; previous: boolean; dom: number }[] = []
+  const cells: { iso: string; day: number; col: number; active: boolean; dom: number }[] = []
   const monthTicks: { x: number; label: string }[] = []
   let lastMonthKey = ''
   let lastTickX = -Infinity
@@ -52,7 +50,7 @@ export function ConsistencyCalendar({ dates, weeks, compare = false }: Consisten
     for (let day = 0; day < 7; day++) {
       const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + col * 7 + day)
       const iso = localIso(d)
-      cells.push({ iso, day, col, active: active.has(iso), previous: compare && col < weeks, dom: d.getDate() })
+      cells.push({ iso, day, col, active: active.has(iso), dom: d.getDate() })
     }
     const first = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + col * 7)
     // Keyed by year AND month: a 12-month range spans ~13 month boundaries,
@@ -85,17 +83,6 @@ export function ConsistencyCalendar({ dates, weeks, compare = false }: Consisten
             </text>
           ))}
 
-        {compare && (
-          <line
-            x1={colX(weeks) - sepGap / 2 - gap / 2}
-            x2={colX(weeks) - sepGap / 2 - gap / 2}
-            y1={headH}
-            y2={h}
-            stroke="var(--border)"
-            strokeWidth={1}
-          />
-        )}
-
         {cells.map((c) => (
           <g key={c.iso}>
             <rect
@@ -104,9 +91,9 @@ export function ConsistencyCalendar({ dates, weeks, compare = false }: Consisten
               width={cell}
               height={cell}
               rx={cell >= 8 ? 3 : 1}
-              fill={c.active ? (c.previous ? COMPARE_COLORS.previous : COMPARE_COLORS.current) : 'var(--secondary)'}
+              fill={c.active ? COMPARE_COLORS.current : 'var(--secondary)'}
             >
-              <title>{`${c.iso}${c.active ? ' · trained' : ''}${c.previous ? ' · previous period' : ''}`}</title>
+              <title>{`${c.iso}${c.active ? ' · trained' : ''}`}</title>
             </rect>
             {big && (
               <text
@@ -123,20 +110,6 @@ export function ConsistencyCalendar({ dates, weeks, compare = false }: Consisten
           </g>
         ))}
       </svg>
-
-      {compare && (
-        <div className="mt-1.5 flex gap-4">
-          {([
-            ['Current', COMPARE_COLORS.current],
-            ['Previous', COMPARE_COLORS.previous],
-          ] as const).map(([label, color]) => (
-            <span key={label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: color }} />
-              {label}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

@@ -109,18 +109,6 @@ export function previousIsComplete(previous: DayWindow, firstSessionDay: string 
 
 export const inWindow = (iso: string, w: DayWindow) => iso >= w.start && iso <= w.end
 
-// Sessions (training days) per rolling 7-day block of `window`, oldest first.
-// Blocks are exact weeks ending today, so none is partial.
-export function weeklyCounts(dates: string[], window: DayWindow): number[] {
-  const weeks = Math.round((daysBetween(window.start, window.end) + 1) / 7)
-  const counts = new Array<number>(weeks).fill(0)
-  for (const d of dates) {
-    if (!inWindow(d, window)) continue
-    counts[Math.min(weeks - 1, Math.floor(daysBetween(window.start, d) / 7))] += 1
-  }
-  return counts
-}
-
 export interface ResolvedRange {
   range: DashboardRange
   weeks: number

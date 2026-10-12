@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
 import { InfoButton } from '@/components/InfoButton'
 
@@ -20,6 +21,9 @@ interface KpiTileProps {
   chart?: number[]
   color: string
   infoTerm?: string
+  // Compact secondary row below the chart, set off by a thin rule
+  // (Overview: Sessions/wk inside the Volume/session tile, #89).
+  footer?: ReactNode
 }
 
 // Hand-rolled sparkline (viewBox-scaled polyline) rather than pulling in
@@ -83,7 +87,7 @@ function MiniLineChart({ values, color }: { values: number[]; color: string }) {
   )
 }
 
-export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm }: KpiTileProps) {
+export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm, footer }: KpiTileProps) {
   return (
     <Card className="p-3">
       <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -112,6 +116,7 @@ export function KpiTile({ label, value, unit, trend, trendClassName, minMax, spa
       )}
       {chart && chart.length > 0 && <MiniLineChart values={chart} color={color} />}
       {!chart && sparkline && <Sparkline values={sparkline} color={color} />}
+      {footer && <div className="mt-3 border-t border-border pt-2">{footer}</div>}
     </Card>
   )
 }

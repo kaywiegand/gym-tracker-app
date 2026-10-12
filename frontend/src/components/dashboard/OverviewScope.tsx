@@ -10,7 +10,6 @@ import {
   rangeTitle,
   resolveRange,
   TZ_PARAM,
-  weeklyCounts,
   type DashboardRange,
   type ResolvedRange,
 } from '@/lib/dashboardRanges'
@@ -97,14 +96,8 @@ export function OverviewScope() {
       : undefined
 
   // 7D/14D: just the count -- 1-2 weekly points are no trend. From 1M on:
-  // average per week, with the weekly counts as the line. Min/max over all
-  // weeks of the window, a week off included.
+  // the average per week.
   const showWeeklySessions = weeks > 2
-  const weeklySessions = weeklyCounts(resolved.dates, current)
-  const sessionsMinMax =
-    showWeeklySessions && weeklySessions.length >= 2
-      ? { min: formatNumber(Math.min(...weeklySessions)), max: formatNumber(Math.max(...weeklySessions)) }
-      : undefined
 
   // Windows: the API's window_current/window_previous follow the selected
   // range (local days, same grid as the calendar). last_7_days stays as
@@ -132,30 +125,26 @@ export function OverviewScope() {
         <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
       </DashboardStickyBar>
 
-      <div className="grid grid-cols-2 gap-2">
-        <KpiTile
-          label="Volume/session"
-          value={formatNumber(avgVolume)}
-          unit="kg"
-          trend={`Total: ${formatNumber(totalVolume)} kg`}
-          minMax={volumeMinMax}
-          chart={sessionPoints.length >= 2 ? sessionPoints : undefined}
-          color={COMPARE_COLORS.current}
-          infoTerm="Volume"
-        />
-        {showWeeklySessions ? (
-          <KpiTile
-            label="Sessions/wk"
-            value={(currentDates.length / weeks).toFixed(1)}
-            trend={`Total: ${currentDates.length}`}
-            minMax={sessionsMinMax}
-            chart={weeklySessions}
-            color={COMPARE_COLORS.current}
-          />
-        ) : (
-          <KpiTile label="Sessions" value={String(currentDates.length)} color={COMPARE_COLORS.current} />
-        )}
-      </div>
+      <KpiTile
+        label="Volume/session"
+        value={formatNumber(avgVolume)}
+        unit="kg"
+        trend={`Total: ${formatNumber(totalVolume)} kg`}
+        minMax={volumeMinMax}
+        chart={sessionPoints.length >= 2 ? sessionPoints : undefined}
+        color={COMPARE_COLORS.current}
+        infoTerm="Volume"
+        footer={
+          <div className="flex items-baseline justify-between">
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
+              {showWeeklySessions ? 'Sessions/wk' : 'Sessions'}
+            </span>
+            <span className="text-[15px] font-bold tabular-nums">
+              {showWeeklySessions ? (currentDates.length / weeks).toFixed(1) : currentDates.length}
+            </span>
+          </div>
+        }
+      />
 
       <AcwrCard series={acwr.daily_series ?? []} ratio={acwr.ratio} />
 
@@ -164,7 +153,7 @@ export function OverviewScope() {
         <p className="mb-2 text-[10.5px] text-muted-foreground">
           {currentDates.length} training days{previous ? ` · previous ${previousDates.length}` : ''}
         </p>
-        <ConsistencyCalendar dates={resolved.dates} weeks={weeks} compare={previous !== null} />
+        <ConsistencyCalendar dates={resolved.dates} weeks={weeks} />
       </Card>
 
       <TopExercisesList exercises={topExercises} range={range} />
