@@ -23,7 +23,7 @@ interface Summary {
   setsDone: number
   totalSets: number
   volumeKg: number
-  durationSec: number
+  durationSec: number | null
   prExerciseNames: string[]
 }
 
@@ -135,12 +135,16 @@ export function TrackingPage() {
       const openSessions = await findOpenSessions(wid)
       if (cancelled) return
 
-      if (openSessions.length > 0) {
-        const options: OpenSessionOption[] = []
-        for (const session of openSessions) {
-          options.push({ session, loggedSets: await getSetsForSession(session.id) })
-        }
-        if (cancelled) return
+      // Sessions without a logged set (left behind by older versions that
+      // wrote the row on open) are not offered -- hidden, not deleted.
+      const options: OpenSessionOption[] = []
+      for (const session of openSessions) {
+        const loggedSets = await getSetsForSession(session.id)
+        if (loggedSets.length > 0) options.push({ session, loggedSets })
+      }
+      if (cancelled) return
+
+      if (options.length > 0) {
         setPendingChoice({ workout, settings, restSeconds, lastSetsByExercise, openSessions: options })
       } else {
         useTrackingStore.getState().start(workout, lastSetsByExercise, restSeconds)
@@ -395,7 +399,7 @@ export function TrackingPage() {
                             ? `${suggestions[ex.workoutExerciseId].weightKg} kg × ${suggestions[ex.workoutExerciseId].reps}`
                             : `${suggestions[ex.workoutExerciseId].reps} reps`}
                         </div>
-                        <div className="truncate text-[11px] text-muted-foreground">{suggestions[ex.workoutExerciseId].reason}</div>
+                        <div className="text-[11px] text-muted-foreground">{suggestions[ex.workoutExerciseId].reason}</div>
                       </div>
                       <Button
                         type="button"
@@ -520,7 +524,7 @@ export function TrackingPage() {
             </div>
             <div className="rounded-xl border border-border p-3">
               <div className="text-[10.5px] font-semibold text-muted-foreground">Duration</div>
-              <div className="text-[21px] font-bold">{summary ? `${Math.max(1, Math.round(summary.durationSec / 60))} min` : '—'}</div>
+              <div className="text-[21px] font-bold">{summary?.durationSec != null ? `${Math.max(1, Math.round(summary.durationSec / 60))} min` : '—'}</div>
             </div>
           </div>
           <div className="px-4 pt-2">

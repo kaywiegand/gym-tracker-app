@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import { putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
+import { getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
 import { epley1RM } from '@/lib/metrics'
 import { pushPending } from '@/lib/syncService'
-import { nowIso } from '@/lib/time'
+import { MAX_PLAUSIBLE_SESSION_MIN, nowIso } from '@/lib/time'
 import type { SetEntry, Workout } from '@/types'
 
 interface DraftSet {
@@ -26,7 +26,8 @@ interface FinishResult {
   setsDone: number
   totalSets: number
   volumeKg: number
-  durationSec: number
+  // null: no set logged, or start -> last set is no real session length.
+  durationSec: number | null
   prExerciseNames: string[]
 }
 
@@ -77,6 +78,9 @@ interface TrackingState {
   workoutId: string | null
   workoutName: string
   startedAt: string | null
+  // The session row is only written with the first logged set (BACKLOG #69),
+  // so merely opening the screen leaves nothing behind.
+  sessionPersisted: boolean
   exercises: ExerciseTrack[]
   restEndAt: number | null
   restDurationSec: number
@@ -106,6 +110,7 @@ const initialState = {
   workoutId: null as string | null,
   workoutName: '',
   startedAt: null as string | null,
+  sessionPersisted: false,
   exercises: [] as ExerciseTrack[],
   restEndAt: null as number | null,
   restDurationSec: 120,
@@ -116,31 +121,24 @@ const initialState = {
 // written to IndexedDB until "done" is tapped, matching the schema (a
 // `sets` row IS the marker that a set was actually performed, see
 // db/schema.sql -- there's no separate "done" boolean column).
+// Shared by concurrent first taps so the session row is written exactly once
+// and always before the first set row.
+let persistingSession: Promise<void> | null = null
+
 export const useTrackingStore = create<TrackingState>((set, get) => ({
   ...initialState,
 
   start: (workout, lastSetsByExercise, restSeconds) => {
     const sessionId = crypto.randomUUID()
     const startedAt = nowIso()
-
-    const session: LocalSession = {
-      id: sessionId,
-      workout_id: workout.id,
-      started_at: startedAt,
-      ended_at: null,
-      note: null,
-      created_at: startedAt,
-      updated_at: startedAt,
-      deleted_at: null,
-      synced: false,
-    }
-    void putRow('sessions', session)
+    persistingSession = null
 
     set({
       sessionId,
       workoutId: workout.id,
       workoutName: workout.name,
       startedAt,
+      sessionPersisted: false,
       exercises: buildExercises(workout, lastSetsByExercise, new Map()),
       restEndAt: null,
       restDurationSec: restSeconds,
@@ -159,6 +157,7 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       workoutId: workout.id,
       workoutName: workout.name,
       startedAt: session.started_at,
+      sessionPersisted: true,
       exercises: buildExercises(workout, lastSetsByExercise, loggedByKey),
       restEndAt: null,
       restDurationSec: restSeconds,
@@ -215,6 +214,24 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     const setId = draft.setId ?? crypto.randomUUID()
     const willBeDone = !draft.done
 
+    if (!state.sessionPersisted) {
+      if (!persistingSession) {
+        const startedAt = state.startedAt ?? now
+        persistingSession = putRow('sessions', {
+          id: state.sessionId,
+          workout_id: state.workoutId,
+          started_at: startedAt,
+          ended_at: null,
+          note: null,
+          created_at: startedAt,
+          updated_at: startedAt,
+          deleted_at: null,
+          synced: false,
+        } satisfies LocalSession).then(() => set({ sessionPersisted: true }))
+      }
+      await persistingSession
+    }
+
     const row: LocalSet = {
       id: setId,
       session_id: state.sessionId,
@@ -252,7 +269,8 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     const state = get()
     const now = nowIso()
 
-    if (state.sessionId) {
+    // No session row without a logged set -- nothing to finish then.
+    if (state.sessionId && state.sessionPersisted) {
       const session: LocalSession = {
         id: state.sessionId,
         workout_id: state.workoutId,
@@ -273,7 +291,18 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       (a, e) => a + e.sets.filter((s) => s.done).reduce((b, s) => b + s.weightKg * s.reps, 0),
       0,
     )
-    const durationSec = state.startedAt ? Math.round((Date.now() - new Date(state.startedAt).getTime()) / 1000) : 0
+    // started_at -> last logged set, as on the dashboard (BACKLOG #86).
+    let durationSec: number | null = null
+    if (state.sessionId && state.startedAt) {
+      const lastSetAt = (await getSetsForSession(state.sessionId)).reduce<string | null>(
+        (a, s) => (a === null || s.performed_at > a ? s.performed_at : a),
+        null,
+      )
+      if (lastSetAt) {
+        const sec = Math.round((new Date(lastSetAt).getTime() - new Date(state.startedAt).getTime()) / 1000)
+        if (sec > 0 && sec <= MAX_PLAUSIBLE_SESSION_MIN * 60) durationSec = sec
+      }
+    }
 
     // PR = better e1RM than last time for this exercise (CLAUDE.md §8). No
     // baseline (first time doing it) never counts as a PR.

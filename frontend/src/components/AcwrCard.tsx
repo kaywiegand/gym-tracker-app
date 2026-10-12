@@ -24,7 +24,13 @@ function shortDate(iso: string): string {
 // piece by piece by the zone it runs through (BACKLOG #102). Hand-rolled SVG
 // like the KPI line charts; the reference labels and the end marker are HTML
 // so they do not stretch.
-export function AcwrCard({ series, ratio, className }: AcwrCardProps) {
+export function AcwrCard({ series: fullSeries, ratio, className }: AcwrCardProps) {
+  // The API returns one entry per day of the range, null before the first
+  // session. A range reaching further back than the data (or "All" rounded up
+  // to whole weeks) must not leave an empty stretch at the left edge
+  // (BACKLOG #74), so the axis starts at the first day with a value.
+  const firstValue = fullSeries.findIndex((d) => d.ratio !== null)
+  const series = firstValue > 0 ? fullSeries.slice(firstValue) : fullSeries
   const status = acwrStatus(ratio)
   const values = series.map((d) => d.ratio).filter((v): v is number => v !== null)
   const lo = Math.min(0.6, ...values.map((v) => v - 0.05))

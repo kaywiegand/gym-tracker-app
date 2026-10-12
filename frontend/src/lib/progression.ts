@@ -15,6 +15,10 @@ export interface Suggestion {
   reason: string
 }
 
+// "16, 16, 14" -- what was really logged, so the reason never claims a rep
+// count the user did not do.
+const repsList = (sets: SetEntry[]) => sets.map((s) => s.reps).join(', ')
+
 // Double Progression (CLAUDE.md §8): +increment once the rep-range ceiling
 // is hit (trigger decides "all working sets" vs "just the last one"),
 // otherwise same weight and work the reps up towards the ceiling. Pure and
@@ -35,17 +39,17 @@ export function suggestNext(input: SuggestNextInput): Suggestion {
   if (triggerMet) {
     const rawWeight = lastWeight + incrementKg
     const weightKg = roundingKg > 0 ? Math.round(rawWeight / roundingKg) * roundingKg : rawWeight
-    const scope = trigger === 'all_sets' ? 'all sets' : 'the last set'
+    const logged = trigger === 'all_sets' ? `${repsList(workingSets)} reps` : `${workingSets[workingSets.length - 1].reps} reps on the last set`
     return {
       weightKg,
       reps: repLow,
-      reason: `You hit ${repHigh} reps on ${scope} last time — try +${incrementKg}kg.`,
+      reason: `Last time ${logged} (top of range: ${repHigh}) — try +${incrementKg}kg.`,
     }
   }
 
   return {
     weightKg: lastWeight,
     reps: repHigh,
-    reason: `Same weight as last time — work up to ${repHigh} reps.`,
+    reason: `Last time ${repsList(workingSets)} reps — same weight, work up to ${repHigh}.`,
   }
 }

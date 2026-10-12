@@ -68,12 +68,20 @@ export function ConsistencyCalendar({ dates, weeks }: ConsistencyCalendarProps) 
     }
   }
 
-  const h = headH + 7 * step - gap
+  // +3: with small cells the "Sun" label reaches below the last row.
+  const h = headH + 7 * step - gap + 3
   // Few columns leave room for all four labels; many only for Monday and Sunday.
   const labelRows = step >= 5.5 ? [0, 2, 4, 6] : [0, 6]
 
+  // Counted over exactly the days drawn below, so caption and grid agree
+  // even when the grid is wider than the selected range (BACKLOG #104).
+  const trained = cells.filter((c) => c.active).length
+
   return (
     <div>
+      <p className="mb-2 text-[10.5px] text-muted-foreground">
+        {trained} training {trained === 1 ? 'day' : 'days'} · last {columns} weeks
+      </p>
       <svg viewBox={`0 0 ${VIEW_W} ${h}`} className="block w-full">
         {monthTicks.map((t) => (
           <text key={`${t.x}-${t.label}`} x={t.x} y={9} className="fill-muted-foreground" fontSize={9}>

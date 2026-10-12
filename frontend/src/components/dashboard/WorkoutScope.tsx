@@ -13,6 +13,7 @@ import {
 } from '@/lib/dashboardRanges'
 import { characterValues, perSessionMeanValues, sessionsInWindow, trendPoints } from '@/lib/workoutDevelopment'
 import type { RegionMetrics, WorkoutGroup, WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
+import { MAX_PLAUSIBLE_SESSION_MIN } from '@/lib/time'
 import { groupWorkouts, useCollapsedWorkoutGroups } from '@/lib/workoutGrouping'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
@@ -30,12 +31,6 @@ type RadarMetric = keyof RegionMetrics
 // Button order is the order of interest: strength first, then load, then
 // the raw count -- the same order as everywhere else in the app.
 const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { best_e1rm: 'e1RM', volume_kg: 'Volume', sets: 'Sets' }
-
-// A session's duration is started_at -> its last logged set. ended_at is when
-// the user pressed "Finish", which for a session left open and resumed days
-// later is days after the training (BACKLOG #86). Anything longer than this
-// is still no real session and is dropped as an outlier.
-const MAX_PLAUSIBLE_SESSION_MIN = 240
 
 type RadarView = 'character' | 'compare'
 

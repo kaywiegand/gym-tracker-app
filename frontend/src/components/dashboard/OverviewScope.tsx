@@ -156,9 +156,6 @@ export function OverviewScope() {
 
       <Card className="p-3.5">
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
-        <p className="mb-2 text-[10.5px] text-muted-foreground">
-          {currentDates.length} training {currentDates.length === 1 ? 'day' : 'days'} · {rangeTitle(shownRange).toLowerCase()}
-        </p>
         <ConsistencyCalendar dates={resolved.dates} weeks={weeks} />
       </Card>
 
