@@ -45,3 +45,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261012-1351-e704cb2` | `e704cb2` | 2026-10-12T13:51:24Z | `backups/20261012-1351-e704cb2/` | cache buster (version check + banner), no-cache headers, sw api denylist (csv download) |
 | `20261012-1825-43fc1ba` | `43fc1ba` | 2026-10-12T18:25:44Z | `backups/20261012-1825-43fc1ba/` | body weight one entry per day, dashboard pass (#96-#111) |
 | `20261012-1942-7094336` | `7094336` | 2026-10-12T19:42:35Z | `backups/20261012-1942-7094336/` | tracking: session on first set, suggestion text, finish duration; consistency caption (#67, #69, #74, #86, #104) |
+| `20261012-1956-f42aaa3` | `f42aaa3` | 2026-10-12T19:56:38Z | `backups/20261012-1956-f42aaa3/` | compact volume tile, ACWR/session title, full-week calendar (#113-#115) |

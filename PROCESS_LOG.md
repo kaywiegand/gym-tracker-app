@@ -445,3 +445,16 @@
 - Der Zähler über dem Consistency-Kalender zählt die angezeigten Tage, nicht den gewählten Zeitraum.
 
 **Nächster Schritt:** Kay nimmt den Stand auf dem Handy ab; danach #78.
+
+---
+
+## Session 2026-10-12 (Nacht) — Overview-Kacheln nachgeschärft, Deploy
+
+**Was passiert ist:** #113 (Volume/session kompakt), #114 (ACWR-Kachel) und #115 (Consistency-Kalender) umgesetzt in `6be5ee3`, lokal im Handy-Viewport geprüft und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Die ACWR-Linie ohne Punkt ist nur im Code geprüft — lokal gibt es dafür zu wenig Daten.
+
+**Entscheidungen:**
+- Kay: die ACWR-Kachel heißt „ACWR/session“, analog zu „Volume/session“; die Definition (7 vs. 28 Tage) steht nur in der Info-Legende. Claudes Einwand (ACWR ist ein Tageswert, kein Wert pro Session) wurde genannt und von Kay überstimmt.
+- „avg“ steht nur am kg-Wert; „sessions/wk“ ist bereits eine Rate.
+- Kalender zeigt immer ganze Wochen; Tage nach heute sind leere Felder und zählen nicht.
+
+**Nächster Schritt:** Kay nimmt die Overview auf dem Handy ab; danach #78.
