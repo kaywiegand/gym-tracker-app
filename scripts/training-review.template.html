@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training Review</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#fff; --line:#e3e6eb; --grid:#eceef2;
+  --ink:#16191f; --ink2:#4a5261; --mut:#7b8494;
+  --e1rm:#7c4fd1; --sets:#0091b0; --track:#dfe3ea; --neutral:#9aa3b2; --neutral2:#5f6878;
+  --good:#1a9a52; --warn:#b7791f; --bad:#d14343;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0e1116; --panel:#171b22; --line:#2a313c; --grid:#222933;
+  --ink:#e6edf3; --ink2:#b3bdcb; --mut:#8b98a9;
+  --e1rm:#a98bf0; --sets:#2bb4d1; --track:#2a313c; --neutral:#6b7686; --neutral2:#a3adbb;
+  --good:#3fc57a; --warn:#e0a84a; --bad:#f07070;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+main{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0}
+h2{font-size:15px;margin:0 0 2px}
+.sub{color:var(--mut);font-size:12.5px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .l{font-size:11.5px;color:var(--mut)}
+.kpi .v{font-size:26px;font-weight:650;margin-top:2px}
+.kpi .d{font-size:12px;color:var(--ink2)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.two .panel{margin-top:14px}
+ol.todo{margin:10px 0 0;padding-left:20px}
+ol.todo li{margin:0 0 9px}
+ol.todo b{font-weight:650}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink2);border:1px solid var(--line);border-radius:999px;padding:2px 8px;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.up i{background:var(--good)} .flat i{background:var(--warn)} .down i{background:var(--bad)} .few i{background:var(--neutral)}
+.low i{background:var(--bad)} .ok i{background:var(--good)} .high i{background:var(--warn)}
+.tabs{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;align-items:center}
+.tabs button{font:inherit;font-weight:600;color:var(--ink2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-top:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.card .name{font-weight:650}
+.next{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+.next .t{font-size:11.5px;color:var(--mut)}
+.next .v{font-size:17px;font-weight:650;margin-top:1px}
+.next .w{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.meta{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);margin-top:6px}
+.rr{display:flex;gap:2px;height:8px;margin-top:6px}
+.rr span{display:block;height:8px;border-radius:2px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+details{margin-top:8px;font-size:12px;color:var(--ink2)}
+details summary{cursor:pointer;color:var(--mut)}
+details table{border-collapse:collapse;margin-top:6px;width:100%}
+details td{padding:2px 8px 2px 0;vertical-align:top;font-variant-numeric:tabular-nums}
+.reg{margin-top:14px}
+.reg .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.meter{position:relative;height:12px;background:var(--track);border-radius:4px}
+.meter b{position:absolute;left:0;top:0;height:12px;border-radius:4px;background:var(--sets)}
+.meter em{position:absolute;top:-4px;width:2px;height:20px;background:var(--ink)}
+.meter small{position:absolute;top:16px;font-size:10.5px;color:var(--mut);transform:translateX(-50%);white-space:nowrap}
+svg text{fill:var(--mut);font-size:11px}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .08s;z-index:5;white-space:pre-line}
+.note{font-size:12px;color:var(--mut);margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Training Review</h1>
+  <div class="sub" id="range"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <h2>Was du ab heute anders machen solltest</h2>
+    <div class="sub">Abgeleitet aus den Daten unten. Reihenfolge = Hebel.</div>
+    <ol class="todo" id="todo"></ol>
+  </div>
+
+  <div class="two">
+    <div class="panel">
+      <h2>Trainingstage pro Woche</h2>
+      <div class="sub">Linie = Plan (3 pro Woche)</div>
+      <div id="weekly"></div>
+    </div>
+    <div class="panel">
+      <h2>Sätze pro Woche je Muskelregion</h2>
+      <div class="sub">Schnitt über den Zeitraum, Sekundärmuskel zählt halb. Marken = MEV und MAV der App.</div>
+      <div id="regions"></div>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="sub" id="dayinfo" style="margin-top:8px"></div>
+  <div class="legend">
+    <span><i style="background:var(--e1rm)"></i>e1RM je Training (bester Satz)</span>
+    <span><i style="background:var(--neutral)"></i>Wdh. unter Bereich</span>
+    <span><i style="background:var(--sets)"></i>im Bereich</span>
+    <span><i style="background:var(--neutral2)"></i>über Bereich</span>
+  </div>
+  <div class="cards" id="cards"></div>
+  <p class="note" id="foot"></p>
+</main>
+<div id="tip"></div>
+<script>
+const D = /*DATA*/null;
+const $ = (id) => document.getElementById(id);
+const de = (n, d = 0) => Number(n).toLocaleString('de-DE', {minimumFractionDigits: d, maximumFractionDigits: d});
+const sd = (iso) => { const [, m, d] = iso.split('-'); return d + '.' + m + '.'; };
+const STATUS = {up: 'Fortschritt', flat: 'Plateau', down: 'Rückgang', few: 'wenig Daten'};
+const tip = $('tip');
+function bindTips(root) {
+  root.querySelectorAll('[data-tip]').forEach((el) => {
+    el.addEventListener('mousemove', (ev) => {
+      tip.textContent = el.dataset.tip; tip.style.opacity = 1;
+      const x = Math.min(ev.clientX + 12, innerWidth - 270);
+      tip.style.left = x + 'px'; tip.style.top = (ev.clientY + 14) + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.opacity = 0; });
+  });
+}
+const setsText = (sets) => sets.map(([r, kg]) => r + '×' + de(kg, kg % 1 ? 1 : 0)).join('  ');
+
+// ---- header + KPIs --------------------------------------------------------
+$('range').textContent = `${sd(D.start)} bis ${sd(D.today)}${D.today.slice(0, 4)} · ${D.weeks} Wochen · noch ${D.year_end_weeks} Wochen bis Jahresende`;
+const k = D.kpi;
+const allEx = D.days.flatMap((d) => d.exercises);
+const uniq = [...new Map(allEx.map((e) => [e.title, e])).values()];
+const count = (s) => uniq.filter((e) => e.status === s).length;
+const kpis = [
+  ['Trainingstage', k.sessions, `in ${D.weeks} Wochen`],
+  ['Pro Woche', de(k.per_week, 1), 'Plan: 3'],
+  ['Wochen mit 3 Einheiten', `${k.full_weeks} / ${D.weeks}`, `${k.empty_weeks} Wochen ohne Training`],
+  ['Übungen im Plateau', `${count('flat') + count('down')} / ${uniq.length}`, `${count('up')} mit Fortschritt`],
+];
+if (D.body.length === 2) {
+  const [a, b] = D.body;
+  kpis.push(['Muskelmasse (BIA)', de(b.smm, 1) + ' kg', `${b.smm - a.smm >= 0 ? '+' : ''}${de(b.smm - a.smm, 1)} kg seit ${sd(a.date)}`]);
+}
+$('kpis').innerHTML = kpis.map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+
+// ---- recommendations ----------------------------------------------------------
+const legs = D.regions.find((r) => r.key === 'legs');
+const low = D.regions.filter((r) => r.status === 'low').map((r) => r.label);
+const below = uniq.filter((e) => e.range && e.range.below >= 50 && e.muscle !== 'Abdominals');
+const todo = [];
+todo.push(`<b>Erst Frequenz, dann Gewicht.</b> ${de(k.per_week, 1)} Trainings pro Woche statt 3, nur ${k.full_weeks} von ${D.weeks} Wochen vollständig${D.gaps.length ? `, dazu ${D.gaps.length} Pausen von 8+ Tagen (${D.gaps.map((g) => sd(g.from) + '–' + sd(g.to)).join(', ')})` : ''}. Bis Jahresende sind es ${D.year_end_weeks} Wochen: drei feste Tage, und wenn einer ausfällt, wird er nachgeholt statt gestrichen.`);
+todo.push(`<b>Ein Gewicht pro Übung, Wiederholungen aufbauen.</b> ${count('flat') + count('down')} von ${uniq.length} Übungen stehen oder fallen. Die Gewichte wechseln von Training zu Training (z. B. Rudern 58 ↔ 63 ↔ 68), dadurch gibt es keine Vergleichsbasis. Regel ab heute: Gewicht bleibt, bis alle Sätze die obere Grenze schaffen, erst dann eine Stufe hoch. Die Karten unten nennen das Ziel für das nächste Training.`);
+if (below.length) todo.push(`<b>Grundübungen in den Bereich holen.</b> ${below.map((e) => e.subtitle || e.title).join(', ')}: ${below.length === 1 ? 'liegt' : 'liegen'} überwiegend unter ${below[0].low} Wiederholungen. Das ist Maximalkraft-Training, und der Wert steht trotzdem. Nimm das Gewicht aus der Karte (das schwerste, bei dem zuletzt ${below[0].low}+ gingen) und bleib dabei, bis ${below[0].high} Wiederholungen stehen.`);
+if (legs && legs.status === 'low') todo.push(`<b>Beine sind praktisch nicht im Plan.</b> ${de(legs.avg, 1)} Sätze pro Woche bei einem Minimum von ${legs.mev}. Jede Einheit beginnt ab heute mit einer Beinübung (Mo Kniebeuge/Split Squat, Mi Leg Extension oder RDL, Fr Leg Curl), solange du frisch bist. Start mit 3 Sätzen je Einheit, nach vier Wochen eine zweite Beinübung dazu.`);
+todo.push(`<b>Satzpausen verlängern.</b> Typisches Muster: 10 / 9 / 5 Wiederholungen. Der letzte Satz bricht ein, weil die Pause zu kurz ist oder der erste Satz bis zum Versagen geht. Bei Grundübungen 2–3 Minuten, erster Satz mit 1–2 Wiederholungen Reserve.`);
+if (D.body.length === 2) {
+  const [a, b] = D.body;
+  todo.push(`<b>Essen: Protein und genug Energie.</b> BIA ${sd(a.date)} → ${sd(b.date)}: Muskelmasse ${de(a.smm, 1)} → ${de(b.smm, 1)} kg, Fettmasse ${de(a.fat, 1)} → ${de(b.fat, 1)} kg bei fast gleichem Gewicht. Für Kraftzuwachs bis Jahresende: täglich 1,6–2,2 g Protein pro kg (bei ${de(b.weight, 0)} kg etwa ${de(b.weight * 1.6, 0)}–${de(b.weight * 2.2, 0)} g), Kalorien auf Erhalt bis leicht darüber. Nächster Scan in 4–6 Wochen zur selben Tageszeit, sonst sind die Werte nicht vergleichbar.`);
+}
+todo.push(`<b>12-Wochen-Rahmen.</b> Wochen 1–5 aufbauen, Woche 6 leichter (Gewichte halten, ein Satz weniger), Wochen 7–11 aufbauen, Woche 12 Bestwerte testen. Realistisch pro Übung: alle 2–3 Wochen eine Gewichtsstufe.`);
+$('todo').innerHTML = todo.map((t) => `<li>${t}</li>`).join('');
+
+// ---- weekly columns -------------------------------------------------------------
+(function weekly() {
+  const W = 520, H = 190, pl = 26, pr = 46, pt = 12, pb = 26, n = D.weekly.length;
+  const max = Math.max(3, ...D.weekly.map((w) => w.sessions));
+  const band = (W - pl - pr) / n, bw = Math.min(24, band - 6);
+  const y = (v) => pt + (H - pt - pb) * (1 - v / max);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Trainingstage pro Woche">`;
+  for (let t = 0; t <= max; t++) s += `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text x="${pl - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`;
+  D.weekly.forEach((w, i) => {
+    const x = pl + band * i + (band - bw) / 2, h = y(0) - y(w.sessions);
+    if (w.sessions) s += `<path d="M${x},${y(0)}v${-(h - 4)}q0,-4 4,-4h${bw - 8}q4,0 4,4v${h - 4}z" fill="var(--sets)"/>`;
+    s += `<rect x="${pl + band * i}" y="${pt}" width="${band}" height="${H - pt - pb}" fill="transparent" data-tip="Woche ab ${sd(w.week)}\n${w.sessions} Trainingstage · ${w.sets} Sätze\n${w.days.map(sd).join('  ') || 'kein Training'}"/>`;
+    if (i % 2 === 0) s += `<text x="${pl + band * i + band / 2}" y="${H - 8}" text-anchor="middle">${sd(w.week)}</text>`;
+  });
+  s += `<line x1="${pl}" x2="${W - pr}" y1="${y(3)}" y2="${y(3)}" stroke="var(--ink)" stroke-width="1.5"/><text x="${W - pr + 5}" y="${y(3) + 4}">Plan</text></svg>`;
+  $('weekly').innerHTML = s;
+})();
+
+// ---- region meters ----------------------------------------------------------------
+$('regions').innerHTML = D.regions.map((r) => {
+  const scale = Math.max(r.mav, r.avg) * 1.05, pct = (v) => (100 * v / scale).toFixed(1);
+  const label = r.status === 'low' ? 'unter Minimum' : (r.status === 'high' ? 'über Maximum' : 'im Bereich');
+  return `<div class="reg" data-tip="${r.label}: ${de(r.avg, 1)} Sätze/Woche\nMEV ${r.mev} · MAV ${r.mav} · MRV ${r.mrv}">
+    <div class="h"><span>${r.label} <b>${de(r.avg, 1)}</b></span><span class="chip ${r.status}"><i></i>${label}</span></div>
+    <div class="meter" style="margin-bottom:18px"><b style="width:${pct(r.avg)}%"></b>
+      <em style="left:${pct(r.mev)}%"></em><small style="left:${pct(r.mev)}%">MEV ${r.mev}</small>
+      <em style="left:${pct(r.mav)}%;opacity:.35"></em><small style="left:${pct(r.mav)}%">MAV ${r.mav}</small></div>
+  </div>`;
+}).join('');
+
+// ---- day tabs + exercise cards ------------------------------------------------------
+function spark(e) {
+  const S = e.sessions;
+  if (S.length < 2) return '<div class="sub" style="height:74px;display:flex;align-items:center">Zu wenig Trainings für einen Verlauf</div>';
+  const W = 320, H = 74, pl = 8, pr = 46, pt = 10, pb = 8;
+  const t0 = Date.parse(D.start), t1 = Date.parse(D.today), vals = S.map((s) => s.best);
+  let lo = Math.min(...vals), hi = Math.max(...vals); if (hi - lo < 1) { hi += 1; lo -= 1; }
+  const x = (d) => pl + (W - pl - pr) * (Date.parse(d) - t0) / (t1 - t0), y = (v) => pt + (H - pt - pb) * (1 - (v - lo) / (hi - lo));
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="e1RM-Verlauf ${e.title}">`;
+  s += `<line x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}" stroke="var(--grid)"/>`;
+  s += `<polyline points="${S.map((p) => x(p.date).toFixed(1) + ',' + y(p.best).toFixed(1)).join(' ')}" fill="none" stroke="var(--e1rm)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  S.forEach((p, i) => {
+    const last = i === S.length - 1;
+    s += `<circle cx="${x(p.date).toFixed(1)}" cy="${y(p.best).toFixed(1)}" r="${last ? 4 : 2.5}" fill="var(--e1rm)" stroke="var(--panel)" stroke-width="2"/>`;
+    s += `<circle cx="${x(p.date).toFixed(1)}" cy="${y(p.best).toFixed(1)}" r="11" fill="transparent" data-tip="${sd(p.date)}\n${setsText(p.sets)}\ne1RM ${de(p.best, 1)} kg"/>`;
+  });
+  const lastP = S[S.length - 1];
+  s += `<text x="${(x(lastP.date) + 8).toFixed(1)}" y="${(y(lastP.best) + 4).toFixed(1)}" style="fill:var(--ink2)">${de(lastP.best, 0)} kg</text></svg>`;
+  return s;
+}
+function card(e) {
+  const last = e.sessions[e.sessions.length - 1];
+  const trend = e.trend === undefined ? '' : ` ${e.trend > 0 ? '+' : ''}${de(e.trend, 1)} %`;
+  const rr = e.range ? `<div class="rr" data-tip="Wiederholungen aller Sätze\nunter ${e.low}: ${e.range.below} %\n${e.low}–${e.high}: ${e.range.in} %\nüber ${e.high}: ${e.range.above} %">
+      ${e.range.below ? `<span style="flex:${e.range.below};background:var(--neutral)"></span>` : ''}
+      ${e.range.in ? `<span style="flex:${e.range.in};background:var(--sets)"></span>` : ''}
+      ${e.range.above ? `<span style="flex:${e.range.above};background:var(--neutral2)"></span>` : ''}</div>
+      <div class="meta"><span>${e.range.in} % der Sätze im Bereich ${e.low}–${e.high}</span><span>${e.sessions.length} Trainings</span></div>` : '';
+  const rows = e.sessions.slice().reverse().map((s) => `<tr><td>${sd(s.date)}</td><td>${setsText(s.sets)}</td><td>${de(s.best, 1)}</td></tr>`).join('');
+  return `<div class="card">
+    <div class="top"><div><div class="name">${e.title}</div><div class="sub">${e.subtitle || ''}</div></div>
+      <span class="chip ${e.status}"><i></i>${STATUS[e.status]}${trend}</span></div>
+    ${spark(e)}
+    ${rr}
+    ${last ? `<div class="meta"><span>Zuletzt ${sd(last.date)} (vor ${e.last_days} Tagen)</span><span>${setsText(last.sets)}</span></div>` : ''}
+    <div class="next"><div class="t">Nächstes Training</div><div class="v">${e.next}</div><div class="w">${e.why}</div></div>
+    ${rows ? `<details><summary>Alle Trainings</summary><table><tr><td>Datum</td><td>Sätze (Wdh × kg)</td><td>e1RM</td></tr>${rows}</table></details>` : ''}
+  </div>`;
+}
+function show(key) {
+  const day = D.days.find((d) => d.key === key);
+  document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', b.dataset.key === key));
+  const c = (s) => day.exercises.filter((e) => e.status === s).length;
+  $('dayinfo').textContent = `${day.workout}: ${day.done}× in ${D.weeks} Wochen trainiert · ${c('up')} Fortschritt · ${c('flat')} Plateau · ${c('down')} Rückgang · ${c('few')} wenig Daten`;
+  $('cards').innerHTML = day.exercises.map(card).join('');
+  bindTips($('cards'));
+}
+$('tabs').innerHTML = D.days.map((d) => `<button role="tab" data-key="${d.key}">${d.label}${d.key === D.today_key ? ' · heute' : ''}</button>`).join('');
+document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => show(b.dataset.key)));
+show(D.days.some((d) => d.key === D.today_key) ? D.today_key : D.days[0].key);
+bindTips(document);
+$('foot').textContent = 'e1RM nach Epley (kg × (1 + Wdh/30)), bester Satz je Training. Trend = Mittel der letzten gegen die ersten Trainings im Zeitraum. Gewichte wie geloggt; einzelne Geräte zeigen vermutlich Pfund an (offen, BACKLOG #75). Der Trend je Gerät bleibt davon unberührt, absolute Werte nicht.';
+</script>
+</body>
+</html>
