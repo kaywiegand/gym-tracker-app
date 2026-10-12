@@ -41,3 +41,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261009-1030-2c89417` | `2c89417` | 2026-10-09T10:30:40Z | `backups/20261009-1030-2c89417/` | Dashboard All ab erstem Training; Gainsfire-Import 09.10. |
 | `20261009-1116-bf161af` | `bf161af` | 2026-10-09T11:16:20Z | `backups/20261009-1116-bf161af/` | Dashboard/Exercise: Workout-Ansicht bleibt offen (#78) |
 | `20261012-0958-acb9400-dirty` | `acb9400` | 2026-10-12T09:58:09Z | `backups/20261012-0958-acb9400-dirty/` | global range 7D-All, vergleich, ACWR chart, workout development |
+| `20261012-1012-69b2aae-dirty` | `69b2aae` | 2026-10-12T10:12:31Z | `backups/20261012-1012-69b2aae-dirty/` | kachel merge, kalender min 4 wochen, sessions mit arbeitssaetzen |
