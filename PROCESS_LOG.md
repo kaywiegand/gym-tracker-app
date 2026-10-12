@@ -458,3 +458,17 @@
 - Kalender zeigt immer ganze Wochen; Tage nach heute sind leere Felder und zählen nicht.
 
 **Nächster Schritt:** Kay nimmt die Overview auf dem Handy ab; danach #78.
+
+---
+
+## Session 2026-10-12 (Nacht, Fortsetzung) — Scroll-Position, Kalenderhöhe, Body aufgeräumt, Deploy
+
+**Was passiert ist:** #115–#118, #120, #121 umgesetzt in `e72482a` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Overview lokal im Handy-Viewport geprüft und gemessen (Kalenderhöhe und Seitenhöhe konstant über alle Zeiträume, oberste Kachel bleibt stehen). Der Body-Umbau ist ungesehen live — lokal gibt es keine BIA-Daten. Nichts davon auf einem echten iPhone geprüft.
+
+**Entscheidungen:**
+- #110 war als erledigt gemeldet, wirkte auf iOS aber nicht: dort gibt es kein natives Scroll-Anchoring. Lösung in zwei Teilen — der Kalender hat eine feste Höhe (Ursache laut Kay), dazu ein eigener Anker (`lib/useScrollAnchor.ts`) für alle übrigen Höhenänderungen.
+- Feste Kalenderhöhe heißt: Zellen sind nicht mehr quadratisch (8 Wochen breit, 52 Wochen schmal). Bewusst in Kauf genommen.
+- Body: Kay will von den Detailwerten nur Lean mass, als dritte Linie im Muskel/Fett-Chart; „Fat target“ steht als Zeile in der Fit-Score-Kachel.
+- Beim Messen im Browser-Pane: ein Tab im Hintergrund feuert keine Scroll-Events — der Anker merkt sich die Position deshalb auch bei jedem Tap und ignoriert veraltete Stände.
+
+**Nächster Schritt:** Kay nimmt Overview und Body auf dem Handy ab; danach #78.
