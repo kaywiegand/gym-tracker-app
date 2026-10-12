@@ -26,22 +26,35 @@ export function MuscleRadar({ series }: MuscleRadarProps) {
   })
 
   return (
-    <div className="h-[260px] w-full">
-      <ResponsiveRadar
-        data={data}
-        keys={series.map((s) => s.label)}
-        indexBy="region"
-        margin={{ top: 40, right: 60, bottom: 40, left: 60 }}
-        colors={series.map((s) => s.color)}
-        fillOpacity={0.15}
-        borderWidth={2}
-        dotSize={6}
-        gridLabelOffset={20}
-        theme={{
-          axis: { ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } } },
-          grid: { line: { stroke: 'var(--border)' } },
-        }}
-      />
+    <div className="w-full">
+      {/* Legend from 2 series on (CLAUDE.md §7); a single series is named by its card. */}
+      {series.length >= 2 && (
+        <div className="mb-1 flex flex-wrap gap-x-4 gap-y-1">
+          {series.map((s) => (
+            <span key={s.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="h-0.5 w-3.5 rounded-full" style={{ background: s.color }} />
+              {s.label}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="h-[260px] w-full">
+        <ResponsiveRadar
+          data={data}
+          keys={series.map((s) => s.label)}
+          indexBy="region"
+          margin={{ top: 40, right: 60, bottom: 40, left: 60 }}
+          colors={series.map((s) => s.color)}
+          fillOpacity={0.15}
+          borderWidth={2}
+          dotSize={6}
+          gridLabelOffset={20}
+          theme={{
+            axis: { ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } } },
+            grid: { line: { stroke: 'var(--border)' } },
+          }}
+        />
+      </div>
     </div>
   )
 }

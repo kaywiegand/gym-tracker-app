@@ -3,9 +3,15 @@ import type { ExerciseHistoryEntry } from '@/types'
 import type { DashboardRange } from '@/lib/dashboardRanges'
 import { formatNumber } from '@/lib/format'
 
+// Only the fields the panels read, so a workout's per-session totals can feed
+// the same component as an exercise's history (BACKLOG #87).
+export type TrendPoint = Pick<ExerciseHistoryEntry, 'started_at' | 'best_e1rm' | 'volume_kg' | 'sets_count'>
+
 interface MetricTrendPanelsProps {
-  history: ExerciseHistoryEntry[]
+  history: TrendPoint[]
   range: DashboardRange
+  // Label of the first panel: "e1RM" for one exercise, "e1RM index" for a workout.
+  e1rmLabel?: string
 }
 
 interface Panel {
@@ -39,7 +45,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // range spans years -- "08-14" repeated across three years tells you nothing.
 function formatTick(iso: string, range: DashboardRange): string {
   const d = new Date(iso)
-  if (range === '3M') return `${d.getDate()}. ${MONTHS[d.getMonth()]}`
+  if (range === '7D' || range === '14D' || range === '1M' || range === '3M') return `${d.getDate()}. ${MONTHS[d.getMonth()]}`
   if (range === 'All') return `${MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`
   return MONTHS[d.getMonth()]
 }
@@ -53,7 +59,9 @@ function stats(values: number[]) {
 
 const fmt = (v: number, decimals: number) => formatNumber(v, decimals > 0 ? 1 : 0)
 
-export function MetricTrendPanels({ history, range }: MetricTrendPanelsProps) {
+export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPanelsProps) {
+  if (history.length === 0) return null
+
   // At most six labels, evenly spaced, and never the same date twice.
   const tickCount = Math.min(6, history.length)
   const tickIndices = Array.from({ length: tickCount }, (_, i) =>
@@ -63,6 +71,7 @@ export function MetricTrendPanels({ history, range }: MetricTrendPanelsProps) {
   return (
     <div className="flex flex-col gap-3">
       {PANELS.map((panel, panelIndex) => {
+        const label = panel.key === 'best_e1rm' && e1rmLabel ? e1rmLabel : panel.label
         const values = history.map((h) => h[panel.key] ?? 0)
         const { min, avg, max } = stats(values)
         const isLast = panelIndex === PANELS.length - 1
@@ -74,7 +83,7 @@ export function MetricTrendPanels({ history, range }: MetricTrendPanelsProps) {
           <div key={panel.key}>
             <div className="mb-0.5 flex items-baseline justify-between gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: panel.color }}>
-                {panel.label}
+                {label}
               </span>
               <span className="text-[10.5px] tabular-nums text-muted-foreground">
                 min {fmt(min, panel.decimals)} · ø {fmt(avg, panel.decimals)} · max {fmt(max, panel.decimals)}
@@ -83,7 +92,7 @@ export function MetricTrendPanels({ history, range }: MetricTrendPanelsProps) {
             </div>
             <div style={{ height: isLast ? 82 : 62 }} className="w-full">
               <ResponsiveLine
-                data={[{ id: panel.label, data: history.map((h, i) => ({ x: i, y: h[panel.key] ?? 0 })) }]}
+                data={[{ id: label, data: history.map((h, i) => ({ x: i, y: h[panel.key] ?? 0 })) }]}
                 margin={{ top: 6, right: 8, bottom: isLast ? 26 : 6, left: 44 }}
                 xScale={{ type: 'point' }}
                 yScale={{ type: 'linear', min: min - pad, max: max + pad }}

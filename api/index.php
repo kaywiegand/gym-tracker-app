@@ -104,6 +104,8 @@ try {
         handleTrainingLoad();
     } elseif ($method === 'GET' && $path === '/dashboard/consistency') {
         handleConsistency();
+    } elseif ($method === 'GET' && $path === '/dashboard/session-volumes') {
+        handleSessionVolumes();
     } elseif ($method === 'GET' && $path === '/dashboard/top-exercises') {
         handleTopExercises();
     } elseif ($method === 'GET' && $path === '/body-measurements') {

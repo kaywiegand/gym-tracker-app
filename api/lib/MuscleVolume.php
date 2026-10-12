@@ -37,12 +37,30 @@ final class MuscleVolume
     // rows where the region is the primary muscle -- otherwise the bench
     // press sets the arms' e1RM. Rows without a role (older callers) count
     // as primary. Both bucketing schemes apply the exact same rules.
-    public static function weeklyByRegion(array $rows, int $weeks, ?string $nowIso = null): array
-    {
+    //
+    // 'window_current'/'window_previous' (BACKLOG #82) are the dashboard's
+    // selected range: the last $windowDays LOCAL calendar days up to and
+    // including today (in $tz) vs. the $windowDays days directly before --
+    // the same day grid as the consistency calendar and the KPI tiles, so
+    // a 3M radar and a 3M calendar describe the same sessions. Same
+    // weighting rules as above.
+    public static function weeklyByRegion(
+        array $rows,
+        int $weeks,
+        ?string $nowIso = null,
+        int $windowDays = 7,
+        ?DateTimeZone $tz = null
+    ): array {
         $now = $nowIso ?? gmdate('Y-m-d\TH:i:s\Z');
         $nowTs = (new DateTimeImmutable($now, new DateTimeZone('UTC')))->getTimestamp();
         $last7Start = $nowTs - 7 * 86400;
         $prev7Start = $nowTs - 14 * 86400;
+
+        $windowDays = max(1, $windowDays);
+        $todayLocal = (new DateTimeImmutable('@' . $nowTs))->setTimezone($tz ?? new DateTimeZone('UTC'))->setTime(0, 0);
+        $windowEndTs = $todayLocal->modify('+1 day')->getTimestamp();
+        $windowStartTs = $todayLocal->modify('-' . ($windowDays - 1) . ' days')->getTimestamp();
+        $windowPrevStartTs = $todayLocal->modify('-' . (2 * $windowDays - 1) . ' days')->getTimestamp();
 
         $currentWeekStart = self::isoWeekStart($now);
         $weekStarts = self::lastWeekStarts($currentWeekStart, $weeks);
@@ -63,9 +81,22 @@ final class MuscleVolume
             // below -- a set from "last week" on the calendar can still be
             // inside the rolling last_7_days window.
             $performedTs = (new DateTimeImmutable($row['performed_at'], new DateTimeZone('UTC')))->getTimestamp();
+            $windows = [];
             if ($performedTs > $prev7Start && $performedTs <= $nowTs) {
-                $window = $performedTs > $last7Start ? 'last_7_days' : 'prev_7_days';
-                $rolling[$region] ??= ['last_7_days' => $emptyWeek, 'prev_7_days' => $emptyWeek];
+                $windows[] = $performedTs > $last7Start ? 'last_7_days' : 'prev_7_days';
+            }
+            if ($performedTs >= $windowStartTs && $performedTs < $windowEndTs) {
+                $windows[] = 'window_current';
+            } elseif ($performedTs >= $windowPrevStartTs && $performedTs < $windowStartTs) {
+                $windows[] = 'window_previous';
+            }
+            foreach ($windows as $window) {
+                $rolling[$region] ??= [
+                    'last_7_days' => $emptyWeek,
+                    'prev_7_days' => $emptyWeek,
+                    'window_current' => $emptyWeek,
+                    'window_previous' => $emptyWeek,
+                ];
                 $rolling[$region][$window]['sets'] += $muscleWeight;
                 $rolling[$region][$window]['volume_kg'] += $weight * $reps * $muscleWeight;
                 if ($isPrimary) {
@@ -101,6 +132,8 @@ final class MuscleVolume
                 'last_week' => $weeksData[$lastWeekStart] ?? $emptyWeek,
                 'last_7_days' => $rolling[$region]['last_7_days'] ?? $emptyWeek,
                 'prev_7_days' => $rolling[$region]['prev_7_days'] ?? $emptyWeek,
+                'window_current' => $rolling[$region]['window_current'] ?? $emptyWeek,
+                'window_previous' => $rolling[$region]['window_previous'] ?? $emptyWeek,
             ];
         }
         return $result;
@@ -151,6 +184,27 @@ final class MuscleVolume
         $ratio = $chronicWeekly > 0 ? $acute / $chronicWeekly : 0.0;
 
         return ['acute_kg' => $acute, 'chronic_kg' => $chronicWeekly, 'ratio' => $ratio];
+    }
+
+    // ACWR (7d vs. 28d) as of each of the last $days days, oldest first,
+    // ending on the day of $nowIso -- the daily line behind the dashboard's
+    // ACWR chart (BACKLOG #83). ratio is null while there is no 28-day load
+    // at all (before the first session), so the chart shows a gap instead of
+    // a misleading 0.
+    public static function acwrDailySeries(array $dailyTotals, int $days, string $nowIso): array
+    {
+        $today = new DateTimeImmutable($nowIso, new DateTimeZone('UTC'));
+        $result = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $day = $today->modify("-{$i} days");
+            $asOf = $day->format('Y-m-d\TH:i:s\Z');
+            $acwr = self::acwr($dailyTotals, $asOf);
+            $result[] = [
+                'date' => $day->format('Y-m-d'),
+                'ratio' => $acwr['chronic_kg'] > 0 ? $acwr['ratio'] : null,
+            ];
+        }
+        return $result;
     }
 
     // Whole-body volume per week (no region split) -- feeds the "Volume/wk"

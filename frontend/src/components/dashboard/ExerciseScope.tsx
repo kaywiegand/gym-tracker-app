@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { detectPlateau } from '@/lib/plateau'
 import { formatNumber } from '@/lib/format'
-import { DEFAULT_RANGE, RANGE_OPTIONS, resolveRangeWeeks, type DashboardRange } from '@/lib/dashboardRanges'
+import { acwrStatus } from '@/lib/acwr'
+import { DEFAULT_RANGE, RANGE_OPTIONS, currentWindow, inWindow, localIso, resolveRangeWeeks, type DashboardRange } from '@/lib/dashboardRanges'
 import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
 import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
@@ -85,20 +86,35 @@ export function ExerciseScope() {
 
   useEffect(() => {
     if (!selected) return
+    let cancelled = false
     setLoading(true)
+    // No `limit`: with `weeks` set the API filters by date and lifts its row
+    // cap itself (#84) -- the range decides what is shown, not a session count.
     resolveRangeWeeks(range).then((weeks) => Promise.all([
-      api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history?limit=20&weeks=${weeks}`),
-      api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?limit=20&weeks=${weeks}`),
+      api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history?weeks=${weeks}`),
+      api.get<ExerciseSessionSummary[]>(`/exercises/${selected.id}/session-summaries?weeks=${weeks}`),
       api.get<Settings>('/settings'),
-      api.get<AcwrResponse>(`/dashboard/acwr?weeks=${weeks}`),
+      // ACWR is a fixed 7d-vs-28d ratio; the range does not change it.
+      api.get<AcwrResponse>('/dashboard/acwr?weeks=4'),
+      weeks,
     ]))
-      .then(([historyData, summariesData, settingsData, acwrData]) => {
-        setHistory(historyData)
-        setSummaries(summariesData)
+      .then(([historyData, summariesData, settingsData, acwrData, weeks]) => {
+        if (cancelled) return
+        // The API cuts at "now minus N days"; the dashboard windows are whole
+        // local calendar days, so trim to the same window as the other scopes.
+        const win = currentWindow(weeks)
+        const inRange = (iso: string) => inWindow(localIso(new Date(iso)), win)
+        setHistory(historyData.filter((h) => inRange(h.started_at)))
+        setSummaries(summariesData.filter((s) => inRange(s.started_at)))
         setSettings(settingsData)
         setAcwr(acwrData)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [selected, range])
 
   const rangeSwitch = (
@@ -114,7 +130,8 @@ export function ExerciseScope() {
   const ladder = buildLadder(summaries)
   const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
   const isPlateaued = detectPlateau(history, plateauSessions)
-  const acwrInRange = acwr ? acwr.ratio >= 0.8 && acwr.ratio <= 1.3 : true
+  // Same thresholds and colors as the Overview ACWR card (lib/acwr.ts).
+  const acwrClass = acwr ? acwrStatus(acwr.ratio).className : ''
   // Best top weight in the selected range, and when it was reached (#33) --
   // replaces the "Top weight" trend panel with a single fact directly above
   // the session list it belongs to. `history` is chronological ascending
@@ -142,7 +159,7 @@ export function ExerciseScope() {
       {loading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : history.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No history yet for this exercise.</p>
+        <p className="text-sm text-muted-foreground">No sessions in this period.</p>
       ) : (
         <>
           {isPlateaued && (
@@ -157,14 +174,14 @@ export function ExerciseScope() {
             </Card>
           )}
 
-          {acwr && (
+          {acwr && acwr.chronic_kg > 0 && (
             // Plain words + a percentage instead of the raw ACWR ratio
             // (#32) -- "0.11" read as a mystery number even with the info
             // button. Wrapped as normal text flow (not a flex row) so it can
             // still break onto a second line on a phone without truncating.
             <p className="text-[11.5px] text-muted-foreground">
               Whole-body load, last 7 days:{' '}
-              <span className={acwrInRange ? 'text-status-good' : 'text-status-warn'}>{Math.round(acwr.ratio * 100)}%</span>{' '}
+              <span className={acwrClass}>{Math.round(acwr.ratio * 100)}%</span>{' '}
               of your 4-week average (usual range 80–130%) <InfoButton term="ACWR" />
             </p>
           )}

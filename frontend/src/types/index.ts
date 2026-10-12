@@ -186,6 +186,11 @@ export interface MuscleVolumeRegion {
   // PWA can run the previous bundle for one launch after a deploy.
   last_7_days: WeeklyMetrics
   prev_7_days: WeeklyMetrics
+  // The selected dashboard range (`days` query param) vs. the same length
+  // before it, in local calendar days (BACKLOG #82). Optional: absent on an
+  // older API.
+  window_current?: WeeklyMetrics
+  window_previous?: WeeklyMetrics
   weeks: MuscleVolumeWeek[]
 }
 
@@ -203,6 +208,24 @@ export interface AcwrResponse {
   chronic_kg: number
   ratio: number
   weekly_series: AcwrWeek[]
+  // One ratio per day over the requested range, oldest first; ratio is null
+  // before any load exists. Optional: absent on an older API (BACKLOG #83).
+  daily_series?: AcwrDay[]
+}
+
+export interface AcwrDay {
+  date: string
+  ratio: number | null
+}
+
+export interface SessionVolume {
+  session_id: string
+  date: string
+  volume_kg: number
+}
+
+export interface SessionVolumesResponse {
+  sessions: SessionVolume[]
 }
 
 export interface TrainingLoadResponse {
@@ -230,10 +253,15 @@ export interface WorkoutMuscleSplitSession {
   session_id: string
   started_at: string
   ended_at: string | null
+  // Timestamp of the latest logged working set; null for an older API.
+  last_set_at?: string | null
   // Weighted sets per region -- unchanged shape, so a cached older client
   // keeps working after a deploy.
   by_region: Record<string, number>
   metrics_by_region: Record<string, RegionMetrics>
+  // Whole-session totals (not region-weighted). e1rm_index = Σ best e1RM per
+  // exercise. Optional: absent on an older API.
+  totals?: { sets: number; volume_kg: number; e1rm_index: number }
 }
 
 export interface WorkoutMuscleSplitResponse {

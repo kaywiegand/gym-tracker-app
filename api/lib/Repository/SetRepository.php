@@ -189,6 +189,7 @@ final class SetRepository extends BaseRepository
 
         $rows = $this->fetchAll(
             "SELECT st.session_id, s.started_at, s.ended_at, mu.region,
+                    MAX(st.performed_at) AS last_set_at,
                     SUM(em.weight) AS sets,
                     SUM(st.weight_kg * st.reps * em.weight) AS volume_kg,
                     MAX(CASE WHEN em.role = 'primary' THEN st.weight_kg * (1 + st.reps / 30.0) END) AS best_e1rm
@@ -210,9 +211,17 @@ final class SetRepository extends BaseRepository
                 'session_id' => $sessionId,
                 'started_at' => $row['started_at'],
                 'ended_at' => $row['ended_at'],
+                'last_set_at' => null,
                 'by_region' => [],
                 'metrics_by_region' => [],
+                'totals' => ['sets' => 0, 'volume_kg' => 0.0, 'e1rm_index' => 0.0],
             ];
+            // Latest logged working set over all regions -- the dashboard's
+            // session duration ends here, not at ended_at (BACKLOG #86).
+            if ($row['last_set_at'] !== null
+                && ($bySession[$sessionId]['last_set_at'] === null || $row['last_set_at'] > $bySession[$sessionId]['last_set_at'])) {
+                $bySession[$sessionId]['last_set_at'] = $row['last_set_at'];
+            }
             $bySession[$sessionId]['by_region'][$row['region']] = (float) $row['sets'];
             $bySession[$sessionId]['metrics_by_region'][$row['region']] = [
                 'sets' => (float) $row['sets'],
@@ -220,6 +229,35 @@ final class SetRepository extends BaseRepository
                 'best_e1rm' => (float) ($row['best_e1rm'] ?? 0),
             ];
         }
+
+        // Whole-session totals, not region-weighted: the region rows above
+        // count a bench press once per muscle it touches (x0.5 secondary), so
+        // summing them over-states volume and sets. e1rm_index = Σ over the
+        // session's exercises of that exercise's best e1RM (BACKLOG #87) --
+        // one number per session that moves when any lift gets stronger.
+        $totalRows = $this->fetchAll(
+            "SELECT st.session_id, st.exercise_id,
+                    MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm,
+                    SUM(st.weight_kg * st.reps) AS volume_kg,
+                    COUNT(st.id) AS sets
+             FROM sessions s
+             JOIN sets st ON st.session_id = s.id AND st.deleted_at IS NULL AND st.is_warmup = 0
+             WHERE s.workout_id = ? AND s.deleted_at IS NULL
+               AND s.id IN ({$innerSql})
+             GROUP BY st.session_id, st.exercise_id",
+            array_merge([$workoutId], $innerParams)
+        );
+        foreach ($totalRows as $row) {
+            if (!isset($bySession[$row['session_id']])) {
+                continue;
+            }
+            $t = &$bySession[$row['session_id']]['totals'];
+            $t['sets'] += (int) $row['sets'];
+            $t['volume_kg'] += (float) $row['volume_kg'];
+            $t['e1rm_index'] += (float) $row['best_e1rm'];
+            unset($t);
+        }
+
         return array_values($bySession);
     }
 

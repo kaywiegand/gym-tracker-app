@@ -385,7 +385,15 @@ check(
         && $split[0]['metrics_by_region']['shoulders']['best_e1rm'] === 0.0,
     $failures
 );
+check(
+    'muscleSplitForWorkout totals are whole-session, not region-weighted',
+    $split[0]['totals']['sets'] === 1
+        && abs($split[0]['totals']['volume_kg'] - 480.0) < 0.001
+        && abs($split[0]['totals']['e1rm_index'] - 60 * (1 + 8 / 30.0)) < 0.001,
+    $failures
+);
 check('muscleSplitForWorkout carries ended_at', $split[1]['ended_at'] === '2026-04-08T10:45:00Z', $failures);
+check('muscleSplitForWorkout carries last_set_at', $split[1]['last_set_at'] === '2026-04-08T10:05:00Z', $failures);
 check(
     'muscleSplitForWorkout sinceDays excludes sessions outside the window',
     $setRepo->muscleSplitForWorkout($splitWorkout['id'], 6, 1) === [],
@@ -412,10 +420,58 @@ check(
     $failures
 );
 
-$sessionRepo->upsert(['id' => 'sess-recent', 'workout_id' => $wo['id'], 'started_at' => $recentIso, 'updated_at' => $recentIso]);
+$sessionRepo->upsert(['id' => 'sess-recent', 'workout_id' => $wo['id'], 'started_at' => $recentIso, 'ended_at' => $recentIso, 'updated_at' => $recentIso]);
 $recentDates = (new SessionRepository())->recentDates(7);
-check('recentDates includes a session started moments ago', in_array(gmdate('Y-m-d'), $recentDates, true), $failures);
+check('recentDates includes a finished session started moments ago', in_array(gmdate('Y-m-d'), $recentDates, true), $failures);
+$openDay = gmdate('Y-m-d', time() - 3 * 86400);
+$sessionRepo->upsert(['id' => 'sess-open', 'workout_id' => $wo['id'], 'started_at' => $openDay . 'T12:00:00Z', 'updated_at' => $recentIso]);
+check('recentDates ignores a session without ended_at', !in_array($openDay, (new SessionRepository())->recentDates(7), true), $failures);
+$tzDay = gmdate('Y-m-d', time() - 2 * 86400);
+$tzNext = gmdate('Y-m-d', time() - 86400);
+$sessionRepo->upsert(['id' => 'sess-tz', 'workout_id' => $wo['id'], 'started_at' => $tzDay . 'T22:30:00Z', 'ended_at' => $tzNext . 'T00:30:00Z', 'updated_at' => $recentIso]);
+$berlin = (new SessionRepository())->recentDates(7, 'Europe/Berlin');
+$utcDates = (new SessionRepository())->recentDates(7, 'UTC');
+check('recentDates uses the local start day (22:30Z is next day in Berlin)', in_array($tzNext, $berlin, true) && !in_array($tzDay, $berlin, true), $failures);
+check('recentDates in UTC keeps the UTC start day', in_array($tzDay, $utcDates, true), $failures);
+check('recentDates falls back to UTC for an invalid zone', (new SessionRepository())->recentDates(7, 'Nope/Zone') === $utcDates, $failures);
 check('recentDates excludes sessions outside the window', !in_array('2026-04-01', $recentDates, true), $failures);
+
+echo "sessionVolumes (BACKLOG #82)\n";
+$volDay = gmdate('Y-m-d', time() - 86400);
+$sessionRepo->upsert(['id' => 'sess-vol', 'workout_id' => $wo['id'], 'started_at' => $volDay . 'T10:00:00Z', 'ended_at' => $volDay . 'T11:00:00Z', 'updated_at' => $recentIso]);
+foreach ([['set-vol-1', 100, 5, 0], ['set-vol-2', 80, 5, 0], ['set-vol-w', 40, 10, 1]] as $i => [$setId, $kg, $reps, $warm]) {
+    $setRepo->upsert([
+        'id' => $setId, 'session_id' => 'sess-vol', 'exercise_id' => $histExercise['id'],
+        'set_index' => $i, 'weight_kg' => $kg, 'reps' => $reps, 'is_warmup' => $warm,
+        'performed_at' => $volDay . 'T10:05:00Z', 'updated_at' => $recentIso,
+    ]);
+}
+$sessionVolumes = (new SessionRepository())->sessionVolumes(7);
+$volRow = array_values(array_filter($sessionVolumes, fn ($r) => $r['session_id'] === 'sess-vol'))[0] ?? null;
+check('sessionVolumes sums working sets only (500 + 400, warm-up excluded)', $volRow !== null && abs($volRow['volume_kg'] - 900.0) < 0.001, $failures);
+check('sessionVolumes carries the local start day', $volRow !== null && $volRow['date'] === $volDay, $failures);
+check('sessionVolumes skips an open session', !in_array('sess-open', array_column($sessionVolumes, 'session_id'), true), $failures);
+check('sessionVolumes skips a finished session without working sets', !in_array('sess-recent', array_column($sessionVolumes, 'session_id'), true), $failures);
+
+echo "MuscleVolume window + ACWR daily series (BACKLOG #82/#83)\n";
+$windowRows = [
+    ['performed_at' => '2026-02-17T10:00:00Z', 'weight_kg' => 100, 'reps' => 5, 'muscle_weight' => 1.0, 'region' => 'chest', 'role' => 'primary'],
+    ['performed_at' => '2026-02-15T23:30:00Z', 'weight_kg' => 50, 'reps' => 10, 'muscle_weight' => 1.0, 'region' => 'chest', 'role' => 'primary'],
+    ['performed_at' => '2026-02-12T10:00:00Z', 'weight_kg' => 200, 'reps' => 1, 'muscle_weight' => 1.0, 'region' => 'chest', 'role' => 'primary'],
+];
+$win = MuscleVolume::weeklyByRegion($windowRows, 4, '2026-02-18T12:00:00Z', 3);
+check('window_current covers the last N days (one set)', $win['chest']['window_current']['sets'] === 1.0, $failures);
+check('window_current volume', abs($win['chest']['window_current']['volume_kg'] - 500.0) < 0.001, $failures);
+check('window_previous covers the N days before (one set)', $win['chest']['window_previous']['sets'] === 1.0, $failures);
+check('window_previous volume', abs($win['chest']['window_previous']['volume_kg'] - 500.0) < 0.001, $failures);
+$winBerlin = MuscleVolume::weeklyByRegion($windowRows, 4, '2026-02-18T12:00:00Z', 3, new DateTimeZone('Europe/Berlin'));
+check('window uses local days (23:30Z on the 15th is the 16th in Berlin)', $winBerlin['chest']['window_current']['sets'] === 2.0 && $winBerlin['chest']['window_previous']['sets'] === 0.0, $failures);
+check('last_7_days stays independent of the window', $win['chest']['last_7_days']['sets'] === 3.0, $failures);
+
+$dailySeries = MuscleVolume::acwrDailySeries($flatDaily, 5, '2026-05-10T12:00:00Z');
+check('acwrDailySeries returns one entry per day, oldest first', count($dailySeries) === 5 && $dailySeries[0]['date'] === '2026-05-06' && $dailySeries[4]['date'] === '2026-05-10', $failures);
+check('acwrDailySeries ratio is ~1.0 for constant daily volume', abs($dailySeries[4]['ratio'] - 1.0) < 0.01, $failures);
+check('acwrDailySeries ratio is null without any 28-day load', MuscleVolume::acwrDailySeries([], 2, '2026-05-10T12:00:00Z')[1]['ratio'] === null, $failures);
 
 echo "SetRepository::exportRows\n";
 $exportExercise = $exRepo->create(['name' => 'Test Export Exercise', 'muscles' => []]);

@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react'
 import { ResponsiveBar } from '@nivo/bar'
 import { api } from '@/lib/api'
-import { DEFAULT_RANGE, RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
+import {
+  COMPARE_COLORS,
+  DEFAULT_RANGE,
+  RANGE_OPTIONS,
+  RANGE_WEEKS,
+  compareTitle,
+  resolveRange,
+  type DashboardRange,
+  type ResolvedRange,
+} from '@/lib/dashboardRanges'
+import { characterValues, perSessionMeanValues, sessionsInWindow, trendPoints } from '@/lib/workoutDevelopment'
 import type { RegionMetrics, WorkoutGroup, WorkoutListItem, WorkoutMuscleSplitResponse } from '@/types'
 import { groupWorkouts, useCollapsedWorkoutGroups } from '@/lib/workoutGrouping'
 import { REGION_LABELS } from '@/lib/muscleColors'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
+import { MetricTrendPanels } from '@/components/MetricTrendPanels'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { KpiTile } from '@/components/KpiTile'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
@@ -19,7 +31,17 @@ type RadarMetric = keyof RegionMetrics
 // the raw count -- the same order as everywhere else in the app.
 const RADAR_METRIC_LABELS: Record<RadarMetric, string> = { best_e1rm: 'e1RM', volume_kg: 'Volume', sets: 'Sets' }
 
+// A session's duration is started_at -> its last logged set. ended_at is when
+// the user pressed "Finish", which for a session left open and resumed days
+// later is days after the training (BACKLOG #86). Anything longer than this
+// is still no real session and is dropped as an outlier.
+const MAX_PLAUSIBLE_SESSION_MIN = 240
+
+type RadarView = 'character' | 'compare'
+
 export function WorkoutScope() {
+  const [radarView, setRadarView] = useState<RadarView>('character')
+  const [resolved, setResolved] = useState<ResolvedRange | null>(null)
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('best_e1rm')
   const [range, setRange] = useState<DashboardRange>(DEFAULT_RANGE)
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([])
@@ -36,12 +58,30 @@ export function WorkoutScope() {
 
   useEffect(() => {
     if (!selected) return
-    const weeks = RANGE_WEEKS[range]
+    let cancelled = false
     setLoading(true)
-    api
-      .get<WorkoutMuscleSplitResponse>(`/workouts/${selected.id}/muscle-split?limit=20&weeks=${weeks}`)
-      .then(setSplit)
-      .finally(() => setLoading(false))
+    // No `limit`: with `weeks` the API filters by date and lifts its row cap.
+    // With a previous window, load twice the range (+1 week, because the API
+    // cuts at "now minus N days" and the window starts at local midnight) and
+    // split into current/previous client-side by local start day.
+    resolveRange(range)
+      .then((r) => {
+        const weeks = r.previous ? Math.min(RANGE_WEEKS.All, r.weeks * 2 + 1) : r.weeks
+        return api
+          .get<WorkoutMuscleSplitResponse>(`/workouts/${selected.id}/muscle-split?weeks=${weeks}`)
+          .then((data) => ({ r, data }))
+      })
+      .then(({ r, data }) => {
+        if (cancelled) return
+        setResolved(r)
+        setSplit(data)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [selected, range])
 
   const rangeSwitch = (
@@ -72,11 +112,14 @@ export function WorkoutScope() {
     )
   }
 
-  const sessions = split?.sessions ?? []
+  const allSessions = split?.sessions ?? []
+  const sessions = resolved ? sessionsInWindow(allSessions, resolved.current) : allSessions
+  const previousSessions = resolved ? sessionsInWindow(allSessions, resolved.previous) : []
   const sessionCount = sessions.length
   const durations = sessions
-    .filter((s) => s.ended_at)
-    .map((s) => (new Date(s.ended_at as string).getTime() - new Date(s.started_at).getTime()) / 60000)
+    .filter((s) => s.last_set_at)
+    .map((s) => (new Date(s.last_set_at as string).getTime() - new Date(s.started_at).getTime()) / 60000)
+    .filter((min) => min > 0 && min <= MAX_PLAUSIBLE_SESSION_MIN)
   const avgDuration = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null
 
   const regionKeys = Object.keys(REGION_LABELS)
@@ -88,18 +131,19 @@ export function WorkoutScope() {
     return row
   })
 
-  // Sets and volume average across the sessions -- that is what a typical
-  // run of this workout puts on each region. e1RM is a personal best, and the
-  // average of several bests is not one, so it takes the top value instead.
-  const radarValues: Record<string, number> = {}
-  regionKeys.forEach((r) => {
-    const values = sessions.map((s) => s.metrics_by_region?.[r]?.[radarMetric] ?? 0)
-    radarValues[r] =
-      radarMetric === 'best_e1rm'
-        ? Math.max(0, ...values)
-        : values.reduce((a, b) => a + b, 0) / Math.max(1, values.length)
-  })
-  const radarSeries: MuscleRadarSeries[] = [{ label: selected.name, color: 'var(--brand-accent)', values: radarValues }]
+  // Compare needs a complete previous window (resolved.previous) that also
+  // holds sessions of this workout; otherwise only the character view.
+  const canCompare = resolved?.previous != null && previousSessions.length > 0
+  const compareHint = resolved?.previous == null ? 'not enough history' : 'no sessions in the previous period'
+  const view: RadarView = canCompare ? radarView : 'character'
+
+  const radarSeries: MuscleRadarSeries[] =
+    view === 'compare'
+      ? [
+          { label: 'Current', color: COMPARE_COLORS.current, values: perSessionMeanValues(sessions, regionKeys, radarMetric) },
+          { label: 'Previous', color: COMPARE_COLORS.previous, values: perSessionMeanValues(previousSessions, regionKeys, radarMetric) },
+        ]
+      : [{ label: selected.name, color: COMPARE_COLORS.current, values: characterValues(sessions, regionKeys, radarMetric) }]
 
   return (
     <div className="flex flex-col gap-3">
@@ -120,18 +164,16 @@ export function WorkoutScope() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : sessionCount === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No sessions for this workout in the last {range === 'All' ? '5 years' : range}
-          {range !== 'All' && ' — try a longer range.'}
+          No sessions in this period{range !== 'All' && ' — try a longer range.'}
         </p>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">
-            <KpiTile label="Sessions" value={String(sessionCount)} sparkline={sessions.map((_, i) => i + 1)} color="var(--brand-accent)" />
+            <KpiTile label="Sessions" value={String(sessionCount)} color="var(--brand-accent)" />
             <KpiTile
               label="Avg duration"
               value={avgDuration !== null ? String(avgDuration) : '—'}
               unit={avgDuration !== null ? 'min' : undefined}
-              sparkline={durations.length ? durations : [0]}
               color="var(--brand-accent)"
             />
           </div>
@@ -172,9 +214,22 @@ export function WorkoutScope() {
 
           <Card className="p-3.5">
             <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              This workout's signature
-              <InfoButton term="Signature" />
+              {view === 'compare' ? compareTitle(range) : "This workout's signature"}
+              {view === 'character' && <InfoButton term="Signature" />}
             </div>
+            {canCompare ? (
+              <SegmentedControl
+                className="mb-2"
+                options={[
+                  { value: 'character', label: 'Character' },
+                  { value: 'compare', label: 'vs. previous' },
+                ]}
+                value={view}
+                onChange={setRadarView}
+              />
+            ) : (
+              <p className="mb-2 text-[10.5px] text-muted-foreground">vs. previous: {compareHint}</p>
+            )}
             <div className="mb-1 flex gap-1.5">
               {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
                 <Button key={m} type="button" size="sm" variant={radarMetric === m ? 'default' : 'outline'} onClick={() => setRadarMetric(m)}>
@@ -183,6 +238,18 @@ export function WorkoutScope() {
               ))}
             </div>
             <MuscleRadar series={radarSeries} />
+            {view === 'compare' && (
+              <p className="mt-1 text-[10.5px] text-muted-foreground">Average per session, {sessionCount} vs. {previousSessions.length} sessions.</p>
+            )}
+          </Card>
+
+          <Card className="p-3.5">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Development per session</div>
+            {sessionCount >= 2 ? (
+              <MetricTrendPanels history={trendPoints(sessions)} range={range} e1rmLabel="e1RM index" />
+            ) : (
+              <p className="text-[12px] text-muted-foreground">Train this workout a few more times to see a trend.</p>
+            )}
           </Card>
         </>
       )}

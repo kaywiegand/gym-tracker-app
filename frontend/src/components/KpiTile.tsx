@@ -13,7 +13,11 @@ interface KpiTileProps {
   // Values arrive pre-formatted (see lib/format); `unit` (already a prop
   // above) is reused here and shown once, on the max value only.
   minMax?: { min: string; max: string }
-  sparkline: number[]
+  // Optional: tiles whose number says it all (Workout view, #86) omit it.
+  sparkline?: number[]
+  // Line chart with dashed min/max reference lines instead of the sparkline
+  // (Overview tiles, BACKLOG #83). One value per point, oldest first.
+  chart?: number[]
   color: string
   infoTerm?: string
 }
@@ -40,7 +44,46 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   )
 }
 
-export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, color, infoTerm }: KpiTileProps) {
+// Trend line with the series' min and max as thin dashed reference lines.
+// Single color, no status -- the line is data (CLAUDE.md §7). Fixed aspect
+// ratio (no distortion of the end dot); non-scaling strokes keep the
+// lines thin at any tile width.
+function MiniLineChart({ values, color }: { values: number[]; color: string }) {
+  const w = 100
+  const h = 36
+  const pad = 3
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const x = (i: number) => pad + (i * (w - 2 * pad)) / Math.max(1, values.length - 1)
+  const y = (v: number) => h - pad - (max === min ? 0.5 : (v - min) / (max - min)) * (h - 2 * pad)
+  const points = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
+  const refStyle = { stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '3 3', opacity: 0.6, vectorEffect: 'non-scaling-stroke' as const }
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 block w-full" role="img" aria-label="Trend with min and max">
+      {max !== min && (
+        <>
+          <line x1={0} x2={w} y1={y(max)} y2={y(max)} style={refStyle} />
+          <line x1={0} x2={w} y1={y(min)} y2={y(min)} style={refStyle} />
+        </>
+      )}
+      {values.length > 1 && (
+        <polyline
+          points={points}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      <circle cx={x(values.length - 1)} cy={y(values[values.length - 1])} r={2.4} fill={color} />
+    </svg>
+  )
+}
+
+export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm }: KpiTileProps) {
   return (
     <Card className="p-3">
       <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -67,7 +110,8 @@ export function KpiTile({ label, value, unit, trend, trendClassName, minMax, spa
           </div>
         </div>
       )}
-      <Sparkline values={sparkline} color={color} />
+      {chart && chart.length > 0 && <MiniLineChart values={chart} color={color} />}
+      {!chart && sparkline && <Sparkline values={sparkline} color={color} />}
     </Card>
   )
 }
