@@ -22,6 +22,7 @@ import { BiaSegmentBody } from '@/components/BiaSegmentBody'
 import { BiaTrendChart, type BiaTrendPoint } from '@/components/BiaTrendChart'
 import { BiaMeasurementDetailSheet } from '@/components/BiaMeasurementDetailSheet'
 import { Card } from '@/components/ui/card'
+import { TileHeader } from '@/components/TileHeader'
 
 // The categories the scan sheet itself ticks (Untergewicht / Normal /
 // Übergewicht / Fettleibig), on the standard WHO thresholds.
@@ -152,24 +153,18 @@ export function BodyScope() {
       {/* The gauge further down only shows the newest scan and the step from
           the one before. Whether the score has been climbing for a year or
           just bounced back is the actual question, and that needs the line. */}
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          FitScore over time
-        </div>
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="FitScore" subline="Trend over the selected period" className="mb-1" />
         <BiaTrendChart points={trend} keys={['fitScore']} height={200} />
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Weight vs target
-        </div>
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Weight" subline="Against your target weight" className="mb-1" />
         <BiaTrendChart points={trend} keys={['weight', 'target']} height={200} />
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Muscle vs fat vs lean mass
-        </div>
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Body composition" subline="Muscle, fat and lean mass over time" className="mb-1" />
         {/* Nivo lists the legend in reverse key order -- lean mass first here puts it last there. */}
         <BiaTrendChart points={trend} keys={['leanMass', 'muscle', 'fat']} height={200} />
       </Card>
@@ -212,26 +207,27 @@ export function BodyScope() {
         )}
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Segments</div>
-          <SegmentedControl<SegmentKind>
-            className="w-[132px]"
-            value={segmentKind}
-            onChange={setSegmentKind}
-            options={[
-              { value: 'muscle', label: 'Muscle' },
-              { value: 'fat', label: 'Fat' },
-            ]}
-          />
-        </div>
+      <Card className="gap-0 p-3.5">
+        <TileHeader
+          title="Segments"
+          subline="Muscle or fat per body segment"
+          aside={
+            <SegmentedControl<SegmentKind>
+              className="w-[132px]"
+              value={segmentKind}
+              onChange={setSegmentKind}
+              options={[
+                { value: 'muscle', label: 'Muscle' },
+                { value: 'fat', label: 'Fat' },
+              ]}
+            />
+          }
+        />
         <BiaSegmentBody values={latest.values} kind={segmentKind} />
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Composition vs normal
-        </div>
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Composition vs. normal" subline="Each value against the scan's normal range" className="mb-1" />
         {BIA_BANDED_METRICS.map((m) => (
           <BiaRangeBar key={m.subcategory} label={m.label} unit={m.unit} reading={pickBanded(latest.values, m.subcategory)} />
         ))}
@@ -245,10 +241,11 @@ export function BodyScope() {
         />
       </Card>
 
-      <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Scan history{range !== 'All' && ` · ${shown.length} in ${range}`}
-        </div>
+      <Card className="gap-0 p-3.5">
+        <TileHeader
+          title="Scan history"
+          subline={`${shown.length} ${shown.length === 1 ? 'scan' : 'scans'}${range !== 'All' ? ` in ${range}` : ''}`}
+        />
         <div className="flex flex-col">
           {[...shown].reverse().map((m) => (
             <button

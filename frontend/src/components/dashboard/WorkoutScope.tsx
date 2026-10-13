@@ -8,6 +8,7 @@ import {
   RANGE_OPTIONS,
   RANGE_WEEKS,
   compareTitle,
+  rangeTitle,
   resolveRange,
   type DashboardRange,
   type ResolvedRange,
@@ -22,7 +23,7 @@ import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { KpiTile } from '@/components/KpiTile'
 import { FilterChips } from '@/components/FilterChips'
-import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { WorkoutGroupList } from '@/components/WorkoutGroupList'
 import { Card } from '@/components/ui/card'
@@ -180,8 +181,8 @@ export function WorkoutScope() {
             />
           </div>
 
-          <Card className="p-3.5">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Muscle split per session (sets)</div>
+          <Card className="gap-0 p-3.5">
+            <TileHeader title="Muscle split" subline="Avg sets per session by muscle group" />
             <div className="h-[180px] w-full">
               <ResponsiveBar
                 data={barData}
@@ -215,11 +216,12 @@ export function WorkoutScope() {
             </div>
           </Card>
 
-          <Card className="p-3.5">
-            <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              {view === 'compare' ? compareTitle(range) : "This workout's signature"}
-              {view === 'character' && <InfoButton term="Signature" />}
-            </div>
+          <Card className="gap-0 p-3.5">
+            <TileHeader
+              title="Muscle balance"
+              subline={view === 'compare' ? compareTitle(range) : 'Character of this workout'}
+              infoTerm={view === 'character' ? 'Signature' : undefined}
+            />
             {canCompare ? (
               <SegmentedControl
                 className="mb-2"
@@ -246,8 +248,8 @@ export function WorkoutScope() {
             )}
           </Card>
 
-          <Card className="p-3.5">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Development per session</div>
+          <Card className="gap-0 p-3.5">
+            <TileHeader title="Progress" subline={`e1RM index, volume and sets per session · ${rangeTitle(range)}`} />
             {sessionCount >= 2 ? (
               <MetricTrendPanels history={trendPoints(sessions)} range={range} e1rmLabel="e1RM index" />
             ) : (

@@ -64,6 +64,6 @@ export const GLOSSARY: GlossaryEntry[] = [
     term: 'Recovery',
     label: 'Recovery (estimate)',
     definition:
-      'An estimate, not a measurement. For every exercise trained in the last 3 weeks, the latest session’s e1RM is compared with the median of the three sessions before. One exercise dropping is normal; many dropping at once hints at fatigue. Below 35% of exercises falling counts as on track, 35–50% as worth watching, above 50% as a sign a deload may help (thresholds adjustable in Settings). Sleep, stress and soreness are not part of it.',
+      'An estimate, not a measurement. For every exercise trained in the last 3 weeks, the latest session’s e1RM is compared with the median of the three sessions before. One exercise dropping is normal; many dropping at once hints at fatigue. Below 35% of exercises falling counts as on track, 35–50% as worth watching, from 50% as a sign a deload may help (thresholds adjustable in Settings). Sleep, stress and soreness are not part of it.',
   },
 ]

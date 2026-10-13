@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card'
 import { TileHeader } from '@/components/TileHeader'
+import { BiaBandBar, type ScaleBand } from '@/components/BiaBandBar'
 import { recoveryStatus } from '@/lib/recovery'
 import type { RecoveryResponse } from '@/types'
 
@@ -9,71 +10,36 @@ const SCALE_MAX_PCT = 75
 // Recovery tendency (BACKLOG #129): the share of exercises whose latest
 // session fell below their own recent level.
 //
-// Everything about this card says "estimate", because that is what it is:
-// dashed outline, an "Estimate" tag, hedged wording, and a marker drawn as a
-// soft band instead of a sharp line -- as wide as one exercise more or less
-// would move it.
+// The card has to read as an estimate, because that is what it is: "estimate"
+// in the title, a dashed outline, hedged wording. The scale is the banded one
+// from the Body dashboard (BMI), so the two read the same (#133).
 export function RecoveryCard({ recovery }: { recovery: RecoveryResponse }) {
   const status = recoveryStatus(recovery.status)
   const known = recovery.status !== 'unknown'
   const falling = recovery.exercises.filter((e) => e.trend === 'falling')
-  const pos = (pct: number) => `${(Math.min(pct, SCALE_MAX_PCT) / SCALE_MAX_PCT) * 100}%`
-  // One exercise flipping moves the share by 100/total -- the band's half-width.
-  const uncertaintyPct = recovery.total > 0 ? 100 / recovery.total : 0
-  const bandLeft = Math.max(0, recovery.falling_share_pct - uncertaintyPct)
-  const bandRight = Math.min(SCALE_MAX_PCT, recovery.falling_share_pct + uncertaintyPct)
+  const bands: ScaleBand[] = [
+    { to: recovery.watch_share_pct, label: 'On track', tone: 'good' },
+    { to: recovery.deload_share_pct, label: 'Watch', tone: 'warn' },
+    { to: SCALE_MAX_PCT, label: 'Deload', tone: 'crit' },
+  ]
 
   return (
     // Card draws its outline as a ring; swapped for a dashed border here.
     <Card className="gap-0 border border-dashed border-foreground/25 p-3.5 ring-0">
       <TileHeader
-        title="Recovery"
+        title="Recovery estimate"
         subline="A tendency from your recent performance — not a measurement."
         infoTerm="Recovery"
         className=""
-        aside={
-          <span className="rounded-full border border-dashed border-foreground/25 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground">
-            Estimate
-          </span>
-        }
       />
 
       <div className={`mt-2 text-[17px] font-bold ${status.className}`}>{status.label}</div>
 
       {known ? (
         <>
-          <div className="relative mt-2.5 h-2.5 overflow-hidden rounded-full">
-            <div className="absolute inset-y-0 left-0" style={{ width: pos(recovery.watch_share_pct), background: 'var(--status-good)', opacity: 0.22 }} />
-            <div
-              className="absolute inset-y-0"
-              style={{
-                left: pos(recovery.watch_share_pct),
-                width: `calc(${pos(recovery.deload_share_pct)} - ${pos(recovery.watch_share_pct)})`,
-                background: 'var(--status-warn)',
-                opacity: 0.22,
-              }}
-            />
-            <div className="absolute inset-y-0 right-0" style={{ left: pos(recovery.deload_share_pct), background: 'var(--status-crit)', opacity: 0.22 }} />
-            <div
-              className="absolute inset-y-0"
-              style={{
-                left: pos(bandLeft),
-                width: `calc(${pos(bandRight)} - ${pos(bandLeft)})`,
-                background: `linear-gradient(90deg, transparent, ${status.color}, transparent)`,
-              }}
-            />
-          </div>
-          <div className="relative mt-1 h-3 text-[9.5px] text-muted-foreground">
-            <span className="absolute left-0">on track</span>
-            <span className="absolute" style={{ left: pos(recovery.watch_share_pct) }}>
-              watch
-            </span>
-            <span className="absolute" style={{ left: pos(recovery.deload_share_pct) }}>
-              deload
-            </span>
-          </div>
+          <BiaBandBar label="Exercises falling" value={recovery.falling_share_pct} unit="%" bands={bands} min={0} max={SCALE_MAX_PCT} />
 
-          <p className="mt-2 text-[12px] text-muted-foreground">
+          <p className="mt-1 text-[12px] text-muted-foreground">
             <span className="font-semibold text-foreground">
               {recovery.falling} of {recovery.total}
             </span>{' '}

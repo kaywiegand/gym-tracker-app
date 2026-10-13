@@ -71,7 +71,7 @@ final class Recovery
 
         if ($total < self::MIN_EXERCISES) {
             $status = 'unknown';
-        } elseif ($sharePct > $deloadSharePct) {
+        } elseif ($sharePct >= $deloadSharePct) {
             $status = 'deload';
         } elseif ($sharePct >= $watchSharePct) {
             $status = 'watch';

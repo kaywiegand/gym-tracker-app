@@ -5,7 +5,7 @@ import { detectPlateau } from '@/lib/plateau'
 import { suggestNext, type Suggestion } from '@/lib/progression'
 import { formatNumber } from '@/lib/format'
 import { acwrStatus } from '@/lib/acwr'
-import { DEFAULT_RANGE, RANGE_OPTIONS, currentWindow, inWindow, localIso, resolveRangeWeeks, TZ_PARAM, type DashboardRange } from '@/lib/dashboardRanges'
+import { DEFAULT_RANGE, RANGE_OPTIONS, currentWindow, inWindow, localIso, rangeTitle, resolveRangeWeeks, TZ_PARAM, type DashboardRange } from '@/lib/dashboardRanges'
 import type {
   AcwrResponse,
   ExerciseHistoryEntry,
@@ -288,14 +288,14 @@ export function ExerciseScope() {
       )}
 
       {isPlateaued && (
-        <Card className="border-status-warn/40 bg-status-warn/10 p-3">
-          <div className="flex items-center gap-1 text-[12.5px] font-bold text-status-warn">
+        <Card className="gap-0 border-status-warn/40 bg-status-warn/10 p-3">
+          {/* Title + subline like TileHeader, in the status colour. */}
+          <div className="flex items-center gap-1 text-[14px] font-bold leading-tight text-status-warn">
             Plateau
             <InfoButton term="Plateau" />
           </div>
-          <p className="mt-0.5 text-[11.5px] text-status-warn/90">
-            No e1RM growth in the last {plateauSessions} sessions — consider a deload week or an exercise variation.
-          </p>
+          <div className="mt-0.5 text-[11px] text-status-warn/90">No e1RM growth in the last {plateauSessions} sessions</div>
+          <p className="mt-1.5 text-[11.5px] text-status-warn/90">Consider a deload week or an exercise variation.</p>
         </Card>
       )}
 
@@ -317,7 +317,8 @@ export function ExerciseScope() {
         <p className="text-sm text-muted-foreground">No sessions in this period.</p>
       ) : (
         <>
-          <Card className="p-3.5">
+          <Card className="gap-0 p-3.5">
+            <TileHeader title="Progress" subline={`e1RM, volume and sets per session · ${rangeTitle(range)}`} />
             {history.length >= 2 ? (
               <MetricTrendPanels history={history} range={range} />
             ) : (
@@ -325,7 +326,9 @@ export function ExerciseScope() {
             )}
           </Card>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div>
+            <TileHeader title="Records" subline="Best values in this period" className="mb-2 px-0.5" />
+            <div className="grid grid-cols-3 gap-2">
             {records.map(
               ({ label, entry, key, decimals }) =>
                 entry && (
@@ -340,11 +343,11 @@ export function ExerciseScope() {
                   </Card>
                 ),
             )}
+            </div>
           </div>
 
-          <Card className="p-3.5">
-            <div className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Session history</div>
-            <p className="mb-2 text-[10.5px] text-muted-foreground">newest first · volume · weight × reps per set</p>
+          <Card className="gap-0 p-3.5">
+            <TileHeader title="Session history" subline="Newest first · volume · weight × reps per set" />
             <div className="flex flex-col">
               {ladder.map((rung) => (
                 <div key={rung.sessionId} className="flex items-start gap-1.5 border-b border-border py-1.5 last:border-b-0">
