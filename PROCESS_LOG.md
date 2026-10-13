@@ -238,7 +238,7 @@
 
 **Was passiert ist:**
 - Kay konnte im Gym `Abs Rotation Cable` nicht finden und seine Löschung im Friday-Workout war nicht gespeichert. Live-DB mehrfach per `deploy/backup.sh` gezogen (`backups/diag-*`, `pre-/post-restore-20260913`): Übung vorhanden, Suche findet sie in jeder Schreibweise — seit 09.09. war aber **kein einziges Workout** mehr geschrieben worden.
-- Ursache: Session-Cookie ohne Lifetime + 24-Min-GC des Hosts → 401 mitten im Training. Suchlisten zeigten den Fehler als „No matches", `handleSave` im Workout- und Übungs-Editor hatte kein `catch` und sah nach Erfolg aus. Fix: Commit `107db04` (Details in der Commit-Message).
+- Ursache: Session-Cookie ohne Lifetime + 24-Min-GC des Hosts → 401 mitten im Training. Suchlisten zeigten den Fehler als „No matches", `handleSave` im Workout- und Übungs-Editor hatte kein `catch` und sah nach Erfolg aus. Fix: Commit `2623f0d` (Details in der Commit-Message).
 - `/code-review` fand drei weitere Punkte (Draft-Verlust durch 401-Redirect, veraltete Suchantworten, fixe statt gleitende Cookie-Laufzeit) — alle gefixt, bevor committet wurde.
 - Browser-Verifikation gegen eine Kopie der Live-DB: Session getötet → Save → Login-Overlay über dem Editor, Entwurf bleibt, Save danach landet in der DB; derselbe Ablauf mit offenem Übungs-Picker. Bild: 4:3-Box, `object-fit: contain` gemessen.
 - Daten live per `deploy/restore.sh` (Payload vorher gegen Kopie getestet): FB26 Friday Position 1 `Abs Twist` → `Abs Rotation Cable Standing`; Russian Twist umkuratiert zu `Abs Rotation Dumbbell Seated`. Sätze unverändert.
@@ -249,7 +249,7 @@
 - Abgelaufene Session öffnet den Login **über** dem aktuellen Screen statt auf `/login` umzuleiten — nur so überlebt ein ungespeicherter Entwurf oder eine laufende Session.
 - Eigener Session-Pfad `db/sessions/` statt Host-Default, weil fremde GC dort mit eigener Lifetime aufräumt. Nach dem Deploy ist **einmal neu einloggen** nötig.
 
-**Korrektur:** Die Commit-Message von `107db04` sagt, `fitness.db` sei über HTTP erreichbar gewesen. Falsch — der HEAD-Check vor dem Upload gab bereits 403. `db/.htaccess` ist eine zusätzliche explizite Sperre, keine geschlossene Lücke. Nicht per Amend korrigiert, weil der Hash in `build.json` und `DEPLOYMENTS.md` steht.
+**Korrektur:** Die Commit-Message von `2623f0d` sagt, `fitness.db` sei über HTTP erreichbar gewesen. Falsch — der HEAD-Check vor dem Upload gab bereits 403. `db/.htaccess` ist eine zusätzliche explizite Sperre, keine geschlossene Lücke. Nicht per Amend korrigiert, weil der Hash in `build.json` und `DEPLOYMENTS.md` steht.
 
 **Nächster Schritt:** Kay trainiert Monday mit dem neuen Build und meldet, ob Login und Speichern im Gym halten.
 
@@ -258,7 +258,7 @@
 ## Session 2026-09-15–18 — Titel wie im Gym, FitScore-Verlauf, e1RM-Radars
 
 **Was passiert ist:**
-- Kays Feedback: Leg Curls hießen „Hamstrings", Extensions „Quads"; FitScore ohne Verlauf; e1RM fehlte im Netz-Diagramm. Umgesetzt in `9210068` (Dashboard) und `c8b93ea` (Titelregeln), Details in den Commit-Messages und in `api/lib/ExerciseNaming.php`.
+- Kays Feedback: Leg Curls hießen „Hamstrings", Extensions „Quads"; FitScore ohne Verlauf; e1RM fehlte im Netz-Diagramm. Umgesetzt in `c5e6336` (Dashboard) und `644372a` (Titelregeln), Details in den Commit-Messages und in `api/lib/ExerciseNaming.php`.
 - Titelregeln iterativ mit Kay: Curl/Extension/Press → `Legs …`; Squat und Deadlift ohne Muskel; `Smith-Machine` als eigenes Equipment; Exercise Ball → `Ball`; `Single-Leg`. Jede Stufe gegen die ganze Library (823 Übungen) auf Titelkollisionen geprüft — Endstand 106 geänderte Titel, 0 Kollisionen nach dem Merge.
 - `/code-review` fand 4 Punkte, alle vor dem Commit behoben — der wichtigste: e1RM pro Region zählte auch sekundäre Muskeln, der Bankdruck setzte so den e1RM der Arme. Gilt jetzt nur für primäre Muskeln, auch im Overview-Radar (`MuscleVolume`).
 - Deploy `20260918-0859-c8b93ea-dirty`, alle Commits nach `origin/main` gepusht (35 waren lokal liegen geblieben).
@@ -278,7 +278,7 @@
 
 **Was passiert ist:**
 - Neue Arbeitsregel (Kay): jede Meldung zuerst als BACKLOG-Zeile, erst dann untersuchen; Abarbeitung an eine Sonnet-Session, Ergebnis selbst prüfen. Angewandt ab #27.
-- BACKLOG #27–#29 und #31 umgesetzt in `ca29b75` — Details in der Commit-Message. #2 und #22 auf Kays Wort verworfen (Begründung im BACKLOG).
+- BACKLOG #27–#29 und #31 umgesetzt in `a7afe1d` — Details in der Commit-Message. #2 und #22 auf Kays Wort verworfen (Begründung im BACKLOG).
 - #30 geklärt: das Tracking brach nicht technisch ab — Kay trackt nicht, wenn er die Übungen im Workout nicht wiedererkennt. Befund in der Live-DB passt dazu (12.09. und 16.09. je 3 Sätze der ersten Übung, dann Abbruch).
 
 **Entscheidungen:**
@@ -293,7 +293,7 @@
 ## Session 2026-09-18 (Abend) — eine Übungsauswahl, Rows, Volumen-Richtwerte
 
 **Was passiert ist:**
-- Kays Meldungen #32–#47 zuerst ins BACKLOG, dann umgesetzt. Die zwei Sonnet-Agenten brachen am Rate-Limit ab (ohne Änderungen), Umsetzung daher direkt: `f1975a6` (Auswahl, Dashboard, Editor), `2a977cb` (Rows, Volume-Targets). Details in den Commit-Messages.
+- Kays Meldungen #32–#47 zuerst ins BACKLOG, dann umgesetzt. Die zwei Sonnet-Agenten brachen am Rate-Limit ab (ohne Änderungen), Umsetzung daher direkt: `9e89b8d` (Auswahl, Dashboard, Editor), `5b5c173` (Rows, Volume-Targets). Details in den Commit-Messages.
 - Browserprüfung gegen eine Kopie der Live-DB: Exercises, „Choose exercise" und Dashboard/Exercise zeigen dieselbe Auswahl; 51 von 823 Übungen als benutzt markiert; „Browse by workout" listet 8 Workouts der letzten 90 Tage.
 - #46 recherchiert: RP-Guides pro Muskel, Schoenfeld 2017, Pelland et al. 2026 — dokumentiert in `docs/volume-landmarks.md`.
 - Deploy `20260918-1641-2a977cb-dirty`. Live-Daten (RDL-Titel, Smith-Duplikat, neue Targets) als Restore-Payload vorbereitet (#24) — `restore.sh` ist in dieser Session nicht freigegeben.
@@ -310,7 +310,7 @@
 
 ## Session 2026-09-18 (Nacht) — Namen, Aufräumen, Exercise-Tab
 
-**Was passiert ist:** Kays Meldungen #48–#55 und #32–#34 umgesetzt, überwiegend durch Sonnet-Agenten (Kay: Limit schonen), geprüft und committet in `8d4fbd8`, `3519720`, `7c83c3f`; Deploy `20260918-2019-7c83c3f-dirty`. Gainsfire-Export 18.09. inkrementell importiert (neues `scripts/gainsfire-incremental-import.py`). Alle Datenänderungen in einem Restore gebündelt (BACKLOG #56).
+**Was passiert ist:** Kays Meldungen #48–#55 und #32–#34 umgesetzt, überwiegend durch Sonnet-Agenten (Kay: Limit schonen), geprüft und committet in `647a1a2`, `8ef3caa`, `09373be`; Deploy `20260918-2019-7c83c3f-dirty`. Gainsfire-Export 18.09. inkrementell importiert (neues `scripts/gainsfire-incremental-import.py`). Alle Datenänderungen in einem Restore gebündelt (BACKLOG #56).
 
 **Entscheidungen:**
 - „Bodyweight" steht in keinem Titel mehr — nur Hilfsmittel werden genannt (Kay). 8 dadurch entstandene Dubletten per fester Variante bzw. korrigierter Kuratierung aufgelöst.
@@ -323,7 +323,7 @@
 
 ## Session 2026-09-18 (spät) — Farbpalette
 
-**Was passiert ist:** Farbinventur (#19) als HTML-Übersicht für Kay, danach die Palette in mehreren Runden mit ihm festgelegt (Vergleichsseiten mit Abstandsmaß CIE ΔE). Umgesetzt in `a2f9ec5`, Deploy `20260918-2154-a2f9ec5-dirty`; Regel in CLAUDE.md §7.
+**Was passiert ist:** Farbinventur (#19) als HTML-Übersicht für Kay, danach die Palette in mehreren Runden mit ihm festgelegt (Vergleichsseiten mit Abstandsmaß CIE ΔE). Umgesetzt in `50a610e`, Deploy `20260918-2154-a2f9ec5-dirty`; Regel in CLAUDE.md §7.
 
 **Entscheidungen (Kay):**
 - Blau ist ausschließlich UI-Akzent — es stand vorher zugleich für Chest, Volumen und Körpergewicht.
@@ -363,7 +363,7 @@
 
 ## Session 2026-09-25 — Fixierter Kopf, Übungsauswahl (nachgetragen 2026-10-05)
 
-**Was passiert ist:** Kays Meldungen #58–#63 in drei Runden umgesetzt und jeweils deployt: `fca442d`, `ddc2dbe`, `6380dea` (Deploys siehe `DEPLOYMENTS.md`). Details in den Commit-Messages.
+**Was passiert ist:** Kays Meldungen #58–#63 in drei Runden umgesetzt und jeweils deployt: `755905d`, `3c3a2d2`, `8bffc9a` (Deploys siehe `DEPLOYMENTS.md`). Details in den Commit-Messages.
 
 **Entscheidungen:**
 - Der Kopfbereich liegt jetzt in einem eigenen Slot über `main` statt als `sticky`-Element im Scroller — nur so blitzt auf iOS kein Inhalt darüber durch (#61). `useStickyOffset` entfällt.
@@ -377,7 +377,7 @@
 ## Session 2026-10-05 — Standortbestimmung, Durchlauf vor dem Training
 
 **Was passiert ist:**
-- Stand geklärt: live läuft `6380dea`, kein Deploy offen (danach nur ein Doku-Commit). Live-Stand laut Backup-Manifest vom 25.09. unverändert seit dem 19.09. — seit dem 16.09. wurde nicht getrackt.
+- Stand geklärt: live läuft `8bffc9a`, kein Deploy offen (danach nur ein Doku-Commit). Live-Stand laut Backup-Manifest vom 25.09. unverändert seit dem 19.09. — seit dem 16.09. wurde nicht getrackt.
 - Tracking-Ablauf lokal im Handy-Viewport gegen eine Kopie des Live-Backups durchgespielt (FB26 Monday). Ablauf läuft durch; fünf Funde als BACKLOG #64–#68.
 - Doku nachgezogen: BACKLOG #58–#63, fehlender Eintrag zum 25.09., `docs/PROJECTS.md`.
 
@@ -391,7 +391,7 @@
 
 ## Session 2026-10-05 (Fortsetzung) — Tracking-Funde behoben, Deploy
 
-**Was passiert ist:** BACKLOG #64, #65, #66, #68 umgesetzt in `5af4ce4` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Jede Änderung vor dem Deploy im Handy-Viewport gegen eine Kopie des Live-Backups durchgespielt. Verwaiste `api/config.local.php` mit Kays Erlaubnis gelöscht — sie zeigte auf eine Scratch-DB einer früheren Session.
+**Was passiert ist:** BACKLOG #64, #65, #66, #68 umgesetzt in `8c6d7da` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Jede Änderung vor dem Deploy im Handy-Viewport gegen eine Kopie des Live-Backups durchgespielt. Verwaiste `api/config.local.php` mit Kays Erlaubnis gelöscht — sie zeigte auf eine Scratch-DB einer früheren Session.
 
 **Entscheidungen:**
 - Kay: nach einem Resume stehen die Werte wie zu Beginn der Session. Umgesetzt serverseitig (`last-sets?exclude_session=`), nicht über einen lokal gemerkten Stand — so gilt es auch nach einem Neustart der App. Folge: ein übernommener, aber nicht abgehakter Vorschlag ist nach dem Resume wieder der Anfangswert.
@@ -404,7 +404,7 @@
 ## Session 2026-10-06 — Profil und BMI, Zurück-Pfeil, Übungsnamen
 
 **Was passiert ist:**
-- #70 (Profil in Settings, aktueller BMI) und #72 (Zurück-Pfeil) umgesetzt in `0b87148` und deployt; Handy-Viewport gegen Kopie des Live-Stands geprüft.
+- #70 (Profil in Settings, aktueller BMI) und #72 (Zurück-Pfeil) umgesetzt in `782c59f` und deployt; Handy-Viewport gegen Kopie des Live-Stands geprüft.
 - #71/#73: Kay hat die Namen entschieden. Das Einspielen in die Live-DB (`deploy/restore.sh uploads/live-naming-20261006.json`) wurde zuerst vom Berechtigungssystem blockiert, nach Kays ausdrücklicher Freigabe im Chat eingespielt (7 Zeilen) und mit frischem Pull verifiziert: Titel/Untertitel wie geplant, `Abs Raise Lying` 70 Sätze, Template-Zeile umgestellt, 3335 Sätze und 227 Sessions unverändert. Payload (3 Übungen, 1 Template-Zeile, 3 Sätze) aus frischem Live-Pull `backups/pre-restore-20261006/` gebaut und auf einer Kopie getestet.
 
 **Entscheidungen:**
@@ -420,7 +420,7 @@
 
 **Was passiert ist:**
 - #96: doppelte Gewichtseinträge im Live-Backup bestätigt, Ursache und Fix in `SettingsPage.tsx` (`BodyweightCard`). Die zwei Duplikate nach Kays Freigabe per `deploy/restore.sh uploads/live-bodyweight-20261012.json` soft-gelöscht, mit frischem Pull verifiziert.
-- #97–#111 (Kays Dashboard-Durchgang) umgesetzt in `25009cc`, Details je Punkt in `BACKLOG.md`. Deployt nach Kays Freigabe (siehe `DEPLOYMENTS.md`).
+- #97–#111 (Kays Dashboard-Durchgang) umgesetzt in `3afb3a6`, Details je Punkt in `BACKLOG.md`. Deployt nach Kays Freigabe (siehe `DEPLOYMENTS.md`).
 - Nur der Gewichts-Fix wurde im Browser geprüft. Die Dashboard-Änderungen sind ungesehen live: lokale DB ohne Sessions, Start gegen eine Kopie des Live-Backups vom Berechtigungssystem abgelehnt.
 
 **Entscheidungen:**
@@ -436,7 +436,7 @@
 ## Session 2026-10-12 (spät) — Tracking-Reste, Backlog aufgeräumt, Deploy
 
 **Was passiert ist:**
-- #67, #69, #86 (Rest), #74 (Rest) und #104 umgesetzt in `8e8f04f` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Tracking-Ablauf (öffnen ohne Satz, erster Satz, Finish, neuer Vorschlag) und der Consistency-Kalender lokal im Handy-Viewport geprüft; #74 nicht mit Live-Daten gesehen.
+- #67, #69, #86 (Rest), #74 (Rest) und #104 umgesetzt in `8e13c9f` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Tracking-Ablauf (öffnen ohne Satz, erster Satz, Finish, neuer Vorschlag) und der Consistency-Kalender lokal im Handy-Viewport geprüft; #74 nicht mit Live-Daten gesehen.
 - Auf Kays Anweisung aus dem BACKLOG entfernt: #11, #62, #75, #96–#111, #112.
 
 **Entscheidungen:**
@@ -450,7 +450,7 @@
 
 ## Session 2026-10-12 (Nacht) — Overview-Kacheln nachgeschärft, Deploy
 
-**Was passiert ist:** #113 (Volume/session kompakt), #114 (ACWR-Kachel) und #115 (Consistency-Kalender) umgesetzt in `6be5ee3`, lokal im Handy-Viewport geprüft und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Die ACWR-Linie ohne Punkt ist nur im Code geprüft — lokal gibt es dafür zu wenig Daten.
+**Was passiert ist:** #113 (Volume/session kompakt), #114 (ACWR-Kachel) und #115 (Consistency-Kalender) umgesetzt in `7451a00`, lokal im Handy-Viewport geprüft und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Die ACWR-Linie ohne Punkt ist nur im Code geprüft — lokal gibt es dafür zu wenig Daten.
 
 **Entscheidungen:**
 - Kay: die ACWR-Kachel heißt „ACWR/session“, analog zu „Volume/session“; die Definition (7 vs. 28 Tage) steht nur in der Info-Legende. Claudes Einwand (ACWR ist ein Tageswert, kein Wert pro Session) wurde genannt und von Kay überstimmt.
@@ -463,7 +463,7 @@
 
 ## Session 2026-10-12 (Nacht, Fortsetzung) — Scroll-Position, Kalenderhöhe, Body aufgeräumt, Deploy
 
-**Was passiert ist:** #115–#118, #120, #121 umgesetzt in `e72482a` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Overview lokal im Handy-Viewport geprüft und gemessen (Kalenderhöhe und Seitenhöhe konstant über alle Zeiträume, oberste Kachel bleibt stehen). Der Body-Umbau ist ungesehen live — lokal gibt es keine BIA-Daten. Nichts davon auf einem echten iPhone geprüft.
+**Was passiert ist:** #115–#118, #120, #121 umgesetzt in `6ab2b3d` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Overview lokal im Handy-Viewport geprüft und gemessen (Kalenderhöhe und Seitenhöhe konstant über alle Zeiträume, oberste Kachel bleibt stehen). Der Body-Umbau ist ungesehen live — lokal gibt es keine BIA-Daten. Nichts davon auf einem echten iPhone geprüft.
 
 **Entscheidungen:**
 - #110 war als erledigt gemeldet, wirkte auf iOS aber nicht: dort gibt es kein natives Scroll-Anchoring. Lösung in zwei Teilen — der Kalender hat eine feste Höhe (Ursache laut Kay), dazu ein eigener Anker (`lib/useScrollAnchor.ts`) für alle übrigen Höhenänderungen.
@@ -477,7 +477,7 @@
 
 ## Session 2026-10-13 — Exercise-Scope: Rekord-Kacheln und Sätze mit Gewicht, Deploy
 
-**Was passiert ist:** #123 umgesetzt in `c00cdb2` (`ExerciseScope.tsx`) und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Im Handy-Viewport gegen eine Kopie des Live-Backups geprüft, nicht auf dem iPhone.
+**Was passiert ist:** #123 umgesetzt in `7cb9943` (`ExerciseScope.tsx`) und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Im Handy-Viewport gegen eine Kopie des Live-Backups geprüft, nicht auf dem iPhone.
 
 **Entscheidungen:**
 - Anlass: „Max weight“ nannte das höchste Satzgewicht, die History-Zeile aber nur das Gewicht des ersten Satzes — bei ansteigenden Sätzen war der Rekord in der Liste nicht zu finden.
@@ -490,7 +490,7 @@
 
 ## Session 2026-10-13 (Fortsetzung) — Empfehlung im Exercise-Dashboard, Shoulder-Press-Mapping, Deploy
 
-**Was passiert ist:** #124 und der Nachtrag zu #123 umgesetzt in `b880849` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). #125 als Daten-Fix live eingespielt (`uploads/live-shoulderpress-20261013.json` über `deploy/restore.sh`), per frischem Pull verifiziert.
+**Was passiert ist:** #124 und der Nachtrag zu #123 umgesetzt in `5fc7d57` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). #125 als Daten-Fix live eingespielt (`uploads/live-shoulderpress-20261013.json` über `deploy/restore.sh`), per frischem Pull verifiziert.
 
 **Entscheidungen:**
 - Die Empfehlung im Dashboard nutzt dieselbe Engine wie das Tracking (`lib/progression.ts`). Rep-Bereich und Schritt hängen am Workout, deshalb der neue Endpunkt `progression-context`: es gilt das Workout, in dem die Übung zuletzt geloggt wurde.
@@ -503,7 +503,7 @@
 
 ## Session 2026-10-13 (Fortsetzung 2) — „Last time“ + Ziel, Hinweise ohne Zeitraum, Deploy
 
-**Was passiert ist:** #126, #127 und ein Nachtrag zu #123 umgesetzt in `6aa652f` (`ExerciseScope.tsx`) und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Im Handy-Viewport gegen eine Kopie des Live-Stands geprüft, nicht auf dem iPhone.
+**Was passiert ist:** #126, #127 und ein Nachtrag zu #123 umgesetzt in `e9d4870` (`ExerciseScope.tsx`) und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Im Handy-Viewport gegen eine Kopie des Live-Stands geprüft, nicht auf dem iPhone.
 
 **Entscheidungen:**
 - Kay: „Next time · <Workout>“ aus #124 war falsch gedacht — wann und in welchem Workout die Übung als Nächstes kommt, ist unbekannt. Die Karte zeigt jetzt zuerst das Nachweisbare („Last time“ mit Gewicht × Reps), darunter das Ziel aus der Progressions-Engine.
@@ -516,7 +516,7 @@
 
 ## Session 2026-10-13 (Fortsetzung 3) — Regenerations-Kachel, Overview-Reihenfolge, Kachel-Titel, Deploy
 
-**Was passiert ist:** #128–#132 umgesetzt in `6611b6e` und `8ac7a92`, nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Regel der Regenerations-Kachel in `api/lib/Recovery.php` (mit Tests), Kachel in `RecoveryCard.tsx`, Titel/Subline über `TileHeader.tsx`. Im Handy-Viewport gegen eine Kopie des Live-Stands geprüft; live nur geprüft, dass die neuen Endpunkte ohne Session 401 liefern.
+**Was passiert ist:** #128–#132 umgesetzt in `d687fdf` und `ed5cda6`, nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Regel der Regenerations-Kachel in `api/lib/Recovery.php` (mit Tests), Kachel in `RecoveryCard.tsx`, Titel/Subline über `TileHeader.tsx`. Im Handy-Viewport gegen eine Kopie des Live-Stands geprüft; live nur geprüft, dass die neuen Endpunkte ohne Session 401 liefern.
 
 **Entscheidungen:**
 - Regeneration wird nicht gemessen, sondern aus der Trainingsleistung geschätzt: fällt das e1RM bei vielen Übungen gleichzeitig unter ihr letztes Niveau, ist das das Signal. Eine einzelne stagnierende Übung bleibt Sache des Plateau-Hinweises.
@@ -531,7 +531,7 @@
 
 ## Session 2026-10-13 (Fortsetzung 4) — Recovery-Skala, Kachel-Titel in allen Scopes, Deploy
 
-**Was passiert ist:** #133 und der Rest von #131 umgesetzt in `54753fb` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Alle vier Dashboard-Scopes im Handy-Viewport gegen eine Kopie des Live-Stands geprüft.
+**Was passiert ist:** #133 und der Rest von #131 umgesetzt in `904f72c` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Alle vier Dashboard-Scopes im Handy-Viewport gegen eine Kopie des Live-Stands geprüft.
 
 **Entscheidungen:**
 - Kay: „Estimate“ gehört in den Titel der Recovery-Kachel, die Skala soll die aus dem Body-Dashboard sein (`BiaBandBar`). Der weiche Unsicherheits-Marker entfällt zugunsten der Einheitlichkeit.
@@ -568,3 +568,17 @@
 - #47: eine systematische Titel-Durchsicht ist überflüssig, seit die unkuratierten Titel per Regel bereinigt sind.
 
 **Nächster Schritt:** #135 (frühe Historie unvollständig) untersuchen — hängt am selben Export-Mechanismus („Entfernter Plan“).
+
+## Session 2026-10-13 (Fortsetzung 7) — Historie bereinigt, frühe Trainingsdaten nachimportiert (#134, #135)
+
+**Was passiert ist:** Persönliche Analyse-Notiz und Hosting-Angaben aus Stand und Git-Historie entfernt, Repo auf GitHub unter `gym-tracker-app` neu angelegt, `DEPLOYMENTS.md`, `BACKLOG.md` und `PROCESS_LOG.md` auf die neuen Commit-Kennungen umgestellt (#134). Frühe Trainingshistorie (2024-04 bis 2025-05) aus dem vollständigen Gainsfire-Export vom 26.10.2025 nachimportiert: Mapping um 39 Namen ergänzt, Import-Skript erweitert, Restore-Datei gegen eine Kopie geprüft und von Kay live eingespielt (#135, Details im BACKLOG).
+
+**Entscheidungen:**
+- Repo bleibt öffentlich; persönliche Auswertungen gehören nicht hierher, sondern ins Analyse-Projekt `gym-tracker-analysis` unter `data/` (dort gitignored). Beispielwerte in README und Deploy-Skripten sind Platzhalter.
+- GitHub-Repo gelöscht und neu angelegt statt Force-Push: sonst bleiben alte Commits über ihre Kennung abrufbar, und das Deploy-Log listet genau diese Kennungen. Build-IDs und Backup-Ordner behalten die alte Kennung im Namen.
+- Ursache der Lücke: Die App wurde aus dem Export vom 09.09.2026 befüllt, der nur die Übungen der damals aktuellen Pläne enthielt. Repariert wird in der App, damit sie die eine vollständige Quelle ist und das Analyse-Projekt nur aus ihr liest.
+- Varianten bekommen eigene Übungen (Crucifix, Bicycle, Lateral Squat, Single-Leg Deadlift, Reverse Curl), bestehende Zusammenlegungen aus #21 bleiben unangetastet.
+- Frühe Sessions bleiben ohne Workout: die alten Plannamen hätten am selben Tag gelöschte Workouts wiederbelebt.
+- Satzgleiche Tage zweier Übungen sind nicht automatisch ein Doppel — bei „Cable Pulldown“ und Face Pull waren es laut Kay echte Sätze. Gelöscht oder weggelassen wird nur nach Kays Entscheidung.
+
+**Nächster Schritt:** Im Analyse-Projekt die Übergabe festlegen (Export aus der App nach `data/raw/tracker-export/`) und die Kennzahlen mit der jetzt vollständigen Historie neu rechnen.
