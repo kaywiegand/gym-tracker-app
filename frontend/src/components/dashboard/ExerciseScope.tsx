@@ -41,7 +41,7 @@ interface Rung {
   trend: 'up-weight' | 'up-reps' | 'hold'
 }
 
-function groupByWeight(sets: ExerciseSessionSummary['sets']): WeightGroup[] {
+function groupByWeight(sets: { weight_kg: number; reps: number }[]): WeightGroup[] {
   const groups: WeightGroup[] = []
   for (const set of sets) {
     const last = groups[groups.length - 1]
@@ -49,6 +49,15 @@ function groupByWeight(sets: ExerciseSessionSummary['sets']): WeightGroup[] {
     else groups.push({ weightKg: set.weight_kg, reps: [set.reps] })
   }
   return groups
+}
+
+// Last logged session of the exercise and the target derived from it.
+interface LastTime {
+  performedAt: string
+  groups: WeightGroup[]
+  lastWeightKg: number
+  repHigh: number
+  target: Suggestion | null
 }
 
 const topWeight = (sets: ExerciseSessionSummary['sets']) => sets.reduce((max, s) => Math.max(max, s.weight_kg), 0)
@@ -117,31 +126,47 @@ export function ExerciseScope() {
   // shows the loading placeholder.
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const pickerState = useExerciseSelectorState([])
-  const [suggestion, setSuggestion] = useState<{ next: Suggestion; workoutName: string } | null>(null)
+  const [lastTime, setLastTime] = useState<LastTime | null>(null)
+  const [recentHistory, setRecentHistory] = useState<ExerciseHistoryEntry[]>([])
 
-  // What the tracking screen would suggest next time (#124) -- same engine,
-  // same inputs. Depends on the exercise only, not on the range.
+  // Facts about the exercise itself, not about the selected range: what was
+  // logged last time, the target the progression engine derives from it
+  // (#127 -- same engine and inputs as the tracking screen), and the latest
+  // sessions for the plateau check (#126).
   useEffect(() => {
-    setSuggestion(null)
+    setLastTime(null)
+    setRecentHistory([])
     if (!selected) return
     let cancelled = false
     Promise.all([
       api.get<SetEntry[]>(`/exercises/${selected.id}/last-sets`),
       api.get<ProgressionContext | null>(`/exercises/${selected.id}/progression-context`),
       api.get<Settings>('/settings'),
+      api.get<ExerciseHistoryEntry[]>(`/exercises/${selected.id}/history`),
     ])
-      .then(([lastSets, context, settingsData]) => {
-        if (cancelled || !context || !lastSets.some((s) => !s.is_warmup)) return
-        setSuggestion({
-          workoutName: context.workout_name,
-          next: suggestNext({
-            lastSets,
-            repLow: context.rep_low,
-            repHigh: context.rep_high,
-            incrementKg: context.increment_kg ?? parseFloat(settingsData.default_increment_kg),
-            roundingKg: parseFloat(settingsData.rounding_kg),
-            trigger: settingsData.progression_trigger,
-          }),
+      .then(([lastSets, context, settingsData, recent]) => {
+        if (cancelled) return
+        setRecentHistory(recent)
+        const workingSets = lastSets.filter((s) => !s.is_warmup)
+        if (workingSets.length === 0) return
+        // No rep range without a workout, so no target either -- "last time"
+        // still stands on its own.
+        const target = context
+          ? suggestNext({
+              lastSets,
+              repLow: context.rep_low,
+              repHigh: context.rep_high,
+              incrementKg: context.increment_kg ?? parseFloat(settingsData.default_increment_kg),
+              roundingKg: parseFloat(settingsData.rounding_kg),
+              trigger: settingsData.progression_trigger,
+            })
+          : null
+        setLastTime({
+          performedAt: workingSets[0].performed_at,
+          groups: groupByWeight(workingSets),
+          lastWeightKg: workingSets[workingSets.length - 1].weight_kg,
+          repHigh: context?.rep_high ?? 0,
+          target,
         })
       })
       .catch(() => {})
@@ -196,7 +221,10 @@ export function ExerciseScope() {
 
   const ladder = buildLadder(summaries)
   const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
-  const isPlateaued = detectPlateau(history, plateauSessions)
+  // Over the latest sessions overall, not the selected range (#126) -- a
+  // plateau is a fact about the exercise, and a 7D window never holds enough
+  // sessions to show it.
+  const isPlateaued = detectPlateau(recentHistory, plateauSessions)
   // Same thresholds and colors as the Overview ACWR card (lib/acwr.ts).
   const acwrClass = acwr ? acwrStatus(acwr.ratio).className : ''
   // Records in the selected range and when each was reached (#123), directly
@@ -226,16 +254,56 @@ export function ExerciseScope() {
         {rangeSwitch}
       </DashboardStickyBar>
 
-      {suggestion && (
+      {lastTime && (
         <Card className="gap-0 p-3">
           <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-            Next time · {suggestion.workoutName}
+            Last time · {shortDate(localIso(new Date(lastTime.performedAt)))}
           </div>
-          <div className="mt-1 text-[15px] font-bold tabular-nums">
-            {formatNumber(suggestion.next.weightKg ?? 0, 1)} kg × {suggestion.next.reps}
+          <div className="mt-1 flex flex-wrap gap-x-2.5 text-[15px] font-bold tabular-nums">
+            {lastTime.groups.map((group, i) => (
+              <span key={i} className="whitespace-nowrap">
+                {formatNumber(group.weightKg, 1)} kg <span className="font-normal text-muted-foreground">× {group.reps.join(' / ')}</span>
+              </span>
+            ))}
           </div>
-          <div className="mt-0.5 text-[11.5px] text-muted-foreground">{suggestion.next.reason}</div>
+          {lastTime.target && lastTime.target.weightKg !== null && (
+            <div className="mt-2 border-t border-border pt-2">
+              <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Target</div>
+              <div className="mt-1 text-[15px] font-bold tabular-nums">
+                {formatNumber(lastTime.target.weightKg, 1)} kg × {lastTime.target.reps}
+              </div>
+              <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                {lastTime.target.weightKg > lastTime.lastWeightKg
+                  ? `Top of the rep range (${lastTime.repHigh}) reached — add weight.`
+                  : `Same weight — work up to ${lastTime.repHigh} reps.`}
+              </div>
+            </div>
+          )}
         </Card>
+      )}
+
+      {isPlateaued && (
+        <Card className="border-status-warn/40 bg-status-warn/10 p-3">
+          <div className="flex items-center gap-1 text-[12.5px] font-bold text-status-warn">
+            Plateau
+            <InfoButton term="Plateau" />
+          </div>
+          <p className="mt-0.5 text-[11.5px] text-status-warn/90">
+            No e1RM growth in the last {plateauSessions} sessions — consider a deload week or an exercise variation.
+          </p>
+        </Card>
+      )}
+
+      {acwr && acwr.chronic_kg > 0 && (
+        // Plain words + a percentage instead of the raw ACWR ratio
+        // (#32) -- "0.11" read as a mystery number even with the info
+        // button. Wrapped as normal text flow (not a flex row) so it can
+        // still break onto a second line on a phone without truncating.
+        <p className="text-[11.5px] text-muted-foreground">
+          Whole-body load, last 7 days:{' '}
+          <span className={acwrClass}>{Math.round(acwr.ratio * 100)}%</span>{' '}
+          of your 4-week average (usual range 80–130%) <InfoButton term="ACWR" />
+        </p>
       )}
 
       {loading && loadedId !== selected.id ? (
@@ -244,30 +312,6 @@ export function ExerciseScope() {
         <p className="text-sm text-muted-foreground">No sessions in this period.</p>
       ) : (
         <>
-          {isPlateaued && (
-            <Card className="border-status-warn/40 bg-status-warn/10 p-3">
-              <div className="flex items-center gap-1 text-[12.5px] font-bold text-status-warn">
-                Plateau
-                <InfoButton term="Plateau" />
-              </div>
-              <p className="mt-0.5 text-[11.5px] text-status-warn/90">
-                No e1RM growth in the last {plateauSessions} sessions — consider a deload week or an exercise variation.
-              </p>
-            </Card>
-          )}
-
-          {acwr && acwr.chronic_kg > 0 && (
-            // Plain words + a percentage instead of the raw ACWR ratio
-            // (#32) -- "0.11" read as a mystery number even with the info
-            // button. Wrapped as normal text flow (not a flex row) so it can
-            // still break onto a second line on a phone without truncating.
-            <p className="text-[11.5px] text-muted-foreground">
-              Whole-body load, last 7 days:{' '}
-              <span className={acwrClass}>{Math.round(acwr.ratio * 100)}%</span>{' '}
-              of your 4-week average (usual range 80–130%) <InfoButton term="ACWR" />
-            </p>
-          )}
-
           <Card className="p-3.5">
             {history.length >= 2 ? (
               <MetricTrendPanels history={history} range={range} />
@@ -303,7 +347,7 @@ export function ExerciseScope() {
                   <span className="w-[58px] shrink-0 pt-0.5 text-[10.5px] tabular-nums text-muted-foreground">
                     {formatNumber(rung.volumeKg)} kg
                   </span>
-                  <span className="flex min-w-0 flex-1 flex-wrap gap-x-2.5 text-[12.5px] tabular-nums">
+                  <span className="flex min-w-0 flex-1 flex-col text-[12.5px] tabular-nums">
                     {rung.groups.map((group, i) => (
                       <span key={i} className="whitespace-nowrap">
                         {formatNumber(group.weightKg, 1)} kg <span className="text-muted-foreground">× {group.reps.join(' / ')}</span>
