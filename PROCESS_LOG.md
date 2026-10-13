@@ -485,3 +485,16 @@
 - Claude: aufeinanderfolgende Sätze mit gleichem Gewicht werden zusammengefasst (Zeilenhöhe auf dem Handy); die Badges vergleichen das Top-Gewicht der Session statt des ersten Satzes.
 
 **Nächster Schritt:** Kay nimmt die Exercise-Ansicht auf dem Handy ab.
+
+---
+
+## Session 2026-10-13 (Fortsetzung) — Empfehlung im Exercise-Dashboard, Shoulder-Press-Mapping, Deploy
+
+**Was passiert ist:** #124 und der Nachtrag zu #123 umgesetzt in `b880849` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). #125 als Daten-Fix live eingespielt (`uploads/live-shoulderpress-20261013.json` über `deploy/restore.sh`), per frischem Pull verifiziert.
+
+**Entscheidungen:**
+- Die Empfehlung im Dashboard nutzt dieselbe Engine wie das Tracking (`lib/progression.ts`). Rep-Bereich und Schritt hängen am Workout, deshalb der neue Endpunkt `progression-context`: es gilt das Workout, in dem die Übung zuletzt geloggt wurde.
+- #125: Kay macht die sitzende Variante. Die Workout-Zeile wurde umgehängt statt gelöscht und neu angelegt — so bleiben die `workout_exercise_id` der getrackten Sätze gültig.
+- Die doppelte importierte Session vom 31.08. wurde nicht angefasst (keine Freigabe).
+
+**Nächster Schritt:** Kay entscheidet über die doppelte Session vom 31.08.
