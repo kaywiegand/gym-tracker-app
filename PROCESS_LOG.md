@@ -495,6 +495,6 @@
 **Entscheidungen:**
 - Die Empfehlung im Dashboard nutzt dieselbe Engine wie das Tracking (`lib/progression.ts`). Rep-Bereich und Schritt hängen am Workout, deshalb der neue Endpunkt `progression-context`: es gilt das Workout, in dem die Übung zuletzt geloggt wurde.
 - #125: Kay macht die sitzende Variante. Die Workout-Zeile wurde umgehängt statt gelöscht und neu angelegt — so bleiben die `workout_exercise_id` der getrackten Sätze gültig.
-- Die doppelte importierte Session vom 31.08. wurde nicht angefasst (keine Freigabe).
+- Die doppelte Session 1 vom 31.08. (`0e926e19`, 5 Sätze) wurde nach Kays Freigabe als Soft-Delete entfernt (`uploads/live-dup-session-20261013.json`); wiederherstellbar über `deleted_at`.
 
-**Nächster Schritt:** Kay entscheidet über die doppelte Session vom 31.08.
+**Nächster Schritt:** Kay nimmt die Exercise-Ansicht auf dem Handy ab.
