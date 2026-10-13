@@ -1238,6 +1238,36 @@ check('recovery: the drop tolerance is configurable', $rec['falling'] === 0, $fa
 $recRows = $setRepo->e1rmByExerciseSession(36500);
 check('e1rmByExerciseSession returns display names', $recRows !== [] && isset($recRows[0]['exercise_display_name'], $recRows[0]['best_e1rm'], $recRows[0]['started_at']), $failures);
 
+echo "Early-history library (BACKLOG #135)\n";
+// The seed curates the two FEDB exercises the early-history backfill needs
+// under their agreed titles; the three custom exercises are not seeded, only
+// their title parts are checked here (scripts/early-history-library.py).
+$pdo->exec("INSERT INTO exercises (id, name, equipment, mechanic, created_at, updated_at) VALUES
+    ('eh-air-bike', 'Air Bike', 'body only', 'compound', '2026-10-13T00:00:00Z', '2026-10-13T00:00:00Z'),
+    ('eh-rev-curl', 'Standing Dumbbell Reverse Curl', 'dumbbell', 'isolation', '2026-10-13T00:00:00Z', '2026-10-13T00:00:00Z'),
+    ('eh-upright', 'Standing Dumbbell Upright Row', 'dumbbell', 'compound', '2026-10-13T00:00:00Z', '2026-10-13T00:00:00Z')");
+$seedNaming = require __DIR__ . '/../../db/seed/exercise_naming.php';
+ob_start();
+$seedNaming($pdo, []);
+ob_end_clean();
+$ehTitle = function (string $id, string $muscle) use ($pdo): string {
+    $row = $pdo->query("SELECT * FROM exercises WHERE id = '{$id}'")->fetch(PDO::FETCH_ASSOC);
+    $row['primary_muscle'] = $muscle;
+    return ExerciseNaming::displayName($row);
+};
+check('seed curates Air Bike as a bicycle crunch', $ehTitle('eh-air-bike', 'Abdominals') === 'Abs Crunch Bicycle', $failures);
+check('seed curates the dumbbell reverse curl without "Standing"', $ehTitle('eh-rev-curl', 'Biceps') === 'Biceps Curl Dumbbell Reverse', $failures);
+check('seed curates the dumbbell upright row without "Standing"', $ehTitle('eh-upright', 'Traps') === 'Traps Upright Row Dumbbell', $failures);
+check('title of the custom crucifix crunch',
+    ExerciseNaming::displayName(['primary_muscle' => 'Abdominals', 'movement' => 'Crunch', 'variant' => 'Crucifix',
+        'equipment' => 'body only', 'name' => 'Crucifix Crunch']) === 'Abs Crunch Crucifix', $failures);
+check('title of the custom lateral squat',
+    ExerciseNaming::displayName(['primary_muscle' => 'Quadriceps', 'movement' => 'Squat', 'variant' => 'Lateral',
+        'equipment' => 'dumbbell', 'name' => 'Dumbbell Lateral Squat']) === 'Squat Dumbbell Lateral', $failures);
+check('title of the custom single-leg deadlift',
+    ExerciseNaming::displayName(['primary_muscle' => 'Hamstrings', 'movement' => 'Deadlift', 'variant' => 'Single-Leg',
+        'equipment' => 'dumbbell', 'name' => 'Dumbbell Single-Leg Deadlift']) === 'Deadlift Dumbbell Single-Leg', $failures);
+
 @unlink($dbPath);
 
 if ($failures) {

@@ -1,31 +1,50 @@
 Ab Chrunch Machine	Ab Crunch Machine
+Ab Crunch Machine	Ab Crunch Machine
 Ab Twist Machine	Russian Twist
 Abductor machine	Thigh Abductor
 Abs Chrunch Machine	Ab Crunch Machine
-Abs Crunch Crucifix	Crunches
-Abs Crunches Floor Bicycle	Russian Twist
+Abs Crunch Crucifix	Crucifix Crunch
+Abs Crunches Floor Bicycle	Air Bike
 Abs Rotation Cable	Pallof Press With Rotation
 Abs Russian Twist	Russian Twist
 Abs Twist Machine	Russian Twist
 Adduction Machine	Thigh Adductor
+Arnold dips	Dips - Triceps Version
 Assisted pull ups	Assisted Pull-Up
 Barbell Split Squat	One Leg Barbell Squat
 Barbell Sumo Squat	Barbell Squat
 Barbell squats	Barbell Squat
 Bench Press Dumbbells	Dumbbell Bench Press
 Bench press	Barbell Bench Press - Medium Grip
+Bench press with dumbbells	Dumbbell Bench Press
 Biceps Curls Cable	Standing Biceps Cable Curl
 Biceps Curls Dumbbells	Dumbbell Bicep Curl
 Biceps Curls Reverse Cable	Standing Biceps Cable Curl
 Biceps Hammer Curls	Cable Hammer Curls - Rope Attachment
 Biceps Hammer Curls Cable	Cable Hammer Curls - Rope Attachment
+Bicycle crunches	Air Bike
 Cabel lateral raise	Standing Low-Pulley Deltoid Raise
 Cabel lateral raise 2	Standing Low-Pulley Deltoid Raise
+Cable Chest Press	Cable Chest Press
 Cable Face Pull	Face Pull
+Cable Lat Pulldown	Wide-Grip Lat Pulldown
+Cable Pulldown	Wide-Grip Lat Pulldown
 Cable Rows   to chest overhand	Seated Cable Rows
 Cable abs rotation	Pallof Press With Rotation
+Cable bicep curls	Standing Biceps Cable Curl
+Cable biceps curls reverse	Standing Biceps Cable Curl
+Cable biceps hammer curls	Cable Hammer Curls - Rope Attachment
+Cable chest fly	Cable Crossover
+Cable curls reverse	Standing Biceps Cable Curl
+Cable front raise	Front Cable Raise
+Cable kickbacks	Low Cable Triceps Extension
+Cable rope tricep extension	Low Cable Triceps Extension
 Cable rows	Seated Cable Rows
+Cable shoulder press	Cable Shoulder Press
 Cable tricep push downs	Triceps Pushdown
+Cable triceps overhead extention up	Cable Rope Overhead Triceps Extension
+Cable triceps push down reverse	Triceps Pushdown
+Cable wood choops	Standing Cable Wood Chop
 Chest Fly Cable	Cable Crossover
 Chest Fly Reverse Machine	Reverse Machine Flyes
 Chest Press Barbell	Barbell Bench Press - Medium Grip
@@ -33,22 +52,36 @@ Chest Press Barbell Incline	Barbell Incline Bench Press - Medium Grip
 Chest Press Dumbbells	Dumbbell Bench Press
 Chest Press Machine	Machine Bench Press
 Cross-body Lateral Raise Dumbbells	Side Lateral Raise
-Crunches Floor Bicycle	Russian Twist
+Crucifix Crunch	Crucifix Crunch
+Crunches Floor Bicycle	Air Bike
 Dead Lift Sumo Dumbbells	Stiff-Legged Dumbbell Deadlift
+Deadlift Dumbbell	Stiff-Legged Dumbbell Deadlift
+Deadlift Dumbbell Single Leg	Dumbbell Single-Leg Deadlift
+Deadlift Dumbbell Sumo	Stiff-Legged Dumbbell Deadlift
 Deadlift Dumbbells	Stiff-Legged Dumbbell Deadlift
 Dips	Assisted Dip
 Dips Arnold	Dips - Triceps Version
 Dumbbell biceps curls	Dumbbell Bicep Curl
+Dumbbell biceps curls reverse	Standing Dumbbell Reverse Curl
 Dumbbell chest flys	Dumbbell Flyes
+Dumbbell cross body lateral raise	Side Lateral Raise
+Dumbbell front raise	Front Dumbbell Raise
+Dumbbell lateral raise	Side Lateral Raise
+Dumbbell pull over	Straight-Arm Dumbbell Pullover
+Dumbbell rear delt fly	Reverse Flyes
+Dumbbell rows	One-Arm Dumbbell Row
 Dumbbell shoulder press	Seated Dumbbell Press
+Dumbbell tricep extension	Lying Dumbbell Tricep Extension
 Face Pulls Cable	Face Pull
 Floor leg raises	Flat Bench Lying Leg Raise
 French Press Dumbbells	Lying Dumbbell Tricep Extension
+French press	Lying Dumbbell Tricep Extension
 Front Raise Cable	Front Cable Raise
 Front squat	Front Barbell Squat
 Hammer curls	Hammer Curls
 Hyperextensions	Hyperextensions With No Hyperextension Bench
 Incline bench press	Barbell Incline Bench Press - Medium Grip
+Lat pulldowns   behind the neck	Wide-Grip Lat Pulldown
 Lat pulldowns   narrow grip	Close-Grip Front Lat Pulldown
 Lat pulldowns   to chest overhand	Wide-Grip Lat Pulldown
 Lat pulldowns   to chest underhand	Underhand Cable Pulldowns
@@ -57,16 +90,20 @@ Lat-Pull-downs Chest-Overhand	Wide-Grip Lat Pulldown
 Lat-Pull-downs Chest-Underhand	Underhand Cable Pulldowns
 Lateral Raise Cable	Standing Low-Pulley Deltoid Raise
 Lateral Raise Machine	Side Lateral Raise
+Lateral raise   machine	Side Lateral Raise
+Lateral squat	Dumbbell Lateral Squat
 Leg Curls Machine	Seated Leg Curl
 Leg Extension Machine	Leg Extensions
 Leg Press Machine	Leg Press
 Leg Raises Floor	Flat Bench Lying Leg Raise
 Leg extension	Leg Extensions
 Leg press	Leg Press
+Lunges with dumbbells	Dumbbell Lunges
 Machine Butterfly Reverse	Reverse Machine Flyes
 Machine rows	Leverage Iso Row
 Overhead cable tricep extension	Cable Rope Overhead Triceps Extension
 Pull Over Dumbbells	Straight-Arm Dumbbell Pullover
+Pull ups	Pullups
 Pull-overs Dumbbells	Straight-Arm Dumbbell Pullover
 Pull-ups	Pullups
 Pull-ups Assistend	Assisted Pull-Up
@@ -77,6 +114,7 @@ Rows Dumbbells	One-Arm Dumbbell Row
 Rows Machine	Leverage Iso Row
 Russian twist	Russian Twist
 Seated leg curls	Seated Leg Curl
+Seated tricep kickback with dumbbell	Tricep Dumbbell Kickback
 Shoulder Press Dumbbells	Seated Dumbbell Press
 Shoulder Press Machine	Machine Shoulder (Military) Press
 Shoulder machine press	Machine Shoulder (Military) Press
@@ -95,3 +133,4 @@ Triceps Kickbacks Cable	Low Cable Triceps Extension
 Triceps Overhead Extension Cable	Cable Rope Overhead Triceps Extension
 Triceps Push-downs Cable	Triceps Pushdown
 Triceps Push-downs Reverse Cable	Triceps Pushdown
+Upright dumbbell rows	Standing Dumbbell Upright Row
