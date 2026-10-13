@@ -213,6 +213,26 @@ export interface AcwrWeek {
   ratio: number
 }
 
+// Recovery tendency (BACKLOG #129): share of exercises whose latest session
+// fell below their recent level. `unknown` = too few rated exercises.
+export interface RecoveryResponse {
+  status: 'on_track' | 'watch' | 'deload' | 'unknown'
+  total: number
+  falling: number
+  rising: number
+  falling_share_pct: number
+  drop_pct: number
+  watch_share_pct: number
+  deload_share_pct: number
+  exercises: {
+    exercise_id: string
+    exercise_display_name: string
+    last_session_at: string
+    change_pct: number
+    trend: 'falling' | 'steady' | 'rising'
+  }[]
+}
+
 export interface AcwrResponse {
   acute_kg: number
   chronic_kg: number

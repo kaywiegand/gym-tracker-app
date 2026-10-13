@@ -55,6 +55,34 @@ function handleMuscleVolume(): void
     Http::respond(['regions' => $regions]);
 }
 
+// Recovery tendency (#129). Not tied to the dashboard range: it always rates
+// the latest session of each exercise against the three before it. 180 days
+// of history is enough for four sessions of anything still trained.
+function handleRecovery(): void
+{
+    Auth::require();
+    $settings = (new SettingsRepository())->getAll();
+    $number = static fn (string $key, float $default): float =>
+        isset($settings[$key]) && is_numeric($settings[$key]) ? (float) $settings[$key] : $default;
+
+    $rows = (new SetRepository())->e1rmByExerciseSession(180);
+    $result = Recovery::assess(
+        $rows,
+        gmdate('Y-m-d\TH:i:s\Z'),
+        $number('recovery_drop_pct', Recovery::DEFAULT_DROP_PCT),
+        $number('recovery_watch_share_pct', Recovery::DEFAULT_WATCH_SHARE_PCT),
+        $number('recovery_deload_share_pct', Recovery::DEFAULT_DELOAD_SHARE_PCT)
+    );
+    $result['exercises'] = array_map(static fn ($e) => [
+        'exercise_id' => $e['exercise_id'],
+        'exercise_display_name' => $e['exercise_display_name'],
+        'last_session_at' => $e['last_session_at'],
+        'change_pct' => $e['change_pct'],
+        'trend' => $e['trend'],
+    ], $result['exercises']);
+    Http::respond($result);
+}
+
 function handleAcwr(): void
 {
     Auth::require();

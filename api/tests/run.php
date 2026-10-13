@@ -1165,6 +1165,48 @@ check(
     $failures
 );
 
+echo "Recovery (pure engine)\n";
+
+// $changes: exercise id => e1RM of the latest session; the three before are 100.
+$recoveryRows = static function (array $latestByExercise, string $latestDate = '2026-03-20T10:00:00Z'): array {
+    $rows = [];
+    foreach ($latestByExercise as $id => $latest) {
+        foreach (['2026-03-01', '2026-03-06', '2026-03-11'] as $day) {
+            $rows[] = ['exercise_id' => $id, 'started_at' => $day . 'T10:00:00Z', 'best_e1rm' => 100.0];
+        }
+        $rows[] = ['exercise_id' => $id, 'started_at' => $latestDate, 'best_e1rm' => $latest];
+    }
+    return $rows;
+};
+$recNow = '2026-03-21T10:00:00Z';
+
+$rec = Recovery::assess($recoveryRows(['a' => 105, 'b' => 100, 'c' => 99, 'd' => 101, 'e' => 96]), $recNow);
+check('recovery: one of five falling is on track', $rec['status'] === 'on_track' && $rec['falling'] === 1 && $rec['total'] === 5, $failures);
+check('recovery: a drop inside the tolerance is steady', $rec['exercises'][1]['exercise_id'] === 'c' && $rec['exercises'][1]['trend'] === 'steady', $failures);
+check('recovery: exercises are ordered worst first', $rec['exercises'][0]['exercise_id'] === 'e' && $rec['exercises'][0]['change_pct'] === -4.0, $failures);
+check('recovery: counts rising exercises', $rec['rising'] === 1, $failures);
+
+$rec = Recovery::assess($recoveryRows(['a' => 90, 'b' => 95, 'c' => 100, 'd' => 100, 'e' => 100]), $recNow);
+check('recovery: two of five falling is watch', $rec['status'] === 'watch' && $rec['falling_share_pct'] === 40.0, $failures);
+
+$rec = Recovery::assess($recoveryRows(['a' => 90, 'b' => 95, 'c' => 90, 'd' => 100, 'e' => 100]), $recNow);
+check('recovery: three of five falling is deload', $rec['status'] === 'deload', $failures);
+
+$rec = Recovery::assess($recoveryRows(['a' => 90, 'b' => 90, 'c' => 90, 'd' => 90]), $recNow);
+check('recovery: fewer than five rated exercises is unknown', $rec['status'] === 'unknown' && $rec['total'] === 4, $failures);
+
+$rec = Recovery::assess($recoveryRows(['a' => 90, 'b' => 90, 'c' => 90, 'd' => 90, 'e' => 90]), '2026-04-20T10:00:00Z');
+check('recovery: exercises not trained for three weeks are left out', $rec['total'] === 0 && $rec['status'] === 'unknown', $failures);
+
+$shortHistory = array_slice($recoveryRows(['a' => 90]), 1);
+check('recovery: an exercise with three sessions is not rated', Recovery::assess($shortHistory, $recNow)['total'] === 0, $failures);
+
+$rec = Recovery::assess($recoveryRows(['a' => 96, 'b' => 100, 'c' => 100, 'd' => 100, 'e' => 100]), $recNow, 5.0);
+check('recovery: the drop tolerance is configurable', $rec['falling'] === 0, $failures);
+
+$recRows = $setRepo->e1rmByExerciseSession(36500);
+check('e1rmByExerciseSession returns display names', $recRows !== [] && isset($recRows[0]['exercise_display_name'], $recRows[0]['best_e1rm'], $recRows[0]['started_at']), $failures);
+
 @unlink($dbPath);
 
 if ($failures) {

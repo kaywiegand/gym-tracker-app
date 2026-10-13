@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useScrollAnchor } from '@/lib/useScrollAnchor'
 import { api } from '@/lib/api'
-import type { AcwrResponse, MuscleVolumeResponse, SessionVolumesResponse, TopExercise } from '@/types'
+import type { AcwrResponse, MuscleVolumeResponse, RecoveryResponse, SessionVolumesResponse, TopExercise } from '@/types'
 import {
   COMPARE_COLORS,
   compareTitle,
@@ -19,6 +19,7 @@ import { FilterChips } from '@/components/FilterChips'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { KpiTile } from '@/components/KpiTile'
 import { AcwrCard } from '@/components/AcwrCard'
+import { RecoveryCard } from '@/components/RecoveryCard'
 import { MuscleBodyMap } from '@/components/MuscleBodyMap'
 import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
@@ -48,6 +49,21 @@ export function OverviewScope() {
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeResponse | null>(null)
   const [sessionVolumes, setSessionVolumes] = useState<SessionVolumesResponse['sessions']>([])
   const [topExercises, setTopExercises] = useState<TopExercise[]>([])
+  const [recovery, setRecovery] = useState<RecoveryResponse | null>(null)
+
+  // Not tied to the range: it always rates the latest sessions (#129).
+  useEffect(() => {
+    let cancelled = false
+    api
+      .get<RecoveryResponse>('/dashboard/recovery')
+      .then((data) => {
+        if (!cancelled) setRecovery(data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     // No loading flag: the previous range's data stays on screen until the
@@ -132,6 +148,27 @@ export function OverviewScope() {
         <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
       </DashboardStickyBar>
 
+      <AcwrCard series={acwr.daily_series ?? []} ratio={acwr.ratio} />
+
+      {/* Follows the range switch, like the status list at the bottom: avg
+          sets per week in the window, rated against the weekly MEV/MAV/MRV
+          (BACKLOG #95). */}
+      <Card className="p-3.5">
+        <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          {weeks === 1 ? 'Muscle load · last 7 days' : 'Muscle load · avg per week'}
+          <InfoButton term="MEV" />
+        </div>
+        <MuscleBodyMap regions={muscleVolume.regions} weeks={weeks} />
+      </Card>
+
+      <MuscleVolumeStatusList
+        regions={muscleVolume.regions}
+        weeks={weeks}
+        title={weeks === 1 ? 'Volume · last 7 days (sets)' : 'Volume · avg sets per week'}
+      />
+
+      {recovery && <RecoveryCard recovery={recovery} />}
+
       <KpiTile
         label="Volume/session"
         value={formatNumber(avgVolume)}
@@ -150,8 +187,6 @@ export function OverviewScope() {
           </div>
         }
       />
-
-      <AcwrCard series={acwr.daily_series ?? []} ratio={acwr.ratio} />
 
       <Card className="p-3.5">
         <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
@@ -174,21 +209,6 @@ export function OverviewScope() {
         <MuscleRadar series={radarSeries} />
       </Card>
 
-      {/* Both cards follow the range switch: avg sets per week in the
-          window, rated against the weekly MEV/MAV/MRV (BACKLOG #95). */}
-      <Card className="p-3.5">
-        <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {weeks === 1 ? 'Muscle load · last 7 days' : 'Muscle load · avg per week'}
-          <InfoButton term="MEV" />
-        </div>
-        <MuscleBodyMap regions={muscleVolume.regions} weeks={weeks} />
-      </Card>
-
-      <MuscleVolumeStatusList
-        regions={muscleVolume.regions}
-        weeks={weeks}
-        title={weeks === 1 ? 'Volume · last 7 days (sets)' : 'Volume · avg sets per week'}
-      />
 
     </div>
   )

@@ -10,6 +10,9 @@ return function (PDO $pdo, array $args): void {
         'rest_seconds' => '120',
         'theme' => 'dark',
         'plateau_sessions' => '4',
+        'recovery_drop_pct' => '2.5',
+        'recovery_watch_share_pct' => '35',
+        'recovery_deload_share_pct' => '50',
     ];
 
     $existingStmt = $pdo->prepare('SELECT value FROM settings WHERE key = ?');

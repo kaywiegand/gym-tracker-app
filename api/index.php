@@ -102,6 +102,8 @@ try {
         handleMuscleVolume();
     } elseif ($method === 'GET' && $path === '/dashboard/acwr') {
         handleAcwr();
+    } elseif ($method === 'GET' && $path === '/dashboard/recovery') {
+        handleRecovery();
     } elseif ($method === 'GET' && $path === '/dashboard/training-load') {
         handleTrainingLoad();
     } elseif ($method === 'GET' && $path === '/dashboard/consistency') {

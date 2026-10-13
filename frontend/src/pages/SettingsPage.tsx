@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Trash2 } from 'lucide-react'
+import { RECOVERY_DEFAULTS } from '@/lib/recovery'
 
 type TriggerMode = 'all_sets' | 'last_set'
 
@@ -256,6 +257,40 @@ export function SettingsPage() {
               aria-label="Plateau detection threshold"
             />
           </div>
+
+          <div className="h-px bg-border" />
+
+          <div>
+            <div className="text-[14px] font-bold">Recovery estimate</div>
+            <div className="mt-0.5 text-[11px] text-muted-foreground">
+              An exercise counts as falling when its latest e1RM is this far below its recent level; the share of falling exercises
+              sets the status.
+            </div>
+          </div>
+          {(
+            [
+              { key: 'recovery_drop_pct', label: 'Falling from', hint: 'drop in e1RM', step: 0.5, min: 0.5 },
+              { key: 'recovery_watch_share_pct', label: 'Watch from', hint: 'share of exercises falling', step: 5, min: 5 },
+              { key: 'recovery_deload_share_pct', label: 'Deload from', hint: 'share of exercises falling', step: 5, min: 5 },
+            ] as const
+          ).map(({ key, label, hint, step, min }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div>
+                <div className="text-[13px] font-semibold">{label}</div>
+                <div className="mt-0.5 text-[11px] text-muted-foreground">{hint}</div>
+              </div>
+              <NumberField
+                width="6rem"
+                step={step}
+                min={min}
+                unit="%"
+                value={parseFloat(settings[key] ?? String(RECOVERY_DEFAULTS[key]))}
+                onChange={(v) => setSettings({ ...settings, [key]: String(v) })}
+                onBlur={() => saveSettings({ [key]: settings[key] ?? String(RECOVERY_DEFAULTS[key]) })}
+                aria-label={`Recovery: ${label}`}
+              />
+            </div>
+          ))}
         </CardContent>
       </Card>
 

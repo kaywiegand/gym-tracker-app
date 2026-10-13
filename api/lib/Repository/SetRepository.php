@@ -326,6 +326,25 @@ final class SetRepository extends BaseRepository
         ));
     }
 
+    // Best e1RM per exercise and session over a window, with the exercise's
+    // display fields -- raw material for Recovery::assess() (#129). Epley as
+    // plain arithmetic, like historyForExercise(); bodyweight sets (0 kg)
+    // carry no e1RM and are left out.
+    public function e1rmByExerciseSession(int $sinceDays): array
+    {
+        return ExerciseNaming::decorateAllJoined($this->fetchAll(
+            'SELECT ' . ExerciseNaming::selectColumns() . ',
+                    e.id AS exercise_id, s.started_at,
+                    MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm
+             FROM sets st
+             JOIN sessions s ON s.id = st.session_id AND s.deleted_at IS NULL
+             JOIN exercises e ON e.id = st.exercise_id
+             WHERE st.deleted_at IS NULL AND st.is_warmup = 0 AND st.weight_kg > 0 AND s.started_at >= ?
+             GROUP BY e.id, s.id',
+            [gmdate('Y-m-d\TH:i:s\Z', time() - $sinceDays * 86400)]
+        ));
+    }
+
     // What you actually train, most-used first, over a window. Ranked by
     // sessions rather than sets: an exercise done every week in three sets
     // is more central to the training than one done twice in twelve.

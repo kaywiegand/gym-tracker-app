@@ -60,4 +60,10 @@ export const GLOSSARY: GlossaryEntry[] = [
     definition:
       'No e1RM growth over the configured number of recent sessions (default 4, adjustable in Settings). A signal to consider a deload week or switching up the exercise or rep range.',
   },
+  {
+    term: 'Recovery',
+    label: 'Recovery (estimate)',
+    definition:
+      'An estimate, not a measurement. For every exercise trained in the last 3 weeks, the latest session’s e1RM is compared with the median of the three sessions before. One exercise dropping is normal; many dropping at once hints at fatigue. Below 35% of exercises falling counts as on track, 35–50% as worth watching, above 50% as a sign a deload may help (thresholds adjustable in Settings). Sleep, stress and soreness are not part of it.',
+  },
 ]
