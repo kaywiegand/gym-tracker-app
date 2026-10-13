@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card'
-import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 import type { AcwrDay } from '@/types'
 import { ACWR_CRITICAL, ACWR_HIGH, ACWR_LOW, acwrStatus } from '@/lib/acwr'
 
@@ -70,11 +70,8 @@ export function AcwrCard({ series: fullSeries, ratio, className }: AcwrCardProps
 
   return (
     <Card className={`p-3.5 ${className ?? ''}`}>
-      <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-        ACWR/session
-        <InfoButton term="ACWR" />
-      </div>
-      <div className="mt-0.5 flex items-baseline gap-2">
+      <TileHeader title="Training load" subline="ACWR · last 7 days vs. your 4-week average" infoTerm="ACWR" className="" />
+      <div className="mt-1.5 flex items-baseline gap-2">
         <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">Now</span>
         <span className="text-[21px] font-bold" style={{ color: status.color }}>
           {ratio.toFixed(2)}

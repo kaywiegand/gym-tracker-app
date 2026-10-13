@@ -1,5 +1,6 @@
 import type { TopExercise } from '@/types'
 import { Card } from '@/components/ui/card'
+import { TileHeader } from '@/components/TileHeader'
 
 interface TopExercisesListProps {
   exercises: TopExercise[]
@@ -15,8 +16,7 @@ export function TopExercisesList({ exercises, range }: TopExercisesListProps) {
   if (exercises.length === 0) {
     return (
       <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Most trained</div>
-        <p className="text-[12px] text-muted-foreground">Nothing logged in this range yet.</p>
+        <TileHeader title="Most trained" subline="Nothing logged in this range yet." className="" />
       </Card>
     )
   }
@@ -25,8 +25,7 @@ export function TopExercisesList({ exercises, range }: TopExercisesListProps) {
 
   return (
     <Card className="p-3.5">
-      <div className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Most trained</div>
-      <p className="mb-2.5 text-[10.5px] text-muted-foreground">by sessions over {range}</p>
+      <TileHeader title="Most trained" subline={`By sessions over ${range}`} className="mb-2.5" />
       <div className="flex flex-col gap-2">
         {exercises.map((e) => (
           <div key={e.exercise_id}>

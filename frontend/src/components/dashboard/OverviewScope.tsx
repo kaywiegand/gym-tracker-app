@@ -25,7 +25,7 @@ import { MuscleVolumeStatusList } from '@/components/MuscleVolumeStatusList'
 import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
 import { ConsistencyCalendar } from '@/components/ConsistencyCalendar'
 import { TopExercisesList } from '@/components/TopExercisesList'
-import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -154,23 +154,26 @@ export function OverviewScope() {
           sets per week in the window, rated against the weekly MEV/MAV/MRV
           (BACKLOG #95). */}
       <Card className="p-3.5">
-        <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {weeks === 1 ? 'Muscle load · last 7 days' : 'Muscle load · avg per week'}
-          <InfoButton term="MEV" />
-        </div>
+        <TileHeader
+          title="Muscle load"
+          subline={weeks === 1 ? 'Sets in the last 7 days vs. your targets' : 'Avg sets per week vs. your targets'}
+          infoTerm="MEV"
+        />
         <MuscleBodyMap regions={muscleVolume.regions} weeks={weeks} />
       </Card>
 
       <MuscleVolumeStatusList
         regions={muscleVolume.regions}
         weeks={weeks}
-        title={weeks === 1 ? 'Volume · last 7 days (sets)' : 'Volume · avg sets per week'}
+        title="Sets per muscle group"
+        subline={weeks === 1 ? 'Last 7 days · MEV / MAV / MRV' : 'Avg per week · MEV / MAV / MRV'}
       />
 
       {recovery && <RecoveryCard recovery={recovery} />}
 
       <KpiTile
-        label="Volume/session"
+        label="Session volume"
+        subline="Avg kg per session in this period"
         value={formatNumber(avgVolume)}
         unit="kg"
         valueTag="avg"
@@ -188,17 +191,17 @@ export function OverviewScope() {
         }
       />
 
-      <Card className="p-3.5">
-        <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Consistency</div>
+      <Card className="gap-0 p-3.5">
+        {/* The calendar's own caption ("N training days · last N weeks") is
+            the subline -- it carries the period. */}
+        <TileHeader title="Consistency" className="mb-0.5" />
         <ConsistencyCalendar dates={resolved.dates} weeks={weeks} />
       </Card>
 
       <TopExercisesList exercises={topExercises} range={shownRange} />
 
       <Card className="p-3.5">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          {previous ? compareTitle(shownRange) : rangeTitle(shownRange)}
-        </div>
+        <TileHeader title="Muscle balance" subline={previous ? compareTitle(shownRange) : rangeTitle(shownRange)} />
         <div className="mb-1 flex gap-1.5">
           {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
             <Button key={m} type="button" size="sm" variant={radarMetric === m ? 'default' : 'outline'} onClick={() => setRadarMetric(m)}>

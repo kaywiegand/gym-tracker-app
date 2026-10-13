@@ -4,18 +4,21 @@ import { avgSetsPerWeek, statusFor, STATUS_BADGE_CLASS, STATUS_LABEL } from '@/l
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 
 interface MuscleVolumeStatusListProps {
   regions: MuscleVolumeRegion[]
   // Window length in weeks (1 = last 7 days); value = avg sets per week.
   weeks?: number
   title?: string
+  // With a subline the title is the tile's name (BACKLOG #131).
+  subline?: string
 }
 
 // Kept as its own compact list (out of the radar/body-map) so each chart
 // stays focused on one job -- this one shows the exact numbers behind the
 // ampel colors the body map only shows visually.
-export function MuscleVolumeStatusList({ regions, weeks = 1, title = 'Volume · last 7 days (sets)' }: MuscleVolumeStatusListProps) {
+export function MuscleVolumeStatusList({ regions, weeks = 1, title = 'Volume · last 7 days (sets)', subline }: MuscleVolumeStatusListProps) {
   const byRegion = new Map(regions.map((r) => [r.region, r]))
   const ordered = Object.keys(REGION_LABELS)
     .map((region) => byRegion.get(region))
@@ -23,10 +26,14 @@ export function MuscleVolumeStatusList({ regions, weeks = 1, title = 'Volume · 
 
   return (
     <Card className="p-3.5">
-      <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-        {title}
-        <InfoButton term="MEV" />
-      </div>
+      {subline ? (
+        <TileHeader title={title} subline={subline} infoTerm="MEV" />
+      ) : (
+        <div className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          {title}
+          <InfoButton term="MEV" />
+        </div>
+      )}
       <div className="flex flex-col gap-1.5">
         {ordered.map((r) => {
           // Avg sets per week over the selected window -- see MuscleVolumeRegion.

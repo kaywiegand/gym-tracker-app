@@ -1,9 +1,13 @@
 import type { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
 import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 
 interface KpiTileProps {
   label: string
+  // With a subline the label is the tile's title (BACKLOG #131); without
+  // one it stays the small-caps measure name.
+  subline?: string
   value: string
   unit?: string
   trend?: string
@@ -101,13 +105,17 @@ function MiniLineChart({ values, color, labels }: { values: number[]; color: str
   )
 }
 
-export function KpiTile({ label, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm, aside, valueTag }: KpiTileProps) {
+export function KpiTile({ label, subline, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm, aside, valueTag }: KpiTileProps) {
   return (
     <Card className="p-3">
-      <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
-        {label}
-        {infoTerm && <InfoButton term={infoTerm} />}
-      </div>
+      {subline ? (
+        <TileHeader title={label} subline={subline} infoTerm={infoTerm} className="" />
+      ) : (
+        <div className="flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wide text-muted-foreground">
+          {label}
+          {infoTerm && <InfoButton term={infoTerm} />}
+        </div>
+      )}
       <div className="mt-0.5 flex items-baseline justify-between gap-3">
         <div className="text-[21px] font-bold">
           {value}

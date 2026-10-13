@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card'
-import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 import { recoveryStatus } from '@/lib/recovery'
 import type { RecoveryResponse } from '@/types'
 
@@ -24,17 +24,19 @@ export function RecoveryCard({ recovery }: { recovery: RecoveryResponse }) {
   const bandRight = Math.min(SCALE_MAX_PCT, recovery.falling_share_pct + uncertaintyPct)
 
   return (
-    <Card className="gap-0 border-dashed p-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-          Recovery
-          <InfoButton term="Recovery" />
-        </div>
-        <span className="rounded-full border border-dashed border-border px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground">
-          Estimate
-        </span>
-      </div>
-      <div className="mt-0.5 text-[11px] text-muted-foreground">A tendency from your recent performance — not a measurement.</div>
+    // Card draws its outline as a ring; swapped for a dashed border here.
+    <Card className="gap-0 border border-dashed border-foreground/25 p-3.5 ring-0">
+      <TileHeader
+        title="Recovery"
+        subline="A tendency from your recent performance — not a measurement."
+        infoTerm="Recovery"
+        className=""
+        aside={
+          <span className="rounded-full border border-dashed border-foreground/25 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide text-muted-foreground">
+            Estimate
+          </span>
+        }
+      />
 
       <div className={`mt-2 text-[17px] font-bold ${status.className}`}>{status.label}</div>
 

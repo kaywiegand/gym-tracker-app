@@ -18,6 +18,7 @@ import type {
 import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
+import { TileHeader } from '@/components/TileHeader'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -220,6 +221,8 @@ export function ExerciseScope() {
   }
 
   const ladder = buildLadder(summaries)
+  const hasTarget = !!lastTime?.target && lastTime.target.weightKg !== null
+  const addsWeight = (lastTime?.target?.weightKg ?? 0) > (lastTime?.lastWeightKg ?? 0)
   const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
   // Over the latest sessions overall, not the selected range (#126) -- a
   // plateau is a fact about the exercise, and a 7D window never holds enough
@@ -255,31 +258,33 @@ export function ExerciseScope() {
       </DashboardStickyBar>
 
       {lastTime && (
-        <Card className="gap-0 p-3">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-            Last time · {shortDate(localIso(new Date(lastTime.performedAt)))}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-x-2.5 text-[15px] font-bold tabular-nums">
-            {lastTime.groups.map((group, i) => (
-              <span key={i} className="whitespace-nowrap">
-                {formatNumber(group.weightKg, 1)} kg <span className="font-normal text-muted-foreground">× {group.reps.join(' / ')}</span>
-              </span>
-            ))}
-          </div>
+        // Two tiles side by side (#132): what was done, and what to aim for.
+        // Without a target (exercise in no workout) "Last time" stands alone.
+        <div className={`grid gap-2 ${hasTarget ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <Card className="gap-0 p-3">
+            <TileHeader title="Last time" subline={shortDate(localIso(new Date(lastTime.performedAt)))} className="" />
+            <div className="mt-1.5 flex flex-col text-[15px] font-bold tabular-nums">
+              {lastTime.groups.map((group, i) => (
+                <span key={i} className="whitespace-nowrap">
+                  {formatNumber(group.weightKg, 1)} kg <span className="font-normal text-muted-foreground">× {group.reps.join(' / ')}</span>
+                </span>
+              ))}
+            </div>
+          </Card>
           {lastTime.target && lastTime.target.weightKg !== null && (
-            <div className="mt-2 border-t border-border pt-2">
-              <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Target</div>
-              <div className="mt-1 text-[15px] font-bold tabular-nums">
+            <Card className="gap-0 p-3">
+              {/* One-line subline so the value sits level with "Last time";
+                  the reason follows below it. */}
+              <TileHeader title="Target" subline={addsWeight ? 'Add weight' : 'Same weight'} className="" />
+              <div className="mt-1.5 text-[15px] font-bold tabular-nums">
                 {formatNumber(lastTime.target.weightKg, 1)} kg × {lastTime.target.reps}
               </div>
-              <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                {lastTime.target.weightKg > lastTime.lastWeightKg
-                  ? `Top of the rep range (${lastTime.repHigh}) reached — add weight.`
-                  : `Same weight — work up to ${lastTime.repHigh} reps.`}
+              <div className="mt-0.5 text-[11px] text-muted-foreground">
+                {addsWeight ? `Top of the range (${lastTime.repHigh}) reached` : `Work up to ${lastTime.repHigh} reps`}
               </div>
-            </div>
+            </Card>
           )}
-        </Card>
+        </div>
       )}
 
       {isPlateaued && (
