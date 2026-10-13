@@ -498,3 +498,16 @@
 - Die doppelte Session 1 vom 31.08. (`0e926e19`, 5 Sätze) wurde nach Kays Freigabe als Soft-Delete entfernt (`uploads/live-dup-session-20261013.json`); wiederherstellbar über `deleted_at`.
 
 **Nächster Schritt:** Kay nimmt die Exercise-Ansicht auf dem Handy ab.
+
+---
+
+## Session 2026-10-13 (Fortsetzung 2) — „Last time“ + Ziel, Hinweise ohne Zeitraum, Deploy
+
+**Was passiert ist:** #126, #127 und ein Nachtrag zu #123 umgesetzt in `6aa652f` (`ExerciseScope.tsx`) und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Im Handy-Viewport gegen eine Kopie des Live-Stands geprüft, nicht auf dem iPhone.
+
+**Entscheidungen:**
+- Kay: „Next time · <Workout>“ aus #124 war falsch gedacht — wann und in welchem Workout die Übung als Nächstes kommt, ist unbekannt. Die Karte zeigt jetzt zuerst das Nachweisbare („Last time“ mit Gewicht × Reps), darunter das Ziel aus der Progressions-Engine.
+- Der Rep-Bereich fürs Ziel kommt weiter aus dem Workout, in dem die Übung zuletzt geloggt wurde; er wird nur nicht mehr benannt.
+- Kay: Plateau und andere Hinweise gelten generell. Plateau wird über die letzten Sessions der Übung geprüft, nicht über den gewählten Zeitraum.
+
+**Nächster Schritt:** Kay nimmt die Exercise-Ansicht auf dem Handy ab.
