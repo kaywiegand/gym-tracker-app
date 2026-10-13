@@ -554,3 +554,17 @@
 - Alle 692 unkuratierten Übungen sind ungenutzt — relevant für den Zuschnitt von #47.
 
 **Nächster Schritt:** Kay entscheidet, ob #47 auf die 135 kuratierten Übungen beschränkt wird.
+
+---
+
+## Session 2026-10-13 (Fortsetzung 6) — Gainsfire-Mapping-Durchsicht (#21), #47 geschlossen
+
+**Was passiert ist:** #21 Teil 2 erledigt: Mapping (`scripts/gainsfire-mapping.tsv`) gegen Export und Live-Stand geprüft, zwei Doppelungen als Soft-Delete aus den Live-Daten entfernt (`uploads/live-bicep-dupes-20261013.json`, `uploads/live-frontsquat-dupes-20261013.json`), jeweils per frischem Pull verifiziert. #47 auf die kuratierten Übungen eingegrenzt und dann geschlossen.
+
+**Entscheidungen:**
+- Der Gainsfire-Export führt Trainings doppelt: einmal am echten Plan, einmal unter „Entfernter Plan“ mit anderem Übungsnamen. Zeigen beide Namen auf dieselbe App-Übung, fällt das beim Import zusammen; zeigen sie auf verschiedene, steht das Training zweimal in der App.
+- Kay: die Beincurl-Kopien auf der Bizeps-Maschine löschen (Mapping-Fehler, in der TSV korrigiert); im Sommer 2025 waren es normale Kniebeugen, die Front-Squat-Kopien löschen.
+- Gelöscht wurde nur, was am selben Tag einen satzgleichen Zwilling auf der richtigen Übung hat.
+- #47: eine systematische Titel-Durchsicht ist überflüssig, seit die unkuratierten Titel per Regel bereinigt sind.
+
+**Nächster Schritt:** #135 (frühe Historie unvollständig) untersuchen — hängt am selben Export-Mechanismus („Entfernter Plan“).
