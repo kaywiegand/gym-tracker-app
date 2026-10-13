@@ -184,6 +184,9 @@ final class ExerciseNaming
         'gironda sternum chins' => 'Pull-Up',
         'hanging pike' => 'Raise',
         'hip flexion with band' => 'Raise',
+        // "With A Twist" is a flourish, the movement is a fly -- the keyword
+        // scan would hit "twist" first (BACKLOG #23).
+        'incline dumbbell flyes - with a twist' => 'Fly',
         'iron cross' => 'Fly',
         'kettlebell figure 8' => 'Pass',
         'kettlebell pirate ships' => 'Press',
@@ -253,6 +256,9 @@ final class ExerciseNaming
     // which would retitle hundreds of exercises to fix two.
     private const VARIANT_BY_NAME = [
         'clean deadlift' => 'Clean',
+        // "Twist" is a movement word and gets stripped; without it this
+        // collides with the plain "Incline Dumbbell Flyes" (BACKLOG #23).
+        'incline dumbbell flyes - with a twist' => 'Incline Twist',
         'reverse band sumo deadlift' => 'Sumo Reverse Band',
         // "from" is filler; the deficit is what sets it apart from the plain
         // Romanian deadlift, whose muscles it shares.
@@ -296,14 +302,70 @@ final class ExerciseNaming
         // movement word everywhere, so no variant is left -- collides with
         // "Bench Sprint" (also Legs Press) once neither carries "Bodyweight".
         'bench jump' => 'Jump',
+        // BACKLOG #25 (no singular muscle, no prepositions in a variant)
+        // surfaced four more: the stuttered muscle word or the trailing
+        // "From" had been the only thing keeping these apart.
+        //
+        // The curated "Barbell Ab Rollout - On Knees" is the plain
+        // "Abs Rollout Barbell"; the full version is done from standing.
+        'barbell ab rollout' => 'Standing',
+        // "Bench" is a Press word and gets stripped.
+        'barbell rollout from bench' => 'Bench',
+        'on your side quad stretch' => 'Side',
+        // "Push" and "Up..." are movement words and get stripped.
+        'push press' => 'Push',
+        'upward stretch' => 'Upward',
+        // Kay's review of the #25 list (2026-10-13): the word the general
+        // rule drops or adds is the wrong one here.
+        'leg-up hamstring stretch' => 'Leg-Up',
+        'overhead lat' => 'Overhead',
+        'looking at ceiling' => 'Looking',
     ];
 
     // Words that carry no distinguishing information in a variant.
     private const VARIANT_STOPWORDS = [
         'with', 'the', 'a', 'an', 'on', 'in', 'to', 'and', 'of', 'or', 'for',
         'using', 'up', 'down', 'version', 'exercise', 'male', 'female',
+        // Prepositions that ended a two-word variant on nothing
+        // ("Abs Rollout Barbell From", BACKLOG #25).
+        'from', 'at', 'your', 'against', 'off',
         // Body-region filler: the muscle part already says where it happens.
         'torso', 'trunk',
+    ];
+
+    // The muscle as the source names write it inside an exercise name: singular
+    // ("Calf Raise", "Shoulder Press"), while the title's muscle slot is plural.
+    // Left in the variant it reads as a stutter -- "Calves Raise Barbell Calf"
+    // (BACKLOG #25). Keyed by the lowercased title muscle.
+    private const MUSCLE_SINGULAR = [
+        'abs' => 'ab',
+        'abductors' => 'abductor',
+        'adductors' => 'adductor',
+        'biceps' => 'bicep',
+        'calves' => 'calf',
+        'forearms' => 'forearm',
+        'glutes' => 'glute',
+        'hamstrings' => 'hamstring',
+        'lats' => 'lat',
+        'quads' => 'quad',
+        'shoulders' => 'shoulder',
+        'traps' => 'trap',
+        'triceps' => 'tricep',
+    ];
+
+    // Word pairs that are one variant and are written with a hyphen when
+    // curated ("One-Arm", "Close-Grip"). An inferred variant spells them the
+    // same way, so the picker does not list both spellings side by side.
+    private const HYPHENATED_PAIRS = [
+        'one arm' => 'One-Arm',
+        'close grip' => 'Close-Grip',
+        'wide grip' => 'Wide-Grip',
+        'reverse grip' => 'Reverse-Grip',
+        'bent over' => 'Bent-Over',
+        'rear delt' => 'Rear-Delt',
+        'glute ham' => 'Glute-Ham',
+        'stiff legged' => 'Stiff-Legged',
+        't bar' => 'T-Bar',
     ];
 
     // Best-effort variant for an exercise nobody curated: whatever is left of
@@ -334,6 +396,10 @@ final class ExerciseNaming
         }
         foreach (self::VARIANT_STOPWORDS as $w) {
             $used[$w] = true;
+        }
+        $singular = self::MUSCLE_SINGULAR[strtolower(self::muscleLabel($muscle))] ?? null;
+        if ($singular !== null) {
+            $used[$singular] = true;
         }
 
         // Words that made the movement match are dropped by PREFIX, not by
@@ -370,7 +436,8 @@ final class ExerciseNaming
             }
         }
 
-        return implode(' ', $rest);
+        $variant = implode(' ', $rest);
+        return self::HYPHENATED_PAIRS[strtolower($variant)] ?? $variant;
     }
 
     public static function isCurated(array $row): bool

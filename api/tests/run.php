@@ -913,6 +913,29 @@ check(
     $failures
 );
 check(
+    'inferred variant drops the singular muscle word',
+    ExerciseNaming::inferVariant('Standing Barbell Calf Raise', 'calves', 'Raise', 'barbell') === 'Standing'
+        && ExerciseNaming::inferVariant('Cable Shoulder Press', 'shoulders', 'Press', 'cable') === '',
+    $failures
+);
+check(
+    'inferred variant skips prepositions instead of ending on one',
+    ExerciseNaming::inferVariant('Power Clean from Blocks', 'hamstrings', 'Clean', 'barbell') === 'Power Blocks',
+    $failures
+);
+check(
+    'inferred variant hyphenates known word pairs',
+    ExerciseNaming::inferVariant('One Arm Dumbbell Bench Press', 'chest', 'Press', 'dumbbell') === 'One-Arm'
+        && ExerciseNaming::inferVariant('Close-Grip Dumbbell Press', 'triceps', 'Press', 'dumbbell') === 'Close-Grip',
+    $failures
+);
+check(
+    'a twist flourish does not turn a fly into a twist',
+    ExerciseNaming::inferMovement('Incline Dumbbell Flyes - With A Twist') === 'Fly'
+        && ExerciseNaming::inferVariant('Incline Dumbbell Flyes - With A Twist', 'chest', 'Fly', 'dumbbell') === 'Incline Twist',
+    $failures
+);
+check(
     'ExerciseNaming::decorate leaves the stored alias untouched',
     ExerciseNaming::decorate(['name' => 'Barbell Curl', 'display_alias' => null])['display_alias'] === null,
     $failures
