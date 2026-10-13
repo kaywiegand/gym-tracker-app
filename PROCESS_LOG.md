@@ -472,3 +472,16 @@
 - Beim Messen im Browser-Pane: ein Tab im Hintergrund feuert keine Scroll-Events — der Anker merkt sich die Position deshalb auch bei jedem Tap und ignoriert veraltete Stände.
 
 **Nächster Schritt:** Kay nimmt Overview und Body auf dem Handy ab; danach #78.
+
+---
+
+## Session 2026-10-13 — Exercise-Scope: Rekord-Kacheln und Sätze mit Gewicht, Deploy
+
+**Was passiert ist:** #123 umgesetzt in `c00cdb2` (`ExerciseScope.tsx`) und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Im Handy-Viewport gegen eine Kopie des Live-Backups geprüft, nicht auf dem iPhone.
+
+**Entscheidungen:**
+- Anlass: „Max weight“ nannte das höchste Satzgewicht, die History-Zeile aber nur das Gewicht des ersten Satzes — bei ansteigenden Sätzen war der Rekord in der Liste nicht zu finden.
+- Kay: drei Kacheln (Max set weight, Max session e1RM, Max session volume) statt Textzeile; History zeigt je Satz Gewicht und Reps.
+- Claude: aufeinanderfolgende Sätze mit gleichem Gewicht werden zusammengefasst (Zeilenhöhe auf dem Handy); die Badges vergleichen das Top-Gewicht der Session statt des ersten Satzes.
+
+**Nächster Schritt:** Kay nimmt die Exercise-Ansicht auf dem Handy ab.

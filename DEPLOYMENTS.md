@@ -48,3 +48,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261012-1956-f42aaa3` | `f42aaa3` | 2026-10-12T19:56:38Z | `backups/20261012-1956-f42aaa3/` | compact volume tile, ACWR/session title, full-week calendar (#113-#115) |
 | `20261012-2047-aaa953f` | `aaa953f` | 2026-10-12T20:47:41Z | `backups/20261012-2047-aaa953f/` | scroll anchor, fixed-height calendar, leaner body view (#115-#121) |
 | `20261012-2111-d2f7477` | `d2f7477` | 2026-10-12T21:11:45Z | `backups/20261012-2111-d2f7477/` | lean mass last in body chart legend (#122) |
+| `20261013-0343-c00cdb2` | `c00cdb2` | 2026-10-13T03:43:13Z | `backups/20261013-0343-c00cdb2/` | exercise scope: record tiles (max set weight, e1RM, volume), history with weight x reps per set (#123) |
