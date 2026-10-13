@@ -526,3 +526,17 @@
 - ACWR ist laut Kay die wichtigste Kachel und steht oben. Claudes Hinweis, dass der Wert bei drei Sessions pro Woche von Tag zu Tag springt, wurde genannt.
 
 **Nächster Schritt:** Titel/Subline-Tabelle für Exercise, Workout und Body mit Kay abstimmen.
+
+---
+
+## Session 2026-10-13 (Fortsetzung 4) — Recovery-Skala, Kachel-Titel in allen Scopes, Deploy
+
+**Was passiert ist:** #133 und der Rest von #131 umgesetzt in `54753fb` und nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Alle vier Dashboard-Scopes im Handy-Viewport gegen eine Kopie des Live-Stands geprüft.
+
+**Entscheidungen:**
+- Kay: „Estimate“ gehört in den Titel der Recovery-Kachel, die Skala soll die aus dem Body-Dashboard sein (`BiaBandBar`). Der weiche Unsicherheits-Marker entfällt zugunsten der Einheitlichkeit.
+- Deload gilt ab der Schwelle (>=), nicht erst darüber — sonst widersprechen sich Text und Skala am Grenzwert.
+- Kleine Kennzahl-Kacheln behalten ihre kurze Beschriftung; „Latest scan“ in Body bleibt Abschnitts-Trenner.
+- Arbeitsweise: `npx tsc --noEmit -p .` prüft im Frontend nichts (Root-tsconfig hat `files: []`). Typecheck = `npx tsc -b` bzw. `npm run build`.
+
+**Nächster Schritt:** Kay nimmt die vier Dashboard-Ansichten auf dem Handy ab.
