@@ -13,9 +13,11 @@ interface AcwrCardProps {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+// With the year: the range runs from a week to several years, and
+// "15. Oct – 13. Oct" does not say which (BACKLOG #136).
 function shortDate(iso: string): string {
-  const [, m, d] = iso.split('-').map(Number)
-  return `${d}. ${MONTHS[m - 1]}`
+  const [y, m, d] = iso.split('-').map(Number)
+  return `${d}. ${MONTHS[m - 1]} ${y}`
 }
 
 // ACWR (7d vs. 28d, fixed definition) as a daily line over the selected
