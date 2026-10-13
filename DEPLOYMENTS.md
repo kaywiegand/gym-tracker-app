@@ -51,3 +51,4 @@ Ablauf, Flags und der Schutz des Datenbestands: siehe README, Abschnitt „Deplo
 | `20261013-0343-c00cdb2` | `c00cdb2` | 2026-10-13T03:43:13Z | `backups/20261013-0343-c00cdb2/` | exercise scope: record tiles (max set weight, e1RM, volume), history with weight x reps per set (#123) |
 | `20261013-0353-b880849` | `b880849` | 2026-10-13T03:53:59Z | `backups/20261013-0353-b880849/` | exercise scope: next-time suggestion card, two-line record tile titles (#123, #124) |
 | `20261013-0408-6aa652f` | `6aa652f` | 2026-10-13T04:08:09Z | `backups/20261013-0408-6aa652f/` | exercise scope: last time + target card, hints independent of range, history one line per weight (#123, #126, #127) |
+| `20261013-0432-8ac7a92` | `8ac7a92` | 2026-10-13T04:32:34Z | `backups/20261013-0432-8ac7a92/` | recovery estimate tile, overview order and tile titles, exercise: last time + target as two tiles (#128-#132) |

@@ -511,3 +511,18 @@
 - Kay: Plateau und andere Hinweise gelten generell. Plateau wird über die letzten Sessions der Übung geprüft, nicht über den gewählten Zeitraum.
 
 **Nächster Schritt:** Kay nimmt die Exercise-Ansicht auf dem Handy ab.
+
+---
+
+## Session 2026-10-13 (Fortsetzung 3) — Regenerations-Kachel, Overview-Reihenfolge, Kachel-Titel, Deploy
+
+**Was passiert ist:** #128–#132 umgesetzt in `6611b6e` und `8ac7a92`, nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). Regel der Regenerations-Kachel in `api/lib/Recovery.php` (mit Tests), Kachel in `RecoveryCard.tsx`, Titel/Subline über `TileHeader.tsx`. Im Handy-Viewport gegen eine Kopie des Live-Stands geprüft; live nur geprüft, dass die neuen Endpunkte ohne Session 401 liefern.
+
+**Entscheidungen:**
+- Regeneration wird nicht gemessen, sondern aus der Trainingsleistung geschätzt: fällt das e1RM bei vielen Übungen gleichzeitig unter ihr letztes Niveau, ist das das Signal. Eine einzelne stagnierende Übung bleibt Sache des Plateau-Hinweises.
+- Schwellen (Abfall je Übung, Anteil für Gelb/Rot) von Claude gesetzt und gegen Kays Historie geprüft: das Grundrauschen liegt bei 20–30 % fallender Übungen, deshalb beginnt Gelb erst bei 35 %. Rot kam an keinem geprüften Stichtag vor — die Schwelle ist nicht belegt und in Settings einstellbar.
+- Kay: die Kachel muss als Tendenz erkennbar sein, nicht als Fakt — Tag „Estimate“, gestrichelter Rahmen, vorsichtige Formulierungen, Marker als weiches Band, keine große Zahl.
+- Kay: Kacheln brauchen einen festen Titel (was sie zeigen) und eine Subline (Erklärung, Zeitraum). Für die Overview umgesetzt; Exercise/Workout/Body folgen mit eigener Tabelle.
+- ACWR ist laut Kay die wichtigste Kachel und steht oben. Claudes Hinweis, dass der Wert bei drei Sessions pro Woche von Tag zu Tag springt, wurde genannt.
+
+**Nächster Schritt:** Titel/Subline-Tabelle für Exercise, Workout und Body mit Kay abstimmen.
