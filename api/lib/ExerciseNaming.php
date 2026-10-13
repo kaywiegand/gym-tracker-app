@@ -459,15 +459,7 @@ final class ExerciseNaming
             return (string) ($row['name'] ?? '');
         }
 
-        $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
-        if (in_array(strtolower(trim((string) ($row['primary_muscle'] ?? ''))), self::LEG_TITLE_MUSCLES, true)
-            && in_array($movement, self::LEG_TITLE_MOVEMENTS, true)) {
-            $muscle = 'Legs';
-        }
-        $muscle = self::TITLE_MUSCLE_BY_NAME[strtolower(trim((string) ($row['name'] ?? '')))] ?? $muscle;
-        if (in_array($movement, self::MUSCLE_FREE_MOVEMENTS, true)) {
-            $muscle = '';
-        }
+        $muscle = self::titleMuscle($row, $movement);
         $equipment = self::equipmentLabel($row['equipment'] ?? null);
         $variant = trim((string) ($row['variant'] ?? ''));
         // Only guess a variant for an exercise nobody curated. On a curated
@@ -540,10 +532,28 @@ final class ExerciseNaming
         return $alias !== '' ? $alias : (string) ($row['name'] ?? '');
     }
 
-    // The second line. For a title without a muscle (Squat, Deadlift, Row) the
-    // muscle is appended here -- "Seated Cable Row · Mid Back" -- so it is
-    // still on screen where the title no longer says it, and it tells a
-    // Romanian deadlift (hamstrings) from a conventional one (lower back).
+    // The muscle word a title starts with: the primary muscle, "Legs" for
+    // the leg machines and the names listed above, nothing for the movements
+    // that need none.
+    private static function titleMuscle(array $row, string $movement): string
+    {
+        $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
+        if (in_array(strtolower(trim((string) ($row['primary_muscle'] ?? ''))), self::LEG_TITLE_MUSCLES, true)
+            && in_array($movement, self::LEG_TITLE_MOVEMENTS, true)) {
+            $muscle = 'Legs';
+        }
+        $muscle = self::TITLE_MUSCLE_BY_NAME[strtolower(trim((string) ($row['name'] ?? '')))] ?? $muscle;
+        if (in_array($movement, self::MUSCLE_FREE_MOVEMENTS, true)) {
+            $muscle = '';
+        }
+        return $muscle;
+    }
+
+    // The second line. Wherever the title does not name the primary muscle,
+    // it is appended here so it is still on screen: a title without a muscle
+    // ("Seated Cable Row · Mid Back" -- which also tells a Romanian deadlift
+    // from a conventional one), and a "Legs" title, which hides whether it is
+    // quads, hamstrings or abs ("Leg Press · Quads", BACKLOG #57).
     public static function displaySubtitle(array $row): string
     {
         $alias = self::displayAlias($row);
@@ -552,7 +562,13 @@ final class ExerciseNaming
             $movement = (string) (self::inferMovement($row['name'] ?? null, $row['category'] ?? null) ?? '');
         }
         $muscle = self::muscleLabel($row['primary_muscle'] ?? null);
-        if ($muscle === '' || !in_array($movement, self::MUSCLE_FREE_MOVEMENTS, true)) {
+        if ($muscle === '' || $movement === '' || self::titleMuscle($row, $movement) === $muscle) {
+            return $alias;
+        }
+        // "Platform Hamstring Slides" already says it. Whole words only:
+        // "Iso-Lateral Row" does not name the lats.
+        $singular = self::MUSCLE_SINGULAR[strtolower($muscle)] ?? $muscle;
+        if (preg_match('/\\b(' . preg_quote($singular, '/') . '|' . preg_quote($muscle, '/') . ')\\b/i', $alias) === 1) {
             return $alias;
         }
         return $alias !== '' ? "{$alias} · {$muscle}" : $muscle;

@@ -131,7 +131,7 @@ PROCESS_LOG und `ExerciseNaming.php`.
 
 | # | Beschreibung | Prio |
 | :--- | :--- | :--- |
-| 57 | **Uncurated Subtitle zeigt Quellname statt Muskel** — Fund bei #47: `displaySubtitle()` (`api/lib/ExerciseNaming.php`) zeigt für eine unkuratierte Übung wie „Front Leg Raises" (Titel `Legs Raise Front`) den rohen FEDB-Namen im Subtitel, nicht „Hamstrings". Kay 19.09.: aktueller Stand passt so nicht, aber erstmal zurückgestellt bis nach der großen Titel-Durchsicht (#47). | 3 |
+| 57 | **Uncurated Subtitle zeigt Quellname statt Muskel** — Fund bei #47: `displaySubtitle()` (`api/lib/ExerciseNaming.php`) zeigt für eine unkuratierte Übung wie „Front Leg Raises" (Titel `Legs Raise Front`) den rohen FEDB-Namen im Subtitel, nicht „Hamstrings". Kay 19.09.: aktueller Stand passt so nicht, aber erstmal zurückgestellt bis nach der großen Titel-Durchsicht (#47). — ✅ umgesetzt 2026-10-13 (`ExerciseNaming::displaySubtitle()`): der Subtitel nennt den Muskel überall dort, wo der Titel ihn nicht nennt — bisher nur bei muskelfreien Titeln (Row, Squat, Deadlift), jetzt auch bei „Legs“-Titeln („Leg Press · Quads“, „Legs Lift · Abs“). Nicht angehängt, wenn der Subtitel den Muskel schon als ganzes Wort enthält. Gegen eine Kopie des Live-Stands geprüft: 14 Subtitel ändern sich (8 kuratiert, 4 genutzt), kein Titel. Der Quellname als Subtitel unkuratierter Übungen bleibt, das ist so gewollt. | 3 |
 
 ---
 

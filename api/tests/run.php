@@ -913,6 +913,14 @@ check(
     $failures
 );
 check(
+    'subtitle names the muscle a Legs title hides',
+    ExerciseNaming::displaySubtitle(['name' => 'Leg Press', 'movement' => 'Press', 'equipment' => 'machine', 'primary_muscle' => 'quadriceps', 'display_alias' => 'Leg Press']) === 'Leg Press · Quads'
+        && ExerciseNaming::displaySubtitle(['name' => 'Barbell Curl', 'movement' => 'Curl', 'equipment' => 'barbell', 'primary_muscle' => 'biceps', 'display_alias' => 'Barbell Curl']) === 'Barbell Curl'
+        && ExerciseNaming::displaySubtitle(['name' => 'Platform Hamstring Slides', 'movement' => 'Curl', 'primary_muscle' => 'hamstrings']) === 'Platform Hamstring Slides'
+        && ExerciseNaming::displaySubtitle(['name' => 'Iso-Lateral Row', 'movement' => 'Row', 'equipment' => 'machine', 'primary_muscle' => 'Lats', 'display_alias' => 'Iso-Lateral Row']) === 'Iso-Lateral Row · Lats',
+    $failures
+);
+check(
     'inferred variant drops the singular muscle word',
     ExerciseNaming::inferVariant('Standing Barbell Calf Raise', 'calves', 'Raise', 'barbell') === 'Standing'
         && ExerciseNaming::inferVariant('Cable Shoulder Press', 'shoulders', 'Press', 'cable') === '',
