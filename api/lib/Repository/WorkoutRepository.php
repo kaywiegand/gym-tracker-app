@@ -37,6 +37,34 @@ final class WorkoutRepository extends BaseRepository
         );
     }
 
+    // Rep range and weight step the tracking screen would use for this
+    // exercise -- lets the dashboard show the same progression suggestion
+    // without a workout open (#124). The workout it was last logged in wins;
+    // otherwise the most recently edited active workout that contains it.
+    // null when the exercise is in no workout.
+    public function progressionContextForExercise(string $exerciseId): ?array
+    {
+        return $this->fetchOne(
+            'SELECT w.id AS workout_id, w.name AS workout_name,
+                    COALESCE(we.rep_low_override, tm.rep_low) AS rep_low,
+                    COALESCE(we.rep_high_override, tm.rep_high) AS rep_high,
+                    COALESCE(we.increment_override_kg, e.default_increment_kg) AS increment_kg
+             FROM workout_exercises we
+             JOIN workouts w ON w.id = we.workout_id AND w.deleted_at IS NULL
+             JOIN training_modes tm ON tm.id = w.mode_id
+             JOIN exercises e ON e.id = we.exercise_id
+             WHERE we.exercise_id = ? AND we.deleted_at IS NULL
+             ORDER BY CASE WHEN w.id = (
+                        SELECT s.workout_id FROM sets st JOIN sessions s ON s.id = st.session_id
+                        WHERE st.exercise_id = ? AND st.deleted_at IS NULL AND s.deleted_at IS NULL
+                        ORDER BY st.performed_at DESC LIMIT 1
+                      ) THEN 0 ELSE 1 END,
+                      w.archived, w.updated_at DESC
+             LIMIT 1',
+            [$exerciseId, $exerciseId]
+        );
+    }
+
     public function find(string $id): ?array
     {
         $workout = $this->fetchOne(

@@ -65,6 +65,12 @@ function handleLastSetsForExercise(string $id): void
     Http::respond((new SetRepository())->lastSetsForExercise($id, $exclude));
 }
 
+function handleExerciseProgressionContext(string $id): void
+{
+    Auth::require();
+    Http::respond((new WorkoutRepository())->progressionContextForExercise($id));
+}
+
 function handleExerciseHistory(string $id): void
 {
     Auth::require();

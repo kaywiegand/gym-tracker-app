@@ -136,6 +136,16 @@ export interface WorkoutExercise {
   exercise_default_increment_kg: number | null
 }
 
+// Rep range and weight step of the workout an exercise sits in -- what the
+// progression engine needs outside a tracking session (#124).
+export interface ProgressionContext {
+  workout_id: string
+  workout_name: string
+  rep_low: number
+  rep_high: number
+  increment_kg: number | null
+}
+
 export interface ExerciseHistoryEntry {
   session_id: string
   started_at: string

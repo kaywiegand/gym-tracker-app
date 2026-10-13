@@ -76,6 +76,11 @@ check('create workout returns id', isset($wo['id']), $failures);
 check('create workout has 1 exercise', count($wo['exercises']) === 1, $failures);
 check('create workout carries mode name', $wo['mode_key'] === 'hypertrophy', $failures);
 
+$ctx = $woRepo->progressionContextForExercise($created['id']);
+check('progression context points at the workout containing the exercise', $ctx !== null && $ctx['workout_id'] === $wo['id'], $failures);
+check('progression context carries the mode rep range', $ctx !== null && (int) $ctx['rep_low'] === 6 && (int) $ctx['rep_high'] === 10, $failures);
+check('progression context is null for an exercise in no workout', $woRepo->progressionContextForExercise('nope') === null, $failures);
+
 $woUpdated = $woRepo->update($wo['id'], [
     'name' => 'Test Push Updated',
     'mode_id' => 1,

@@ -57,6 +57,8 @@ try {
         handleExerciseNamingVocabulary();
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'last-sets') {
         handleLastSetsForExercise($segments[1]);
+    } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'progression-context') {
+        handleExerciseProgressionContext($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'history') {
         handleExerciseHistory($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'session-summaries') {

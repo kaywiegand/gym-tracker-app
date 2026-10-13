@@ -2,10 +2,19 @@ import { useEffect, useState } from 'react'
 import { useScrollAnchor } from '@/lib/useScrollAnchor'
 import { api } from '@/lib/api'
 import { detectPlateau } from '@/lib/plateau'
+import { suggestNext, type Suggestion } from '@/lib/progression'
 import { formatNumber } from '@/lib/format'
 import { acwrStatus } from '@/lib/acwr'
 import { DEFAULT_RANGE, RANGE_OPTIONS, currentWindow, inWindow, localIso, resolveRangeWeeks, TZ_PARAM, type DashboardRange } from '@/lib/dashboardRanges'
-import type { AcwrResponse, ExerciseHistoryEntry, ExerciseListItem, ExerciseSessionSummary, Settings } from '@/types'
+import type {
+  AcwrResponse,
+  ExerciseHistoryEntry,
+  ExerciseListItem,
+  ExerciseSessionSummary,
+  ProgressionContext,
+  SetEntry,
+  Settings,
+} from '@/types'
 import { MetricTrendPanels } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
@@ -108,6 +117,38 @@ export function ExerciseScope() {
   // shows the loading placeholder.
   const [loadedId, setLoadedId] = useState<string | null>(null)
   const pickerState = useExerciseSelectorState([])
+  const [suggestion, setSuggestion] = useState<{ next: Suggestion; workoutName: string } | null>(null)
+
+  // What the tracking screen would suggest next time (#124) -- same engine,
+  // same inputs. Depends on the exercise only, not on the range.
+  useEffect(() => {
+    setSuggestion(null)
+    if (!selected) return
+    let cancelled = false
+    Promise.all([
+      api.get<SetEntry[]>(`/exercises/${selected.id}/last-sets`),
+      api.get<ProgressionContext | null>(`/exercises/${selected.id}/progression-context`),
+      api.get<Settings>('/settings'),
+    ])
+      .then(([lastSets, context, settingsData]) => {
+        if (cancelled || !context || !lastSets.some((s) => !s.is_warmup)) return
+        setSuggestion({
+          workoutName: context.workout_name,
+          next: suggestNext({
+            lastSets,
+            repLow: context.rep_low,
+            repHigh: context.rep_high,
+            incrementKg: context.increment_kg ?? parseFloat(settingsData.default_increment_kg),
+            roundingKg: parseFloat(settingsData.rounding_kg),
+            trigger: settingsData.progression_trigger,
+          }),
+        })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [selected])
 
   useEffect(() => {
     if (!selected) return
@@ -165,9 +206,9 @@ export function ExerciseScope() {
   const best = (key: 'top_weight_kg' | 'best_e1rm' | 'volume_kg') =>
     history.reduce<ExerciseHistoryEntry | null>((top, h) => (!top || h[key] > top[key] ? h : top), null)
   const records = [
-    { label: 'Max set weight', entry: best('top_weight_kg'), key: 'top_weight_kg', decimals: 1 },
-    { label: 'Max session e1RM', entry: best('best_e1rm'), key: 'best_e1rm', decimals: 1 },
-    { label: 'Max session volume', entry: best('volume_kg'), key: 'volume_kg', decimals: 0 },
+    { label: ['Max set', 'weight'], entry: best('top_weight_kg'), key: 'top_weight_kg', decimals: 1 },
+    { label: ['Max session', 'e1RM'], entry: best('best_e1rm'), key: 'best_e1rm', decimals: 1 },
+    { label: ['Max session', 'volume'], entry: best('volume_kg'), key: 'volume_kg', decimals: 0 },
   ] as const
 
   return (
@@ -184,6 +225,18 @@ export function ExerciseScope() {
 
         {rangeSwitch}
       </DashboardStickyBar>
+
+      {suggestion && (
+        <Card className="gap-0 p-3">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Next time · {suggestion.workoutName}
+          </div>
+          <div className="mt-1 text-[15px] font-bold tabular-nums">
+            {formatNumber(suggestion.next.weightKg ?? 0, 1)} kg × {suggestion.next.reps}
+          </div>
+          <div className="mt-0.5 text-[11.5px] text-muted-foreground">{suggestion.next.reason}</div>
+        </Card>
+      )}
 
       {loading && loadedId !== selected.id ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
@@ -228,7 +281,11 @@ export function ExerciseScope() {
               ({ label, entry, key, decimals }) =>
                 entry && (
                   <Card key={key} className="gap-0 p-2.5">
-                    <div className="min-h-[26px] text-[10.5px] leading-tight text-muted-foreground">{label}</div>
+                    <div className="text-[10.5px] leading-tight text-muted-foreground">
+                      {label[0]}
+                      <br />
+                      {label[1]}
+                    </div>
                     <div className="mt-1 text-[15px] font-bold tabular-nums">{formatNumber(entry[key], decimals)} kg</div>
                     <div className="text-[10.5px] tabular-nums text-muted-foreground">{shortDate(entry.started_at)}</div>
                   </Card>
