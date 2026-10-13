@@ -540,3 +540,17 @@
 - Arbeitsweise: `npx tsc --noEmit -p .` prüft im Frontend nichts (Root-tsconfig hat `files: []`). Typecheck = `npx tsc -b` bzw. `npm run build`.
 
 **Nächster Schritt:** Kay nimmt die vier Dashboard-Ansichten auf dem Handy ab.
+
+---
+
+## Session 2026-10-13 (Fortsetzung 5) — Backlog-Aufräumrunde Naming (#23, #25, #26, #57), Deploy
+
+**Was passiert ist:** #23, #25 und #57 umgesetzt in `6988cfa` und `0f72c88` (`api/lib/ExerciseNaming.php`), nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`). #26 als Daten-Fix live eingespielt (`uploads/live-movement-20261013.json`). Alle Änderungen gegen eine Kopie des Live-Stands geprüft (Titel/Subtitel vorher → nachher über die ganze Library, doppelte Titel, Editor-Vorschau der kuratierten Übungen).
+
+**Entscheidungen:**
+- Kay: Backlog-Punkte, deren Lösung feststeht, nicht als Entscheidung vorlegen, sondern erledigen — und vorher messen, wie viele Einträge betroffen sind. #23 betraf eine einzige ungenutzte Übung.
+- #25 über drei Regeln statt Einzelkorrekturen (Muskel in der Einzahl raus, Bindestrich-Paare, Präpositionen als Stoppwörter); die vier dadurch entstandenen Kollisionen und Kays drei Wunschtitel als Ausnahmen per Name.
+- #57 enger gefasst als notiert: der Quellname als Subtitel unkuratierter Übungen ist gewollt; gefehlt hat der Muskel bei „Legs“-Titeln. Regel jetzt allgemein: der Subtitel nennt den Muskel, wo der Titel ihn nicht nennt.
+- Alle 692 unkuratierten Übungen sind ungenutzt — relevant für den Zuschnitt von #47.
+
+**Nächster Schritt:** Kay entscheidet, ob #47 auf die 135 kuratierten Übungen beschränkt wird.
