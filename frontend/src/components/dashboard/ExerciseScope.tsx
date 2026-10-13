@@ -14,38 +14,57 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ExerciseSelectorControls, ExerciseSelectorResults, useExerciseSelectorState } from '@/components/ExerciseSelector'
 
-// DD.MM.YY, the short date used both in the ladder rows and the max-weight
-// line above them.
+// DD.MM.YY, the short date used both in the ladder rows and the record
+// tiles above them.
 const shortDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)}`
+
+// Consecutive sets at the same weight, shown as one "75 kg x 4 / 4 / 4".
+interface WeightGroup {
+  weightKg: number
+  reps: number[]
+}
 
 interface Rung {
   sessionId: string
   startedAt: string
-  weightKg: number
   volumeKg: number
-  reps: number[]
+  groups: WeightGroup[]
   trend: 'up-weight' | 'up-reps' | 'hold'
 }
+
+function groupByWeight(sets: ExerciseSessionSummary['sets']): WeightGroup[] {
+  const groups: WeightGroup[] = []
+  for (const set of sets) {
+    const last = groups[groups.length - 1]
+    if (last && last.weightKg === set.weight_kg) last.reps.push(set.reps)
+    else groups.push({ weightKg: set.weight_kg, reps: [set.reps] })
+  }
+  return groups
+}
+
+const topWeight = (sets: ExerciseSessionSummary['sets']) => sets.reduce((max, s) => Math.max(max, s.weight_kg), 0)
 
 function buildLadder(summaries: ExerciseSessionSummary[]): Rung[] {
   const mostRecentFirst = [...summaries].reverse()
   return mostRecentFirst.map((session, i) => {
     const prior = mostRecentFirst[i + 1]
-    const weightKg = session.sets[0]?.weight_kg ?? 0
-    // Session volume, added between weight and reps (#34) -- Σ weight × reps
+    // Top weight, not the first set's: a session that ramps up (75, 80, 85)
+    // has to count as its heaviest set, same as the "Max set weight" tile (#123).
+    const weightKg = topWeight(session.sets)
+    // Session volume (#34) -- Σ weight × reps
     // over the session's own sets, same definition as the Volume metric
     // everywhere else in the app.
     const volumeKg = session.sets.reduce((sum, s) => sum + s.weight_kg * s.reps, 0)
     const reps = session.sets.map((s) => s.reps)
     let trend: Rung['trend'] = 'hold'
     if (prior) {
-      const priorWeight = prior.sets[0]?.weight_kg ?? 0
+      const priorWeight = topWeight(prior.sets)
       const priorAvgReps = prior.sets.reduce((a, s) => a + s.reps, 0) / Math.max(1, prior.sets.length)
       const avgReps = reps.reduce((a, r) => a + r, 0) / Math.max(1, reps.length)
       if (weightKg > priorWeight) trend = 'up-weight'
       else if (weightKg === priorWeight && avgReps > priorAvgReps) trend = 'up-reps'
     }
-    return { sessionId: session.session_id, startedAt: session.started_at, weightKg, volumeKg, reps, trend }
+    return { sessionId: session.session_id, startedAt: session.started_at, volumeKg, groups: groupByWeight(session.sets), trend }
   })
 }
 
@@ -139,14 +158,17 @@ export function ExerciseScope() {
   const isPlateaued = detectPlateau(history, plateauSessions)
   // Same thresholds and colors as the Overview ACWR card (lib/acwr.ts).
   const acwrClass = acwr ? acwrStatus(acwr.ratio).className : ''
-  // Best top weight in the selected range, and when it was reached (#33) --
-  // replaces the "Top weight" trend panel with a single fact directly above
-  // the session list it belongs to. `history` is chronological ascending
-  // (oldest first), so a strict `>` keeps the first session that reached it.
-  const maxWeightEntry = history.reduce<ExerciseHistoryEntry | null>(
-    (best, h) => (!best || h.top_weight_kg > best.top_weight_kg ? h : best),
-    null,
-  )
+  // Records in the selected range and when each was reached (#123), directly
+  // above the session list they belong to. `history` is chronological
+  // ascending (oldest first), so a strict `>` keeps the first session that
+  // reached the value.
+  const best = (key: 'top_weight_kg' | 'best_e1rm' | 'volume_kg') =>
+    history.reduce<ExerciseHistoryEntry | null>((top, h) => (!top || h[key] > top[key] ? h : top), null)
+  const records = [
+    { label: 'Max set weight', entry: best('top_weight_kg'), key: 'top_weight_kg', decimals: 1 },
+    { label: 'Max session e1RM', entry: best('best_e1rm'), key: 'best_e1rm', decimals: 1 },
+    { label: 'Max session volume', entry: best('volume_kg'), key: 'volume_kg', decimals: 0 },
+  ] as const
 
   return (
     <div ref={anchorRef} className="flex flex-col gap-3 [overflow-anchor:none]">
@@ -201,25 +223,36 @@ export function ExerciseScope() {
             )}
           </Card>
 
-          {maxWeightEntry && (
-            <p className="text-[12px] text-muted-foreground">
-              Max weight <span className="font-semibold text-foreground">{formatNumber(maxWeightEntry.top_weight_kg, 1)} kg</span> ·{' '}
-              {shortDate(maxWeightEntry.started_at)}
-            </p>
-          )}
+          <div className="grid grid-cols-3 gap-2">
+            {records.map(
+              ({ label, entry, key, decimals }) =>
+                entry && (
+                  <Card key={key} className="gap-0 p-2.5">
+                    <div className="min-h-[26px] text-[10.5px] leading-tight text-muted-foreground">{label}</div>
+                    <div className="mt-1 text-[15px] font-bold tabular-nums">{formatNumber(entry[key], decimals)} kg</div>
+                    <div className="text-[10.5px] tabular-nums text-muted-foreground">{shortDate(entry.started_at)}</div>
+                  </Card>
+                ),
+            )}
+          </div>
 
           <Card className="p-3.5">
             <div className="mb-0.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Session history</div>
-            <p className="mb-2 text-[10.5px] text-muted-foreground">newest first · weight · volume · reps per set</p>
+            <p className="mb-2 text-[10.5px] text-muted-foreground">newest first · volume · weight × reps per set</p>
             <div className="flex flex-col">
               {ladder.map((rung) => (
-                <div key={rung.sessionId} className="flex items-center gap-1.5 border-b border-border py-1.5 last:border-b-0">
-                  <span className="w-[50px] shrink-0 text-[11px] tabular-nums text-muted-foreground">{shortDate(rung.startedAt)}</span>
-                  <span className="w-[46px] shrink-0 text-[12.5px] tabular-nums">{formatNumber(rung.weightKg, 1)} kg</span>
-                  <span className="w-[58px] shrink-0 text-[10.5px] tabular-nums text-muted-foreground">
+                <div key={rung.sessionId} className="flex items-start gap-1.5 border-b border-border py-1.5 last:border-b-0">
+                  <span className="w-[50px] shrink-0 pt-px text-[11px] tabular-nums text-muted-foreground">{shortDate(rung.startedAt)}</span>
+                  <span className="w-[58px] shrink-0 pt-0.5 text-[10.5px] tabular-nums text-muted-foreground">
                     {formatNumber(rung.volumeKg)} kg
                   </span>
-                  <span className="min-w-0 flex-1 text-[12.5px] tabular-nums text-muted-foreground">{rung.reps.join(' / ')}</span>
+                  <span className="flex min-w-0 flex-1 flex-wrap gap-x-2.5 text-[12.5px] tabular-nums">
+                    {rung.groups.map((group, i) => (
+                      <span key={i} className="whitespace-nowrap">
+                        {formatNumber(group.weightKg, 1)} kg <span className="text-muted-foreground">× {group.reps.join(' / ')}</span>
+                      </span>
+                    ))}
+                  </span>
                   {rung.trend === 'hold' ? (
                     <Badge variant="outline" className="text-[10px]">
                       hold

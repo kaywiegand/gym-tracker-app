@@ -30,8 +30,8 @@ interface Panel {
 // axes in real units show it; the shared x-axis keeps "do these move
 // together" readable.
 //
-// Top weight used to be a fourth panel here; it is now the single "Max
-// weight" line above the session history instead (#33) -- once e1RM already
+// Top weight used to be a fourth panel here; it is now the "Max set weight"
+// tile above the session history instead (#33, #123) -- once e1RM already
 // tracks strength over time, a whole trend panel for it added little.
 const PANELS: Panel[] = [
   { key: 'best_e1rm', label: 'e1RM', unit: 'kg', color: 'var(--metric-e1rm)', decimals: 1 },
