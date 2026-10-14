@@ -11,6 +11,10 @@ interface MuscleRadarProps {
   series: MuscleRadarSeries[]
 }
 
+// Height of the whole component (legend row + chart), for the tile body that
+// holds it (BACKLOG #141).
+export const RADAR_HEIGHT = 18 + 4 + 260
+
 // Generic over N labeled series across the 6 fixed region axes -- reused
 // for the Overview "this week vs. last week" comparison (2 series, caller
 // picks the metric) and the Workout-scope "signature" radar (1 series).
@@ -27,10 +31,13 @@ export function MuscleRadar({ series }: MuscleRadarProps) {
 
   return (
     <div className="w-full">
-      {/* Legend from 2 series on (CLAUDE.md §7); a single series is named by its card. */}
-      {series.length >= 2 && (
-        <div className="mb-1 flex flex-wrap gap-x-4 gap-y-1">
-          {series.map((s) => (
+      {/* Legend from 2 series on (CLAUDE.md §7); a single series is named by its card.
+          The row keeps its height either way, so a range that has no previous
+          period (or a view without comparison) does not shift the tile
+          (BACKLOG #141). */}
+      <div className="mb-1 flex h-[18px] flex-wrap gap-x-4 gap-y-1 overflow-hidden">
+        {series.length >= 2 &&
+          series.map((s) => (
             <span key={s.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="h-0.5 w-3.5 rounded-full" style={{ background: s.color }} />
               {s.label}
@@ -38,8 +45,7 @@ export function MuscleRadar({ series }: MuscleRadarProps) {
               {Object.values(s.values).every((v) => !v) && ' · no training'}
             </span>
           ))}
-        </div>
-      )}
+      </div>
       <div className="h-[260px] w-full">
         <ResponsiveRadar
           data={data}

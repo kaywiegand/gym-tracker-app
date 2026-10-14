@@ -178,7 +178,7 @@ export function OverviewScope() {
         unit="kg"
         valueTag="avg"
         minMax={volumeMinMax}
-        chart={sessionPoints.length >= 2 ? sessionPoints : undefined}
+        chart={sessionPoints}
         color={COMPARE_COLORS.current}
         infoTerm="Volume"
         aside={

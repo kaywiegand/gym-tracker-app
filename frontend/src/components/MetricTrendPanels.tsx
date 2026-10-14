@@ -39,6 +39,11 @@ const PANELS: Panel[] = [
   { key: 'sets_count', label: 'Sets', unit: '', color: 'var(--metric-sets)', decimals: 0 },
 ]
 
+// Height of the three stacked panels (measured: 283.1 px -- three charts, their
+// label rows and gaps). A tile body that holds them is this tall
+// whether or not there is data to draw (BACKLOG #141).
+export const TREND_PANELS_HEIGHT = 284
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 // Day for a short window, month for the middle ones, month + year once the

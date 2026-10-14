@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card'
 import { TileHeader } from '@/components/TileHeader'
+import { TileBody } from '@/components/TileBody'
 import type { AcwrDay } from '@/types'
 import { ACWR_CRITICAL, ACWR_HIGH, ACWR_LOW, acwrStatus } from '@/lib/acwr'
 
@@ -81,42 +82,43 @@ export function AcwrCard({ series: fullSeries, ratio, className }: AcwrCardProps
         <span className={`text-[12px] font-semibold ${status.className}`}>{status.label}</span>
       </div>
 
-      {runs.length > 0 && (
-        <>
-          <div className="relative mt-2 h-[96px]">
-            <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" role="img" aria-label="ACWR over the selected range">
-              <rect x={0} width={w} y={y(ACWR_HIGH)} height={y(ACWR_LOW) - y(ACWR_HIGH)} fill="var(--status-good)" opacity={0.12} />
-              <line x1={0} x2={w} y1={y(ACWR_HIGH)} y2={y(ACWR_HIGH)} style={ref} />
-              <line x1={0} x2={w} y1={y(ACWR_LOW)} y2={y(ACWR_LOW)} style={ref} />
-              {runs.map((run, i) => (
-                <polyline
-                  key={i}
-                  points={run.pts.join(' ')}
-                  fill="none"
-                  stroke={run.color}
-                  strokeWidth={1.75}
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                />
-              ))}
-            </svg>
-            {[ACWR_HIGH, ACWR_LOW].map((v) => (
-              <span
-                key={v}
-                className="absolute right-0 -translate-y-1/2 bg-card/80 px-0.5 text-[9.5px] tabular-nums text-muted-foreground"
-                style={{ top: pct(v) }}
-              >
-                {v.toFixed(1)}
-              </span>
-            ))}
-          </div>
-          <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+      {/* Fixed height with or without a line (BACKLOG #141). */}
+      <TileBody height={96} message={runs.length === 0 ? 'No training load in this period yet' : undefined} className="relative mt-2">
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" role="img" aria-label="ACWR over the selected range">
+          <rect x={0} width={w} y={y(ACWR_HIGH)} height={y(ACWR_LOW) - y(ACWR_HIGH)} fill="var(--status-good)" opacity={0.12} />
+          <line x1={0} x2={w} y1={y(ACWR_HIGH)} y2={y(ACWR_HIGH)} style={ref} />
+          <line x1={0} x2={w} y1={y(ACWR_LOW)} y2={y(ACWR_LOW)} style={ref} />
+          {runs.map((run, i) => (
+            <polyline
+              key={i}
+              points={run.pts.join(' ')}
+              fill="none"
+              stroke={run.color}
+              strokeWidth={1.75}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        {[ACWR_HIGH, ACWR_LOW].map((v) => (
+          <span
+            key={v}
+            className="absolute right-0 -translate-y-1/2 bg-card/80 px-0.5 text-[9.5px] tabular-nums text-muted-foreground"
+            style={{ top: pct(v) }}
+          >
+            {v.toFixed(1)}
+          </span>
+        ))}
+      </TileBody>
+      <div className="mt-1 flex h-[15px] justify-between text-[10px] text-muted-foreground">
+        {runs.length > 0 && (
+          <>
             <span>{shortDate(series[0].date)}</span>
             <span>{shortDate(series[series.length - 1].date)}</span>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </Card>
   )
 }

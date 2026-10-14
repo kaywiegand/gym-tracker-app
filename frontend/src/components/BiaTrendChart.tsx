@@ -1,4 +1,5 @@
 import { ResponsiveLine } from '@nivo/line'
+import { TileBody } from '@/components/TileBody'
 
 // Weight, skeletal muscle and fat mass over time. All three are kilograms,
 // so unlike the exercise chart they share one honest axis instead of being
@@ -49,10 +50,12 @@ export function BiaTrendChart({ points, keys, height = 210 }: BiaTrendChartProps
     .filter((s) => s.data.length > 0)
 
   if (data.length === 0 || points.length < 2) {
+    // Inside the same box as the chart, so the tile keeps its height (BACKLOG #141).
     return (
-      <p className="py-6 text-center text-[12px] text-muted-foreground">
-        {points.length === 1 ? 'Only one scan in this range — pick a longer one to see a trend.' : 'No scans in this range.'}
-      </p>
+      <TileBody
+        height={height}
+        message={points.length === 1 ? 'Only one scan in this range — pick a longer one to see a trend.' : 'No scans in this range.'}
+      />
     )
   }
 

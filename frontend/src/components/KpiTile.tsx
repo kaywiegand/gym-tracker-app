@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Card } from '@/components/ui/card'
 import { InfoButton } from '@/components/InfoButton'
 import { TileHeader } from '@/components/TileHeader'
+import { TileBody } from '@/components/TileBody'
 
 interface KpiTileProps {
   label: string
@@ -18,8 +19,11 @@ interface KpiTileProps {
   // Optional: tiles whose number says it all (Workout view, #86) omit it.
   sparkline?: number[]
   // Line chart with dashed min/max reference lines instead of the sparkline
-  // (Overview tiles, BACKLOG #83). One value per point, oldest first.
+  // (Overview tiles, BACKLOG #83). One value per point, oldest first. When
+  // the prop is given at all the chart area keeps its height: with fewer than
+  // two points it shows `emptyChartText` in the same box (BACKLOG #141).
   chart?: number[]
+  emptyChartText?: string
   color: string
   infoTerm?: string
   // Secondary figure at the right end of the value row (Overview:
@@ -28,6 +32,9 @@ interface KpiTileProps {
   // Small tag after the big number, e.g. "avg" when it is an average.
   valueTag?: string
 }
+
+// Height of the trend area, the same for every range (BACKLOG #141).
+const CHART_HEIGHT = 88
 
 // Hand-rolled sparkline (viewBox-scaled polyline) rather than pulling in
 // another Nivo package for a single tiny line -- same principle as the
@@ -52,8 +59,9 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
 }
 
 // Trend line with the series' min and max as thin dashed reference lines.
-// Single color, no status -- the line is data (CLAUDE.md §7). Fixed aspect
-// ratio; non-scaling strokes keep the lines thin at any tile width.
+// Single color, no status -- the line is data (CLAUDE.md §7). Fills a box of
+// fixed height (CHART_HEIGHT); non-scaling strokes keep the lines thin at any
+// tile width.
 function MiniLineChart({ values, color, labels }: { values: number[]; color: string; labels?: { min: string; max: string } }) {
   const w = 100
   const h = 36
@@ -71,8 +79,8 @@ function MiniLineChart({ values, color, labels }: { values: number[]; color: str
   const labelled = labels !== undefined && max !== min
 
   return (
-    <div className={`relative mt-2 ${labelled ? 'pr-[4.25rem]' : ''}`}>
-      <svg viewBox={`0 0 ${w} ${h}`} className="block w-full" role="img" aria-label="Trend with min and max">
+    <div className={`relative h-full ${labelled ? 'pr-[4.25rem]' : ''}`}>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block h-full w-full" role="img" aria-label="Trend with min and max">
         {max !== min && (
           <>
             <line x1={0} x2={w} y1={y(max)} y2={y(max)} style={refStyle} />
@@ -105,7 +113,7 @@ function MiniLineChart({ values, color, labels }: { values: number[]; color: str
   )
 }
 
-export function KpiTile({ label, subline, value, unit, trend, trendClassName, minMax, sparkline, chart, color, infoTerm, aside, valueTag }: KpiTileProps) {
+export function KpiTile({ label, subline, value, unit, trend, trendClassName, minMax, sparkline, chart, emptyChartText = 'Not enough sessions for a trend', color, infoTerm, aside, valueTag }: KpiTileProps) {
   return (
     <Card className="p-3">
       {subline ? (
@@ -125,7 +133,11 @@ export function KpiTile({ label, subline, value, unit, trend, trendClassName, mi
         {aside}
       </div>
       {trend && <div className={`text-[11px] font-semibold ${trendClassName ?? 'text-muted-foreground'}`}>{trend}</div>}
-      {chart && chart.length > 0 && <MiniLineChart values={chart} color={color} labels={minMax} />}
+      {chart && (
+        <TileBody height={CHART_HEIGHT} message={chart.length >= 2 ? undefined : emptyChartText} className="mt-2">
+          <MiniLineChart values={chart} color={color} labels={minMax} />
+        </TileBody>
+      )}
       {!chart && sparkline && <Sparkline values={sparkline} color={color} />}
     </Card>
   )

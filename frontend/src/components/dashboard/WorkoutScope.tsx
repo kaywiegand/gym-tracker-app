@@ -18,12 +18,13 @@ import type { RegionMetrics, WorkoutGroup, WorkoutListItem, WorkoutMuscleSplitRe
 import { MAX_PLAUSIBLE_SESSION_MIN } from '@/lib/time'
 import { groupWorkouts, useCollapsedWorkoutGroups } from '@/lib/workoutGrouping'
 import { REGION_LABELS } from '@/lib/muscleColors'
-import { MuscleRadar, type MuscleRadarSeries } from '@/components/MuscleRadar'
-import { MetricTrendPanels } from '@/components/MetricTrendPanels'
+import { MuscleRadar, RADAR_HEIGHT, type MuscleRadarSeries } from '@/components/MuscleRadar'
+import { MetricTrendPanels, TREND_PANELS_HEIGHT } from '@/components/MetricTrendPanels'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { KpiTile } from '@/components/KpiTile'
 import { FilterChips } from '@/components/FilterChips'
 import { TileHeader } from '@/components/TileHeader'
+import { TileBody } from '@/components/TileBody'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { WorkoutGroupList } from '@/components/WorkoutGroupList'
 import { Card } from '@/components/ui/card'
@@ -115,10 +116,15 @@ export function WorkoutScope() {
     )
   }
 
-  const allSessions = split?.sessions ?? []
+  // Loading (a workout just picked) and empty (no sessions in the range) are
+  // both shown inside the tiles, never instead of them.
+  const stale = loadedId !== selected.id
+  const allSessions = stale ? [] : (split?.sessions ?? [])
   const sessions = resolved ? sessionsInWindow(allSessions, resolved.current) : allSessions
   const previousSessions = resolved ? sessionsInWindow(allSessions, resolved.previous) : []
   const sessionCount = sessions.length
+  const noData = sessionCount === 0
+  const emptyMessage = stale && loading ? 'Loading…' : noData ? `No sessions in this period${range !== 'All' ? ' — try a longer range.' : ''}` : undefined
   const durations = sessions
     .filter((s) => s.last_set_at)
     .map((s) => (new Date(s.last_set_at as string).getTime() - new Date(s.started_at).getTime()) / 60000)
@@ -163,101 +169,106 @@ export function WorkoutScope() {
         {rangeSwitch}
       </DashboardStickyBar>
 
-      {loading && loadedId !== selected.id ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : sessionCount === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No sessions in this period{range !== 'All' && ' — try a longer range.'}
-        </p>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            <KpiTile label="Sessions" value={String(sessionCount)} color="var(--brand-accent)" />
-            <KpiTile
-              label="Avg duration"
-              value={avgDuration !== null ? String(avgDuration) : '—'}
-              unit={avgDuration !== null ? 'min' : undefined}
-              color="var(--brand-accent)"
+      {/* The tiles stay on screen when the range holds no sessions (or the
+          workout is still loading): each body shows its message inside its
+          own fixed-height box, so the page does not change height on a range
+          switch (BACKLOG #141). */}
+      <div className="grid grid-cols-2 gap-2">
+        <KpiTile label="Sessions" value={noData ? '—' : String(sessionCount)} color="var(--brand-accent)" />
+        <KpiTile
+          label="Avg duration"
+          value={!noData && avgDuration !== null ? String(avgDuration) : '—'}
+          unit={!noData && avgDuration !== null ? 'min' : undefined}
+          color="var(--brand-accent)"
+        />
+      </div>
+
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Muscle split" subline="Avg sets per session by muscle group" />
+        <TileBody height={180} message={emptyMessage}>
+          <div className="h-full w-full">
+            <ResponsiveBar
+              data={barData}
+              keys={regionKeys}
+              indexBy="session"
+              margin={{ top: 8, right: 8, bottom: 24, left: 32 }}
+              colors={(bar) => `var(--muscle-${bar.id})`}
+              borderRadius={2}
+              enableLabel={false}
+              isInteractive={false}
+              axisLeft={{ tickSize: 0 }}
+              theme={{
+                axis: { ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } } },
+                grid: { line: { stroke: 'var(--border)' } },
+              }}
             />
           </div>
-
-          <Card className="gap-0 p-3.5">
-            <TileHeader title="Muscle split" subline="Avg sets per session by muscle group" />
-            <div className="h-[180px] w-full">
-              <ResponsiveBar
-                data={barData}
-                keys={regionKeys}
-                indexBy="session"
-                margin={{ top: 8, right: 8, bottom: 24, left: 32 }}
-                colors={(bar) => `var(--muscle-${bar.id})`}
-                borderRadius={2}
-                enableLabel={false}
-                isInteractive={false}
-                axisLeft={{ tickSize: 0 }}
-                theme={{
-                  axis: { ticks: { text: { fill: 'var(--muted-foreground)', fontSize: 10 } } },
-                  grid: { line: { stroke: 'var(--border)' } },
-                }}
-              />
-            </div>
-            {/* Region colours are fixed app-wide (CLAUDE.md §7) but meant
-                nothing here without a key. Only the regions that occur in
-                these sessions, in the fixed order -- a legend of six entries
-                for a two-colour chart is noise. */}
-            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-              {regionKeys
-                .filter((r) => sessions.some((s) => (s.by_region[r] ?? 0) > 0))
-                .map((r) => (
-                  <span key={r} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <span className="size-2.5 rounded-sm" style={{ background: `var(--muscle-${r})` }} />
-                    {REGION_LABELS[r]}
-                  </span>
-                ))}
-            </div>
-          </Card>
-
-          <Card className="gap-0 p-3.5">
-            <TileHeader
-              title="Muscle balance"
-              subline={view === 'compare' ? compareTitle(range) : 'Character of this workout'}
-              infoTerm={view === 'character' ? 'Signature' : undefined}
-            />
-            {canCompare ? (
-              <SegmentedControl
-                className="mb-2"
-                options={[
-                  { value: 'character', label: 'Character' },
-                  { value: 'compare', label: 'vs. previous' },
-                ]}
-                value={view}
-                onChange={setRadarView}
-              />
-            ) : (
-              <p className="mb-2 text-[10.5px] text-muted-foreground">vs. previous: {compareHint}</p>
-            )}
-            <div className="mb-1 flex gap-1.5">
-              {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
-                <Button key={m} type="button" size="sm" variant={radarMetric === m ? 'default' : 'outline'} onClick={() => setRadarMetric(m)}>
-                  {RADAR_METRIC_LABELS[m]}
-                </Button>
+        </TileBody>
+        {/* Region colours are fixed app-wide (CLAUDE.md §7) but meant
+            nothing here without a key. Only the regions that occur in
+            these sessions, in the fixed order -- a legend of six entries
+            for a two-colour chart is noise. The box is as tall as two
+            legend lines (all six regions wrap to two on a phone), whatever
+            the range holds. */}
+        <div className="mt-2 flex h-[36px] flex-wrap content-start gap-x-3 gap-y-1 overflow-hidden">
+          {!noData &&
+            regionKeys
+              .filter((r) => sessions.some((s) => (s.by_region[r] ?? 0) > 0))
+              .map((r) => (
+                <span key={r} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="size-2.5 rounded-sm" style={{ background: `var(--muscle-${r})` }} />
+                  {REGION_LABELS[r]}
+                </span>
               ))}
-            </div>
-            <MuscleRadar series={radarSeries} />
-            {view === 'compare' && (
-              <p className="mt-1 text-[10.5px] text-muted-foreground">Average per session, {sessionCount} vs. {previousSessions.length} sessions.</p>
-            )}
-          </Card>
+        </div>
+      </Card>
 
-          <Card className="gap-0 p-3.5">
-            <TileHeader title="Progress" subline={`e1RM index, volume and sets per session · ${rangeTitle(range)}`} />
-            {sessionCount >= 2 ? (
-              <MetricTrendPanels history={trendPoints(sessions)} range={range} e1rmLabel="e1RM index" />
-            ) : (
-              <p className="text-[12px] text-muted-foreground">Train this workout a few more times to see a trend.</p>
-            )}
-          </Card>
-        </>
-      )}
+      <Card className="gap-0 p-3.5">
+        <TileHeader
+          title="Muscle balance"
+          subline={view === 'compare' ? compareTitle(range) : 'Character of this workout'}
+          infoTerm={view === 'character' ? 'Signature' : undefined}
+        />
+        {/* One row height for the switch and for its hint text. */}
+        <div className="mb-2 flex h-[34px] items-center">
+          {canCompare ? (
+            <SegmentedControl
+              className="w-full"
+              options={[
+                { value: 'character', label: 'Character' },
+                { value: 'compare', label: 'vs. previous' },
+              ]}
+              value={view}
+              onChange={setRadarView}
+            />
+          ) : (
+            <p className="text-[10.5px] text-muted-foreground">{noData ? 'vs. previous: needs sessions in this period' : `vs. previous: ${compareHint}`}</p>
+          )}
+        </div>
+        <div className="mb-1 flex gap-1.5">
+          {(Object.keys(RADAR_METRIC_LABELS) as RadarMetric[]).map((m) => (
+            <Button key={m} type="button" size="sm" variant={radarMetric === m ? 'default' : 'outline'} onClick={() => setRadarMetric(m)}>
+              {RADAR_METRIC_LABELS[m]}
+            </Button>
+          ))}
+        </div>
+        <TileBody height={RADAR_HEIGHT} message={emptyMessage}>
+          <MuscleRadar series={radarSeries} />
+        </TileBody>
+        <p className="mt-1 h-[16px] text-[10.5px] text-muted-foreground">
+          {view === 'compare' && `Average per session, ${sessionCount} vs. ${previousSessions.length} sessions.`}
+        </p>
+      </Card>
+
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Progress" subline={`e1RM index, volume and sets per session · ${rangeTitle(range)}`} />
+        <TileBody
+          height={TREND_PANELS_HEIGHT}
+          message={emptyMessage ?? (sessionCount < 2 ? 'Train this workout a few more times to see a trend.' : undefined)}
+        >
+          <MetricTrendPanels history={trendPoints(sessions)} range={range} e1rmLabel="e1RM index" />
+        </TileBody>
+      </Card>
     </div>
   )
 }

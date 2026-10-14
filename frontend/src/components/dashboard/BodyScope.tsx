@@ -144,11 +144,13 @@ export function BodyScope() {
     <div className="flex flex-col gap-3">
       {rangeSwitch}
 
-      {rangeEmpty && (
-        <p className="text-[11.5px] text-muted-foreground">
-          No scan in the last {range} — showing the most recent one from {latest.measured_at.slice(0, 10)}.
-        </p>
-      )}
+      {/* One line, always there: the message about an empty range used to
+          appear only then and moved everything below it (BACKLOG #141). */}
+      <p className="h-[17px] truncate text-[11.5px] text-muted-foreground">
+        {rangeEmpty
+          ? `No scan in ${range === 'All' ? 'any range' : `the last ${range}`} — showing the latest, ${latest.measured_at.slice(0, 10)}.`
+          : `${inRange.length} ${inRange.length === 1 ? 'scan' : 'scans'} ${range === 'All' ? 'in total' : `in the last ${range}`}.`}
+      </p>
 
       {/* The gauge further down only shows the newest scan and the step from
           the one before. Whether the score has been climbing for a year or
@@ -186,25 +188,27 @@ export function BodyScope() {
               <div key={h.key} className="text-center">
                 <div className="text-[15px] font-bold tabular-nums">{value !== null ? value.toFixed(h.decimals) : '—'}</div>
                 <div className="text-[9.5px] uppercase tracking-wide text-muted-foreground">{h.label}</div>
-                {d !== null && d !== 0 && (
-                  <div
-                    className="text-[10px] font-semibold tabular-nums"
-                    style={{ color: good ? 'var(--status-good)' : 'var(--status-warn)' }}
-                  >
-                    {d > 0 ? '+' : ''}
-                    {d.toFixed(h.decimals)}
-                  </div>
-                )}
+                {/* The delta line keeps its height without a delta (the newest scan in range changes with the range). */}
+                <div className="h-[15px] text-[10px] font-semibold tabular-nums" style={{ color: good ? 'var(--status-good)' : 'var(--status-warn)' }}>
+                  {d !== null && d !== 0 && (
+                    <>
+                      {d > 0 ? '+' : ''}
+                      {d.toFixed(h.decimals)}
+                    </>
+                  )}
+                </div>
               </div>
             )
           })}
         </div>
-        {fatTarget !== null && fatTarget !== 0 && (
-          <p className="pb-2 text-center text-[11px] text-muted-foreground">
-            Fat target: {fatTarget > 0 ? '+' : ''}
-            {fatTarget.toFixed(1)} kg
-          </p>
-        )}
+        <p className="h-[27px] text-center text-[11px] text-muted-foreground">
+          {fatTarget !== null && fatTarget !== 0 && (
+            <>
+              Fat target: {fatTarget > 0 ? '+' : ''}
+              {fatTarget.toFixed(1)} kg
+            </>
+          )}
+        </p>
       </Card>
 
       <Card className="gap-0 p-3.5">
@@ -246,6 +250,7 @@ export function BodyScope() {
           title="Scan history"
           subline={`${shown.length} ${shown.length === 1 ? 'scan' : 'scans'}${range !== 'All' ? ` in ${range}` : ''}`}
         />
+        {/* Last tile, so it may grow and shrink with the range (BACKLOG #141). */}
         <div className="flex flex-col">
           {[...shown].reverse().map((m) => (
             <button

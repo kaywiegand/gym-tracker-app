@@ -15,10 +15,11 @@ import type {
   SetEntry,
   Settings,
 } from '@/types'
-import { MetricTrendPanels } from '@/components/MetricTrendPanels'
+import { MetricTrendPanels, TREND_PANELS_HEIGHT } from '@/components/MetricTrendPanels'
 import { FilterChips } from '@/components/FilterChips'
 import { InfoButton } from '@/components/InfoButton'
 import { TileHeader } from '@/components/TileHeader'
+import { TileBody } from '@/components/TileBody'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -220,7 +221,13 @@ export function ExerciseScope() {
     return <ExercisePickerStep state={pickerState} onSelect={setSelected} />
   }
 
-  const ladder = buildLadder(summaries)
+  // Loading (an exercise just picked) and empty (no sessions in the range)
+  // show inside the tiles, never instead of them. While another exercise's
+  // data is still on screen it is not shown.
+  const stale = loadedId !== selected.id
+  const shownHistory = stale ? [] : history
+  const ladder = buildLadder(stale ? [] : summaries)
+  const emptyMessage = stale && loading ? 'Loading…' : shownHistory.length === 0 ? 'No sessions in this period' : undefined
   const hasTarget = !!lastTime?.target && lastTime.target.weightKg !== null
   const addsWeight = (lastTime?.target?.weightKg ?? 0) > (lastTime?.lastWeightKg ?? 0)
   const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
@@ -235,7 +242,7 @@ export function ExerciseScope() {
   // ascending (oldest first), so a strict `>` keeps the first session that
   // reached the value.
   const best = (key: 'top_weight_kg' | 'best_e1rm' | 'volume_kg') =>
-    history.reduce<ExerciseHistoryEntry | null>((top, h) => (!top || h[key] > top[key] ? h : top), null)
+    shownHistory.reduce<ExerciseHistoryEntry | null>((top, h) => (!top || h[key] > top[key] ? h : top), null)
   const records = [
     { label: ['Max set', 'weight'], entry: best('top_weight_kg'), key: 'top_weight_kg', decimals: 1 },
     { label: ['Max session', 'e1RM'], entry: best('best_e1rm'), key: 'best_e1rm', decimals: 1 },
@@ -311,72 +318,71 @@ export function ExerciseScope() {
         </p>
       )}
 
-      {loading && loadedId !== selected.id ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : history.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No sessions in this period.</p>
-      ) : (
-        <>
-          <Card className="gap-0 p-3.5">
-            <TileHeader title="Progress" subline={`e1RM, volume and sets per session · ${rangeTitle(range)}`} />
-            {history.length >= 2 ? (
-              <MetricTrendPanels history={history} range={range} />
-            ) : (
-              <p className="text-[12px] text-muted-foreground">Track this exercise a few more times to see a trend.</p>
-            )}
-          </Card>
+      {/* The three tiles stay on screen when the range holds no sessions (or
+          the exercise is still loading): the message sits inside each tile's
+          fixed-height body, so a range switch never changes the page height
+          (BACKLOG #141). */}
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Progress" subline={`e1RM, volume and sets per session · ${rangeTitle(range)}`} />
+        <TileBody
+          height={TREND_PANELS_HEIGHT}
+          message={emptyMessage ?? (shownHistory.length < 2 ? 'Track this exercise a few more times to see a trend.' : undefined)}
+        >
+          <MetricTrendPanels history={history} range={range} />
+        </TileBody>
+      </Card>
 
-          <div>
-            <TileHeader title="Records" subline="Best values in this period" className="mb-2 px-0.5" />
-            <div className="grid grid-cols-3 gap-2">
-            {records.map(
-              ({ label, entry, key, decimals }) =>
-                entry && (
-                  <Card key={key} className="gap-0 p-2.5">
-                    <div className="text-[10.5px] leading-tight text-muted-foreground">
-                      {label[0]}
-                      <br />
-                      {label[1]}
-                    </div>
-                    <div className="mt-1 text-[15px] font-bold tabular-nums">{formatNumber(entry[key], decimals)} kg</div>
-                    <div className="text-[10.5px] tabular-nums text-muted-foreground">{shortDate(entry.started_at)}</div>
-                  </Card>
-                ),
-            )}
-            </div>
+      <div>
+        <TileHeader title="Records" subline="Best values in this period" className="mb-2 px-0.5" />
+        <div className="grid grid-cols-3 gap-2">
+          {records.map(({ label, entry, key, decimals }) => (
+            <Card key={key} className="gap-0 p-2.5">
+              <div className="text-[10.5px] leading-tight text-muted-foreground">
+                {label[0]}
+                <br />
+                {label[1]}
+              </div>
+              <div className="mt-1 text-[15px] font-bold tabular-nums">{entry ? `${formatNumber(entry[key], decimals)} kg` : '—'}</div>
+              <div className="text-[10.5px] tabular-nums text-muted-foreground">{entry ? shortDate(entry.started_at) : '—'}</div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <Card className="gap-0 p-3.5">
+        <TileHeader title="Session history" subline="Newest first · volume · weight × reps per set" />
+        {/* Last tile, so it may grow and shrink with the range (BACKLOG #141). */}
+        {emptyMessage !== undefined ? (
+          <p className="py-2 text-[12px] text-muted-foreground">{emptyMessage}</p>
+        ) : (
+          <div className="flex flex-col">
+            {ladder.map((rung) => (
+              <div key={rung.sessionId} className="flex items-start gap-1.5 border-b border-border py-1.5 last:border-b-0">
+                <span className="w-[50px] shrink-0 pt-px text-[11px] tabular-nums text-muted-foreground">{shortDate(rung.startedAt)}</span>
+                <span className="w-[58px] shrink-0 pt-0.5 text-[10.5px] tabular-nums text-muted-foreground">
+                  {formatNumber(rung.volumeKg)} kg
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col text-[12.5px] tabular-nums">
+                  {rung.groups.map((group, i) => (
+                    <span key={i} className="whitespace-nowrap">
+                      {formatNumber(group.weightKg, 1)} kg <span className="text-muted-foreground">× {group.reps.join(' / ')}</span>
+                    </span>
+                  ))}
+                </span>
+                {rung.trend === 'hold' ? (
+                  <Badge variant="outline" className="text-[10px]">
+                    hold
+                  </Badge>
+                ) : (
+                  <Badge className="bg-status-good/15 text-[10px] text-status-good" variant="secondary">
+                    {rung.trend === 'up-weight' ? '↑ weight' : 'reps ↑'}
+                  </Badge>
+                )}
+              </div>
+            ))}
           </div>
-
-          <Card className="gap-0 p-3.5">
-            <TileHeader title="Session history" subline="Newest first · volume · weight × reps per set" />
-            <div className="flex flex-col">
-              {ladder.map((rung) => (
-                <div key={rung.sessionId} className="flex items-start gap-1.5 border-b border-border py-1.5 last:border-b-0">
-                  <span className="w-[50px] shrink-0 pt-px text-[11px] tabular-nums text-muted-foreground">{shortDate(rung.startedAt)}</span>
-                  <span className="w-[58px] shrink-0 pt-0.5 text-[10.5px] tabular-nums text-muted-foreground">
-                    {formatNumber(rung.volumeKg)} kg
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col text-[12.5px] tabular-nums">
-                    {rung.groups.map((group, i) => (
-                      <span key={i} className="whitespace-nowrap">
-                        {formatNumber(group.weightKg, 1)} kg <span className="text-muted-foreground">× {group.reps.join(' / ')}</span>
-                      </span>
-                    ))}
-                  </span>
-                  {rung.trend === 'hold' ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      hold
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-status-good/15 text-[10px] text-status-good" variant="secondary">
-                      {rung.trend === 'up-weight' ? '↑ weight' : 'reps ↑'}
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-        </>
-      )}
+        )}
+      </Card>
     </div>
   )
 }
