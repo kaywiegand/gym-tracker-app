@@ -605,3 +605,21 @@
 - 17.03.2026 bleibt auf Back (Sumo und Back an dem Tag satzgleich, nicht unterscheidbar) — Kay entscheidet.
 
 **Nächster Schritt:** Kay entscheidet 17.03. (#138), #137 und #140.
+
+## Session 2026-10-14 (Fortsetzung 2) — Historie vollständig, feste Kachelhöhen (#141), Version 1.0
+
+**Was passiert ist:**
+- Fehlende Gainsfire-Sätze nachimportiert (#137, #138 17.03.): `uploads/live-complete-20261014.json`, gegen eine Kopie geprüft, live eingespielt, per frischem Pull verifiziert (`backups/verify-complete-20261014/`). Abgleich gegen das alte Dashboard und die Gainsfire-Original-CSVs ohne unerklärte Lücken.
+- Doppelte Assisted-Dip-Sätze vom 02.06.2025 als Soft-Delete entfernt (`uploads/live-dip-dupes-20261014.json`), Gainsfire führt dort nur zwei Sätze.
+- #141: feste Höhe je Dashboard-Kachel in `9f88a3a`, deployt (siehe `DEPLOYMENTS.md`).
+- Version 1.0 getaggt (`v1.0`).
+
+**Entscheidungen:**
+- Kay: die App ist die eine vollständige Quelle für die Analysen — alle Gainsfire-Sätze kommen rein. Ursache der Lücken: der Import übersprang (Übung, Tag), wenn dort schon Sätze lagen; Sätze unter einem zweiten Gainsfire-Namen gingen so verloren.
+- Bestehende Zusammenlegungen und Löschungen bleiben: Front Squat Sommer 2025 (Back Squat laut #21), bei Abweichungen an in der App getrackten Tagen gilt die App.
+- `Cable-wood-choops.csv` enthält „Abs Rotation Cable“ (Core Twist), kein Wood Chop — Sätze liegen auf `Abs Rotation Cable Standing`.
+- Kay #141: Kacheln haben eine feste Höhe aus ihrem eigentlichen Inhalt, Leer- und Ladezustand im selben Kasten; die History-Listen am Ende dürfen wachsen.
+- Kay: #12, #15, #85 bleiben als Features für Version 2.
+- Arbeitsweise (Kay): keine eigenen BACKLOG-Items — eigene Funde erst klären, dann im Chat nennen.
+
+**Nächster Schritt:** Analyse-Projekt: Übergabe aus dem vollständigen Stand neu erzeugen, dann `02_preparation`.

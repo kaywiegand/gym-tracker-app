@@ -5,12 +5,13 @@ einen Repository-Layer). Frontend: React-PWA (Vite, TypeScript, Tailwind,
 shadcn/ui). Siehe `CLAUDE.md` für das vollständige Briefing und
 `docs/references/workout-app-v3.html` für die UX-Referenz.
 
-**Stand:** Stufe 1–6 (Runde 1) sind fertig — Settings/Exercise-Library/
+**Stand:** Version 1.0 (Tag `v1.0`, 14.10.2026). Stufe 1–6 sind fertig — Settings/Exercise-Library/
 Workout-Templates, Tracking-Loop mit Offline-Sync, Progression/e1RM/PR-Badges,
 das komplette Analyse-Dashboard (Overview/Exercise/Workout/Body), BIA-Import/
 HR-Import/Body-Measurements/Backup, Plateau-Detection sowie CSV-/PDF-Export.
-Die Keytel-Kalorienschätzung aus CLAUDE.md §8 ist bewusst noch offen (siehe
-BACKLOG.md).
+Die Trainingshistorie aus Gainsfire ist vollständig importiert; die App ist
+die Datenquelle für das Analyse-Projekt. Features für Version 2 (u. a. die
+Keytel-Kalorienschätzung aus CLAUDE.md §8) stehen in BACKLOG.md.
 
 ## Voraussetzungen
 
