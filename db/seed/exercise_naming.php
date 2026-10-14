@@ -101,7 +101,7 @@ return function (PDO $pdo, array $args): void {
         'Bench Dips'                                   => ['Dip', 'Bench', 'Bench Dips'],
         'Seated Palm-Up Barbell Wrist Curl'            => ['Curl', 'Wrist', 'Wrist Curl'],
         'Palms-Down Wrist Curl Over A Bench'           => ['Curl', 'Wrist Reverse', 'Reverse Wrist Curl'],
-        'Barbell Squat'                                => ['Squat', 'Back', 'Back Squat'],
+        'Barbell Squat'                                => ['Squat', null, 'Back Squat'],
         'Front Barbell Squat'                          => ['Squat', 'Front', 'Front Squat'],
         'Barbell Full Squat'                           => ['Squat', 'Deep', 'Deep Squat'],
         'Dumbbell Squat'                               => ['Squat', 'Goblet', 'Goblet Squat'],

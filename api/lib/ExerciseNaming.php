@@ -320,6 +320,10 @@ final class ExerciseNaming
         'leg-up hamstring stretch' => 'Leg-Up',
         'overhead lat' => 'Overhead',
         'looking at ceiling' => 'Looking',
+        // BACKLOG #139: the curated back squat is the plain "Squat Barbell"
+        // (no "Back" in the title); this uncurated FEDB entry used to be it
+        // by accident. "To A" are stopwords, so the bench is what is left.
+        'barbell squat to a bench' => 'Bench',
     ];
 
     // Words that carry no distinguishing information in a variant.

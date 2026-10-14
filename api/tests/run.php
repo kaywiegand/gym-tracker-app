@@ -1113,6 +1113,20 @@ check(
     ExerciseNaming::inferVariant('Barbell Squat', 'Quadriceps', 'Squat', 'barbell') === '',
     $failures
 );
+// BACKLOG #139: the plain back squat is "Squat Barbell"; the bench squat must
+// not take that title.
+check(
+    'barbell squat to a bench gets its own title next to the curated back squat',
+    ExerciseNaming::displayName([
+        'name' => 'Barbell Squat To A Bench', 'movement' => null, 'variant' => null,
+        'equipment' => 'barbell', 'primary_muscle' => 'Quadriceps',
+    ]) === 'Squat Barbell Bench'
+        && ExerciseNaming::displayName([
+            'name' => 'Barbell Squat', 'movement' => 'Squat', 'variant' => null,
+            'equipment' => 'barbell', 'primary_muscle' => 'Quadriceps',
+        ]) === 'Squat Barbell',
+    $failures
+);
 check(
     'inferVariant drops the word that made the movement match',
     ExerciseNaming::inferVariant('Decline Dumbbell Flyes', 'Chest', 'Fly', 'dumbbell') === 'Decline',
