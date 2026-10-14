@@ -582,3 +582,15 @@
 - Satzgleiche Tage zweier Übungen sind nicht automatisch ein Doppel — bei „Cable Pulldown“ und Face Pull waren es laut Kay echte Sätze. Gelöscht oder weggelassen wird nur nach Kays Entscheidung.
 
 **Nächster Schritt:** Im Analyse-Projekt die Übergabe festlegen (Export aus der App nach `data/raw/tracker-export/`) und die Kennzahlen mit der jetzt vollständigen Historie neu rechnen.
+
+---
+
+## Session 2026-10-14 — Backlog-Abschluss, HTML-Dashboard mit App-Daten (#77)
+
+**Was passiert ist:** #74, #92 und #117 auf Kays Bestätigung geschlossen. HTML-Dashboard (#77) aus frischem Live-Backup neu erzeugt (`scripts/export-dashboard.py`, Details im BACKLOG), gegen die Analyse-Übergabe von `kw-gym-performance` abgeglichen und im Browser geprüft.
+
+**Entscheidungen:**
+- Dashboard ohne `--legacy`: seit #135 ist die App die eine vollständige Quelle. Der Legacy-Zusatz hätte 518 Sätze doppelt gezählt (gleiche Sätze am selben Tag unter anderem Übungsnamen).
+- Die 36 Sätze, die nur im alten Dashboard stehen, nicht ins Dashboard gemischt, sondern als #137 notiert — ob sie in die App kommen, entscheidet Kay.
+
+**Nächster Schritt:** Kay entscheidet #137.
