@@ -594,3 +594,14 @@
 - Die 36 Sätze, die nur im alten Dashboard stehen, nicht ins Dashboard gemischt, sondern als #137 notiert — ob sie in die App kommen, entscheidet Kay.
 
 **Nächster Schritt:** Kay entscheidet #137.
+
+## Session 2026-10-14 (Fortsetzung) — Squat-Titel und Sumo-Mapping (#138, #139), Deploy
+
+**Was passiert ist:** #139 und #138 umgesetzt in `e4ac65e`, nach Kays Freigabe deployt (siehe `DEPLOYMENTS.md`) und die Live-Daten per `./deploy/restore.sh` eingespielt (`uploads/live-squat-title-20261014.json`, `uploads/live-sumo-sets-20261014.json`). Vorher geprüft, dass die betroffenen Live-Zeilen seit dem Pull unverändert waren; danach per frischem Pull verifiziert (`backups/verify-138-139-20261014/`).
+
+**Entscheidungen:**
+- Kay: die normale Langhantel-Kniebeuge heißt `Squat Barbell` — die Standardform trägt keinen Variantenzusatz, die Varianten (Front, Sumo, Split …) schon. Der Untertitel („Back Squat“) unterscheidet; zusätzliche Beschreibungen nur, wo der Name nichts sagt.
+- Sumo-Sätze nur umgehängt, wo Gainsfire am selben Tag satzgleich Sumo und keine Back-Sätze hat. Workout-Slots mitgezogen, damit Satz und Slot dieselbe Übung meinen.
+- 17.03.2026 bleibt auf Back (Sumo und Back an dem Tag satzgleich, nicht unterscheidbar) — Kay entscheidet.
+
+**Nächster Schritt:** Kay entscheidet 17.03. (#138), #137 und #140.
