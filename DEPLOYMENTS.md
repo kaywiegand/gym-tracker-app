@@ -62,3 +62,4 @@ und bleiben unverändert.
 | `20261013-1717-0f72c88` | `0f72c88` | 2026-10-13T17:17:57Z | `backups/20261013-1717-0f72c88/` | uncurated titles cleaned up, fly-with-a-twist title, subtitle names the muscle on Legs titles (#23, #25, #57) |
 | `20261013-1855-f737ee0` | `f737ee0` | 2026-10-13T18:55:19Z | `backups/20261013-1855-f737ee0/` | training load chart: start and end date with year (#136) |
 | `20261014-0802-e4ac65e-dirty` | `e4ac65e` | 2026-10-14T08:02:34Z | `backups/20261014-0802-e4ac65e-dirty/` | back squat titled Squat Barbell, bench squat own title, sumo squat mapping (#138, #139) |
+| `20261014-1229-9f88a3a` | `9f88a3a` | 2026-10-14T12:29:20Z | `backups/20261014-1229-9f88a3a/` | dashboard tiles keep a fixed height across ranges (#141) |
