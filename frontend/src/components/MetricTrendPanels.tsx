@@ -2,6 +2,8 @@ import { ResponsiveLine } from '@nivo/line'
 import type { ExerciseHistoryEntry } from '@/types'
 import type { DashboardRange } from '@/lib/dashboardRanges'
 import { formatNumber } from '@/lib/format'
+import { MONTHS, evenTickIndices } from '@/lib/chartTicks'
+import { TREND_LAYERS } from '@/components/TrendlineLayer'
 
 // Only the fields the panels read, so a workout's per-session totals can feed
 // the same component as an exercise's history (BACKLOG #87).
@@ -39,12 +41,11 @@ const PANELS: Panel[] = [
   { key: 'sets_count', label: 'Sets', unit: '', color: 'var(--metric-sets)', decimals: 0 },
 ]
 
-// Height of the three stacked panels (measured: 283.1 px -- three charts, their
-// label rows and gaps). A tile body that holds them is this tall
-// whether or not there is data to draw (BACKLOG #141).
-export const TREND_PANELS_HEIGHT = 284
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+// Height of the three stacked panels (measured: 283.1 px with charts of
+// 62/62/82; #147 doubled the plot areas to 124/124/144, +188 px). A tile body
+// that holds them is this tall whether or not there is data to draw
+// (BACKLOG #141).
+export const TREND_PANELS_HEIGHT = 472
 
 // Day for a short window, month for the middle ones, month + year once the
 // range spans years -- "08-14" repeated across three years tells you nothing.
@@ -68,10 +69,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
   if (history.length === 0) return null
 
   // At most six labels, evenly spaced, and never the same date twice.
-  const tickCount = Math.min(6, history.length)
-  const tickIndices = Array.from({ length: tickCount }, (_, i) =>
-    Math.round((i * (history.length - 1)) / Math.max(1, tickCount - 1)),
-  )
+  const tickIndices = evenTickIndices(history.length, 6)
 
   return (
     <div className="flex flex-col gap-3">
@@ -95,7 +93,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
                 {panel.unit && ` ${panel.unit}`}
               </span>
             </div>
-            <div style={{ height: isLast ? 82 : 62 }} className="w-full">
+            <div style={{ height: isLast ? 144 : 124 }} className="w-full">
               <ResponsiveLine
                 data={[{ id: label, data: history.map((h, i) => ({ x: i, y: h[panel.key] ?? 0 })) }]}
                 margin={{ top: 6, right: 8, bottom: isLast ? 26 : 6, left: 44 }}
@@ -107,6 +105,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
                 enableGridX={false}
                 enableGridY
                 gridYValues={[min, max]}
+                layers={panel.key === 'best_e1rm' ? TREND_LAYERS : undefined}
                 curve="monotoneX"
                 axisLeft={{
                   tickSize: 0,

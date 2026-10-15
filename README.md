@@ -127,8 +127,8 @@ Alles unter Settings, im selben Bereich wie Körpergewicht:
 ## Plateau-Detection & Export (Stufe 6)
 
 - **Plateau-Detection:** Dashboard → Exercise zeigt einen Hinweis, wenn eine
-  Übung über die in Settings konfigurierte Anzahl Sessions (Default 4) kein
-  e1RM-Wachstum zeigt — plus eine kompakte Gesamtkörper-ACWR-Zeile als
+  Übung über die in Settings konfigurierte Anzahl Sessions (Default 6) keinen
+  spürbaren e1RM-Fortschritt zeigt — plus eine kompakte Gesamtkörper-ACWR-Zeile als
   Trainingslast-Kontext (CLAUDE.md §8).
 - **CSV-Export:** Settings → Export → „Download training log (CSV)" —
   ein Trainings-Log (eine Zeile pro Satz inkl. berechnetem e1RM), zum Öffnen

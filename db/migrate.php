@@ -92,4 +92,12 @@ foreach ($seedOrder as $file) {
     $seed($pdo, $args);
 }
 
+// The plateau rule changed (two-stage, default 6 sessions instead of 4).
+// Installs still on the old default move over; a value the user set to
+// anything else stays. Runs after the settings seed has created the row.
+$moved = $pdo->exec("UPDATE settings SET value = '6' WHERE key = 'plateau_sessions' AND value = '4'");
+if ($moved > 0) {
+    echo "-> settings.plateau_sessions 4 -> 6 (new plateau rule default)\n";
+}
+
 echo "Done.\n";

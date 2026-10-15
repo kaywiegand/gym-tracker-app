@@ -230,11 +230,11 @@ export function ExerciseScope() {
   const emptyMessage = stale && loading ? 'Loading…' : shownHistory.length === 0 ? 'No sessions in this period' : undefined
   const hasTarget = !!lastTime?.target && lastTime.target.weightKg !== null
   const addsWeight = (lastTime?.target?.weightKg ?? 0) > (lastTime?.lastWeightKg ?? 0)
-  const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 4
+  const plateauSessions = settings ? parseInt(settings.plateau_sessions, 10) : 6
   // Over the latest sessions overall, not the selected range (#126) -- a
   // plateau is a fact about the exercise, and a 7D window never holds enough
   // sessions to show it.
-  const isPlateaued = detectPlateau(recentHistory, plateauSessions)
+  const plateau = detectPlateau(recentHistory, plateauSessions)
   // Same thresholds and colors as the Overview ACWR card (lib/acwr.ts).
   const acwrClass = acwr ? acwrStatus(acwr.ratio).className : ''
   // Records in the selected range and when each was reached (#123), directly
@@ -294,16 +294,26 @@ export function ExerciseScope() {
         </div>
       )}
 
-      {isPlateaued && (
+      {plateau.status === 'plateau' && (
         <Card className="gap-0 border-status-warn/40 bg-status-warn/10 p-3">
           {/* Title + subline like TileHeader, in the status colour. */}
           <div className="flex items-center gap-1 text-[14px] font-bold leading-tight text-status-warn">
             Plateau
             <InfoButton term="Plateau" />
           </div>
-          <div className="mt-0.5 text-[11px] text-status-warn/90">No e1RM growth in the last {plateauSessions} sessions</div>
+          <div className="mt-0.5 text-[11px] text-status-warn/90">
+            No meaningful e1RM gain in the last {plateau.sessionsSinceBest} sessions
+          </div>
           <p className="mt-1.5 text-[11.5px] text-status-warn/90">Consider a deload week or an exercise variation.</p>
         </Card>
+      )}
+
+      {plateau.status === 'stalling' && (
+        // Quiet on purpose: yellow is reserved for the warning above (§7).
+        <p className="text-[11.5px] text-muted-foreground">
+          Stalling — no meaningful e1RM gain in the last {plateau.sessionsSinceBest} sessions. Could turn into a plateau.{' '}
+          <InfoButton term="Plateau" />
+        </p>
       )}
 
       {acwr && acwr.chronic_kg > 0 && (

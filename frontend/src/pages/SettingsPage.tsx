@@ -244,7 +244,7 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[14px] font-bold">Flag a plateau after</div>
-              <div className="mt-0.5 text-[11px] text-muted-foreground">sessions with no e1RM growth</div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">sessions without a new e1RM best</div>
             </div>
             <NumberField
               width="6rem"

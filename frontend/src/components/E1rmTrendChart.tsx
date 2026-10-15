@@ -1,5 +1,6 @@
 import { ResponsiveLine } from '@nivo/line'
 import type { ExerciseHistoryEntry } from '@/types'
+import { TREND_LAYERS } from '@/components/TrendlineLayer'
 
 interface E1rmTrendChartProps {
   history: ExerciseHistoryEntry[]
@@ -12,15 +13,15 @@ export function E1rmTrendChart({ history }: E1rmTrendChartProps) {
   const data = [
     {
       id: 'e1RM',
-      data: history.map((h) => ({ x: h.started_at.slice(0, 10), y: Math.round(h.best_e1rm * 10) / 10 })),
+      data: history.map((h, i) => ({ x: i, y: Math.round(h.best_e1rm * 10) / 10 })),
     },
   ]
 
   return (
-    <div className="h-[160px] w-full">
+    <div className="h-[200px] w-full">
       <ResponsiveLine
         data={data}
-        margin={{ top: 12, right: 16, bottom: 28, left: 40 }}
+        margin={{ top: 12, right: 16, bottom: 56, left: 40 }}
         xScale={{ type: 'point' }}
         yScale={{ type: 'linear', min: 'auto', max: 'auto' }}
         colors={['var(--metric-e1rm)']}
@@ -31,7 +32,20 @@ export function E1rmTrendChart({ history }: E1rmTrendChartProps) {
         pointBorderColor="var(--background)"
         enableGridX={false}
         gridYValues={4}
-        axisBottom={{ tickRotation: 0 }}
+        layers={TREND_LAYERS}
+        axisBottom={{
+          tickSize: 0,
+          tickPadding: 8,
+          // Every session keeps its date, turned upright so neighbours
+          // don't run into each other (#145).
+          tickRotation: -90,
+          format: (i) => {
+            const entry = history[Number(i)]
+            if (!entry) return ''
+            const [y, m, d] = entry.started_at.slice(0, 10).split('-')
+            return `${d}.${m}.${y.slice(2)}`
+          },
+        }}
         axisLeft={{ tickSize: 0, tickValues: 4 }}
         theme={{
           axis: {

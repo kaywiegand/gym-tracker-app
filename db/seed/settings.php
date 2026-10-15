@@ -9,7 +9,7 @@ return function (PDO $pdo, array $args): void {
         'progression_trigger' => 'all_sets',
         'rest_seconds' => '120',
         'theme' => 'dark',
-        'plateau_sessions' => '4',
+        'plateau_sessions' => '6',
         'recovery_drop_pct' => '2.5',
         'recovery_watch_share_pct' => '35',
         'recovery_deload_share_pct' => '50',
