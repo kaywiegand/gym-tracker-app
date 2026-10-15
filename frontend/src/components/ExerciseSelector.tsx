@@ -49,7 +49,10 @@ export function ExerciseRow({ item, onClick }: { item: ExerciseListItem; onClick
 // can place the controls and the results in two different places -- e.g.
 // inside its own sticky PageHeader -- while everything using the plain
 // <ExerciseSelector> below keeps getting both in one piece.
-function useExerciseSelectorState(excludeIds: string[]) {
+//
+// `trackedOnly` (#154) restricts every path -- search, chips and browse by
+// workout -- to exercises with logged sets; the dashboard can't chart others.
+function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }: { trackedOnly?: boolean } = {}) {
   const [query, setQuery] = useState('')
   const [region, setRegionRaw] = useState('All')
   const [mechanic, setMechanicRaw] = useState('All')
@@ -74,6 +77,7 @@ function useExerciseSelectorState(excludeIds: string[]) {
       if (query.trim()) params.set('q', query.trim())
       if (region !== 'All') params.set('region', region.toLowerCase())
       if (mechanic !== 'All') params.set('mechanic', mechanic.toLowerCase())
+      if (trackedOnly) params.set('tracked', '1')
       const qs = params.toString()
       setLoading(true)
       api
@@ -96,7 +100,7 @@ function useExerciseSelectorState(excludeIds: string[]) {
       current = false
       clearTimeout(timer)
     }
-  }, [query, region, mechanic, reloadKey])
+  }, [query, region, mechanic, reloadKey, trackedOnly])
 
   useEffect(() => {
     if (mode !== 'workout' || recent !== null) return
@@ -147,6 +151,7 @@ function useExerciseSelectorState(excludeIds: string[]) {
     setMechanic: setMechanicRaw,
     exercises,
     sorted,
+    trackedOnly,
     loading,
     error,
     retry: () => setReloadKey((k) => k + 1),
@@ -270,6 +275,9 @@ export function ExerciseSelectorResults({
         </div>
       )
     }
+    const workoutExercises = s.openWorkout.exercises.filter(
+      (e) => !excludeIds.includes(e.id) && (!s.trackedOnly || e.has_sets),
+    )
     return (
       <div className="mt-3">
         <button
@@ -279,15 +287,15 @@ export function ExerciseSelectorResults({
         >
           ‹ {s.openWorkout.name}
         </button>
-        {s.openWorkout.exercises.every((e) => excludeIds.includes(e.id)) ? (
-          <p className="mt-4 text-center text-[12.5px] text-muted-foreground">Every exercise of this workout is already in it.</p>
+        {workoutExercises.length === 0 ? (
+          <p className="mt-4 text-center text-[12.5px] text-muted-foreground">
+            {s.trackedOnly ? 'No tracked exercises in this workout.' : 'Every exercise of this workout is already in it.'}
+          </p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {s.openWorkout.exercises
-              .filter((e) => !excludeIds.includes(e.id))
-              .map((item) => (
-                <ExerciseRow key={item.id} item={item} onClick={() => onSelect(item)} />
-              ))}
+            {workoutExercises.map((item) => (
+              <ExerciseRow key={item.id} item={item} onClick={() => onSelect(item)} />
+            ))}
           </div>
         )}
       </div>

@@ -127,7 +127,7 @@ export function ExerciseScope() {
   // keeps the old data on screen (BACKLOG #110); only a different exercise
   // shows the loading placeholder.
   const [loadedId, setLoadedId] = useState<string | null>(null)
-  const pickerState = useExerciseSelectorState([])
+  const pickerState = useExerciseSelectorState([], { trackedOnly: true })
   const [lastTime, setLastTime] = useState<LastTime | null>(null)
   const [recentHistory, setRecentHistory] = useState<ExerciseHistoryEntry[]>([])
 

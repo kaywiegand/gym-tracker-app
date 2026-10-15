@@ -13,6 +13,8 @@ function handleListExercises(): void
         // picker, tracking) keeps seeing everything; the Exercises screen
         // opts into the curated subset explicitly.
         isset($_GET['curated']) && $_GET['curated'] === '1',
+        // Only exercises with logged sets (#154) -- the dashboard's picker.
+        isset($_GET['tracked']) && $_GET['tracked'] === '1',
     ));
 }
 

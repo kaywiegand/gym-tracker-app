@@ -24,13 +24,21 @@ final class ExerciseRepository extends BaseRepository
           OR EXISTS (SELECT 1 FROM sets s WHERE s.exercise_id = e.id AND s.deleted_at IS NULL)
         THEN 1 ELSE 0 END";
 
+    // Has at least one live set (#154): the dashboard's exercise scope can
+    // only chart tracked exercises, so its picker filters on this.
+    private const HAS_SETS_EXPRESSION = "CASE WHEN EXISTS (
+            SELECT 1 FROM sets s JOIN sessions se ON se.id = s.session_id
+            WHERE s.exercise_id = e.id AND s.deleted_at IS NULL AND se.deleted_at IS NULL)
+        THEN 1 ELSE 0 END";
+
     private const LIST_COLUMNS = 'e.id, e.name, e.movement, e.variant, e.display_alias, e.is_curated,
               e.equipment, e.mechanic, e.category, e.default_increment_kg,
               ' . self::PRIMARY_REGION_SUBQUERY . ' AS region,
               ' . self::PRIMARY_MUSCLE_SUBQUERY . ' AS primary_muscle,
-              ' . self::IS_USED_EXPRESSION . ' AS is_used';
+              ' . self::IS_USED_EXPRESSION . ' AS is_used,
+              ' . self::HAS_SETS_EXPRESSION . ' AS has_sets';
 
-    public function list(?string $q, ?string $region, ?string $mechanic, bool $curatedOnly = false): array
+    public function list(?string $q, ?string $region, ?string $mechanic, bool $curatedOnly = false, bool $trackedOnly = false): array
     {
         $sql = 'SELECT * FROM (
             SELECT ' . self::LIST_COLUMNS . '
@@ -41,6 +49,9 @@ final class ExerciseRepository extends BaseRepository
 
         if ($curatedOnly) {
             $sql .= ' AND t.is_curated = 1';
+        }
+        if ($trackedOnly) {
+            $sql .= ' AND t.has_sets = 1';
         }
         if ($region !== null && strtolower($region) !== 'all') {
             $sql .= ' AND t.region = :region';
@@ -88,6 +99,7 @@ final class ExerciseRepository extends BaseRepository
     {
         return array_map(static function (array $row): array {
             $row['is_used'] = (int) ($row['is_used'] ?? 0);
+            $row['has_sets'] = (int) ($row['has_sets'] ?? 0);
             return $row;
         }, $rows);
     }

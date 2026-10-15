@@ -50,6 +50,7 @@ export interface ExerciseListItem extends ExerciseNames {
   // 1 when the exercise sits in a workout or has ever been logged -- the
   // pickers mark these (BACKLOG #38).
   is_used: number
+  has_sets: number
 }
 
 export interface RecentWorkout {
