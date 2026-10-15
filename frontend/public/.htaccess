@@ -9,3 +9,10 @@
     Header set Expires "0"
   </FilesMatch>
 </IfModule>
+
+# The host runs mod_pagespeed, which rewrites file names in index.html
+# (e.g. /pwa-192.png -> /pwa-192.png.pagespeed.ce.<hash>.png). That breaks the
+# iOS home-screen icon and fights the service worker's own caching (BACKLOG #143).
+<IfModule pagespeed_module>
+  ModPagespeed off
+</IfModule>

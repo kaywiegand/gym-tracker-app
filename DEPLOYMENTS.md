@@ -64,3 +64,4 @@ und bleiben unverändert.
 | `20261014-0802-e4ac65e-dirty` | `e4ac65e` | 2026-10-14T08:02:34Z | `backups/20261014-0802-e4ac65e-dirty/` | back squat titled Squat Barbell, bench squat own title, sumo squat mapping (#138, #139) |
 | `20261014-1229-9f88a3a` | `9f88a3a` | 2026-10-14T12:29:20Z | `backups/20261014-1229-9f88a3a/` | dashboard tiles keep a fixed height across ranges (#141) |
 | `20261014-1233-70a81bf` | `70a81bf` | 2026-10-14T12:33:01Z | `backups/20261014-1233-70a81bf/` | version 1.0 |
+| `20261015-0329-1db93aa` | `1db93aa` | 2026-10-15T03:29:16Z | `backups/20261015-0329-1db93aa/` | plateau rule two-stage, e1RM trendlines, upright dates, taller progress charts (#144-#147) |

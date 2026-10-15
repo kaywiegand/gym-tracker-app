@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
 interface NumberFieldProps {
@@ -5,6 +6,7 @@ interface NumberFieldProps {
   onChange: (value: number) => void
   onBlur?: () => void
   unit?: string
+  // Kept for the callers; a text input ignores them (decimals typed as text).
   step?: number
   min?: number
   width?: string
@@ -19,25 +21,30 @@ export function NumberField({
   onChange,
   onBlur,
   unit,
-  step = 1,
-  min,
+  step: _step,
+  min: _min,
   width = '4.25rem',
   className,
   ...rest
 }: NumberFieldProps) {
+  // What the user is typing, kept as text while the field is focused. Writing
+  // the parsed number straight back would drop a trailing separator ("12," ->
+  // 12), so a decimal could never be typed (BACKLOG #142).
+  const [draft, setDraft] = useState<string | null>(null)
   return (
     <div
       className={cn('inline-flex items-center overflow-hidden rounded-md border border-border bg-secondary', className)}
       style={{ width }}
     >
       <input
-        type="number"
+        type="text"
         inputMode="decimal"
-        step={step}
-        min={min}
-        value={value}
+        value={draft ?? String(value)}
         onChange={(e) => {
-          const parsed = parseFloat(e.target.value.replace(',', '.'))
+          const raw = e.target.value
+          if (!/^\d*[.,]?\d*$/.test(raw)) return
+          setDraft(raw)
+          const parsed = parseFloat(raw.replace(',', '.'))
           onChange(Number.isNaN(parsed) ? 0 : parsed)
         }}
         // Select the current value on focus so the first keypress REPLACES it.
@@ -52,7 +59,10 @@ export function NumberField({
         // A tap inside an already-focused field re-selects too -- iOS does not
         // fire focus again, so without this a second tap only moves the caret.
         onClick={(e) => e.currentTarget.select()}
-        onBlur={onBlur}
+        onBlur={() => {
+          setDraft(null)
+          onBlur?.()
+        }}
         className="w-full bg-transparent px-2 py-2 text-center text-[15px] font-bold tabular-nums outline-none focus:bg-brand-accent/15 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         {...rest}
       />
