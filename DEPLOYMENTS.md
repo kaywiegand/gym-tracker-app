@@ -68,3 +68,6 @@ und bleiben unverändert.
 | `20261015-0332-aa913eb` | `aa913eb` | 2026-10-15T03:32:15Z | `backups/20261015-0332-aa913eb/` | decimal weights, iOS icon (#142, #143) |
 | `20261015-0335-f68243c` | `f68243c` | 2026-10-15T03:35:32Z | `backups/20261015-0335-f68243c/` | e1RM chart month/year labels when tight (#148) |
 | `20261015-0345-a32b925` | `a32b925` | 2026-10-15T03:45:32Z | `backups/20261015-0345-a32b925/` | short-term trendline (#149) |
+| `20261015-0351-012a42a-dirty` | `012a42a` | 2026-10-15T03:51:17Z | `backups/20261015-0351-012a42a-dirty/` | trendline colors (#150) |
+| `20261015-0351-012a42a` | `012a42a` | 2026-10-15T03:51:47Z | `backups/20261015-0351-012a42a/` | redeploy #150 without foreign tracking WIP |
+| `20261015-0359-1e9079a` | `1e9079a` | 2026-10-15T03:59:05Z | `backups/20261015-0359-1e9079a/` | dashboard exercise picker: tracked exercises only (#154) |

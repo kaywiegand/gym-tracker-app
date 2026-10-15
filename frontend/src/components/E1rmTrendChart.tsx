@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
 import type { ExerciseHistoryEntry } from '@/types'
-import { TREND_LAYERS } from '@/components/TrendlineLayer'
+import { trendLayersFor } from '@/components/TrendlineLayer'
 import { MONTHS, chooseDateTicks } from '@/lib/chartTicks'
 
 const MARGIN = { top: 12, right: 16, bottom: 56, left: 40 }
@@ -53,7 +53,7 @@ export function E1rmTrendChart({ history }: E1rmTrendChartProps) {
         pointBorderColor="var(--background)"
         enableGridX={false}
         gridYValues={4}
-        layers={TREND_LAYERS}
+        layers={trendLayersFor(true)}
         axisBottom={{
           tickSize: 0,
           tickPadding: 8,

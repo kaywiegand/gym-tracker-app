@@ -3,7 +3,7 @@ import type { ExerciseHistoryEntry } from '@/types'
 import type { DashboardRange } from '@/lib/dashboardRanges'
 import { formatNumber } from '@/lib/format'
 import { MONTHS, evenTickIndices } from '@/lib/chartTicks'
-import { TREND_LAYERS } from '@/components/TrendlineLayer'
+import { trendLayersFor } from '@/components/TrendlineLayer'
 
 // Only the fields the panels read, so a workout's per-session totals can feed
 // the same component as an exercise's history (BACKLOG #87).
@@ -105,7 +105,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
                 enableGridX={false}
                 enableGridY
                 gridYValues={[min, max]}
-                layers={panel.key === 'best_e1rm' ? TREND_LAYERS : undefined}
+                layers={panel.key === 'best_e1rm' ? trendLayersFor(range !== 'All' && range !== '12M') : undefined}
                 curve="monotoneX"
                 axisLeft={{
                   tickSize: 0,
