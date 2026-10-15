@@ -67,3 +67,4 @@ und bleiben unverändert.
 | `20261015-0329-1db93aa` | `1db93aa` | 2026-10-15T03:29:16Z | `backups/20261015-0329-1db93aa/` | plateau rule two-stage, e1RM trendlines, upright dates, taller progress charts (#144-#147) |
 | `20261015-0332-aa913eb` | `aa913eb` | 2026-10-15T03:32:15Z | `backups/20261015-0332-aa913eb/` | decimal weights, iOS icon (#142, #143) |
 | `20261015-0335-f68243c` | `f68243c` | 2026-10-15T03:35:32Z | `backups/20261015-0335-f68243c/` | e1RM chart month/year labels when tight (#148) |
+| `20261015-0345-a32b925` | `a32b925` | 2026-10-15T03:45:32Z | `backups/20261015-0345-a32b925/` | short-term trendline (#149) |
