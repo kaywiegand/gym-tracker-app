@@ -71,3 +71,4 @@ und bleiben unverändert.
 | `20261015-0351-012a42a-dirty` | `012a42a` | 2026-10-15T03:51:17Z | `backups/20261015-0351-012a42a-dirty/` | trendline colors (#150) |
 | `20261015-0351-012a42a` | `012a42a` | 2026-10-15T03:51:47Z | `backups/20261015-0351-012a42a/` | redeploy #150 without foreign tracking WIP |
 | `20261015-0359-1e9079a` | `1e9079a` | 2026-10-15T03:59:05Z | `backups/20261015-0359-1e9079a/` | dashboard exercise picker: tracked exercises only (#154) |
+| `20261015-0406-e96d11c` | `e96d11c` | 2026-10-15T04:06:18Z | `backups/20261015-0406-e96d11c/` | trendline logic (#151) |

@@ -152,6 +152,7 @@ export interface ExerciseHistoryEntry {
   started_at: string
   best_e1rm: number
   top_weight_kg: number
+  best_reps: number
   volume_kg: number
   sets_count: number
 }

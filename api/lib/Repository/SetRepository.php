@@ -116,6 +116,7 @@ final class SetRepository extends BaseRepository
         $sql = 'SELECT s.id AS session_id, s.started_at,
                        MAX(st.weight_kg * (1 + st.reps / 30.0)) AS best_e1rm,
                        MAX(st.weight_kg) AS top_weight_kg,
+                       MAX(st.reps) AS best_reps,
                        SUM(st.weight_kg * st.reps) AS volume_kg,
                        COUNT(st.id) AS sets_count
                 FROM sessions s
@@ -129,7 +130,7 @@ final class SetRepository extends BaseRepository
         $sql .= ' GROUP BY s.id ORDER BY s.started_at DESC LIMIT ' . (int) $limit;
 
         return $this->fetchAll(
-            "SELECT session_id, started_at, best_e1rm, top_weight_kg, volume_kg, sets_count FROM ({$sql}) ORDER BY started_at ASC",
+            "SELECT session_id, started_at, best_e1rm, top_weight_kg, best_reps, volume_kg, sets_count FROM ({$sql}) ORDER BY started_at ASC",
             $params
         );
     }

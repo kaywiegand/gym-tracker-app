@@ -2,7 +2,8 @@
 // jumps around by 5-10% on its own, so comparing against one earlier value
 // flags false alarms on a rising-but-noisy history. Two signals instead:
 // how long ago the last meaningful best was, and whether the recent trend
-// is flat.
+// is flat. Bodyweight exercises (every session in the window at 0 kg) have an
+// e1RM of 0, so the same rule runs on the per-session best reps instead.
 
 // Sessions looked at when searching for the last meaningful best.
 export const BEST_WINDOW_SESSIONS = 12
@@ -12,12 +13,15 @@ export const TREND_SESSIONS = 6
 // window by more than this factor (2%); equal or slightly higher is noise.
 export const BEST_MARGIN = 1.02
 // The trend is flat below this slope, in % of the mean e1RM per session.
-export const FLAT_SLOPE_PCT = 1.0
+export const FLAT_SLOPE_PCT = 0.5
 
 export type PlateauStatus = 'none' | 'stalling' | 'plateau'
 
+export type PlateauMetric = 'e1rm' | 'reps'
+
 export interface PlateauResult {
   status: PlateauStatus
+  metric: PlateauMetric
   sessionsSinceBest: number
   trendSlopePct: number
 }
@@ -61,15 +65,28 @@ export function sessionsSinceBest(e1rms: number[]): number {
   return window.length - 1 - lastBest
 }
 
+export interface PlateauSession {
+  best_e1rm: number
+  top_weight_kg: number
+  best_reps: number
+}
+
+// Reps stand in for e1RM only when the whole plateau window is bodyweight.
+function plateauMetric(history: PlateauSession[]): PlateauMetric {
+  const window = history.slice(-BEST_WINDOW_SESSIONS)
+  return window.every((h) => Number(h.top_weight_kg) === 0) ? 'reps' : 'e1rm'
+}
+
 // `history` is ascending by date; `plateauSessions` (P) is the Settings value.
-export function detectPlateau(history: { best_e1rm: number }[], plateauSessions: number): PlateauResult {
-  const none: PlateauResult = { status: 'none', sessionsSinceBest: 0, trendSlopePct: 0 }
+export function detectPlateau(history: PlateauSession[], plateauSessions: number): PlateauResult {
+  const none: PlateauResult = { status: 'none', metric: 'e1rm', sessionsSinceBest: 0, trendSlopePct: 0 }
   if (plateauSessions < 1 || history.length < TREND_SESSIONS) return none
-  const e1rms = history.map((h) => h.best_e1rm)
-  const since = sessionsSinceBest(e1rms)
-  const slope = trendSlopePct(e1rms)
+  const metric = plateauMetric(history)
+  const values = history.map((h) => Number(metric === 'reps' ? h.best_reps : h.best_e1rm))
+  const since = sessionsSinceBest(values)
+  const slope = trendSlopePct(values)
   const flat = slope < FLAT_SLOPE_PCT
   const status: PlateauStatus =
     flat && since >= plateauSessions ? 'plateau' : flat && since >= plateauSessions - 2 ? 'stalling' : 'none'
-  return { status, sessionsSinceBest: since, trendSlopePct: slope }
+  return { status, metric, sessionsSinceBest: since, trendSlopePct: slope }
 }

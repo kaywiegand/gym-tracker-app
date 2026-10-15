@@ -302,7 +302,7 @@ export function ExerciseScope() {
             <InfoButton term="Plateau" />
           </div>
           <div className="mt-0.5 text-[11px] text-status-warn/90">
-            No meaningful e1RM gain in the last {plateau.sessionsSinceBest} sessions
+            No meaningful {plateau.metric === 'reps' ? 'rep' : 'e1RM'} gain in the last {plateau.sessionsSinceBest} sessions
           </div>
           <p className="mt-1.5 text-[11.5px] text-status-warn/90">Consider a deload week or an exercise variation.</p>
         </Card>
@@ -311,7 +311,7 @@ export function ExerciseScope() {
       {plateau.status === 'stalling' && (
         // Quiet on purpose: yellow is reserved for the warning above (§7).
         <p className="text-[11.5px] text-muted-foreground">
-          Stalling — no meaningful e1RM gain in the last {plateau.sessionsSinceBest} sessions. Could turn into a plateau.{' '}
+          Stalling — no meaningful {plateau.metric === 'reps' ? 'rep' : 'e1RM'} gain in the last {plateau.sessionsSinceBest} sessions. Could turn into a plateau.{' '}
           <InfoButton term="Plateau" />
         </p>
       )}

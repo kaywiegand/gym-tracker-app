@@ -58,7 +58,7 @@ export const GLOSSARY: GlossaryEntry[] = [
     term: 'Plateau',
     label: 'Plateau',
     definition:
-      'A new best means an e1RM more than 2% above your previous best from the last 12 sessions — equal or slightly higher values are noise. If the recent trend is also flat, the exercise is stalling two sessions before the configured limit and counts as a plateau once that many sessions pass without a new best (default 6, adjustable in Settings). A rising but jumpy history is not flagged. A signal to consider a deload week or switching up the exercise or rep range.',
+      'A new best means an e1RM more than 2% above your previous best from the last 12 sessions — equal or slightly higher values are noise. If the recent trend is also flat, the exercise is stalling two sessions before the configured limit and counts as a plateau once that many sessions pass without a new best (default 6, adjustable in Settings). A rising but jumpy history is not flagged. Bodyweight exercises (0 kg) are judged by reps instead of e1RM. A signal to consider a deload week or switching up the exercise or rep range.',
   },
   {
     term: 'Recovery',
