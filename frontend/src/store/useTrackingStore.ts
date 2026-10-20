@@ -282,7 +282,13 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
         deleted_at: null,
         synced: false,
       }
-      await putRow('sessions', session)
+      // A failed write leaves the session open -- it is offered for resume
+      // next time, nothing is lost -- and must not block the summary.
+      try {
+        await putRow('sessions', session)
+      } catch (err) {
+        console.error('could not store finished session', err)
+      }
     }
 
     const totalSets = state.exercises.reduce((a, e) => a + e.sets.length, 0)
@@ -294,10 +300,9 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     // started_at -> last logged set, as on the dashboard (BACKLOG #86).
     let durationSec: number | null = null
     if (state.sessionId && state.startedAt) {
-      const lastSetAt = (await getSetsForSession(state.sessionId)).reduce<string | null>(
-        (a, s) => (a === null || s.performed_at > a ? s.performed_at : a),
-        null,
-      )
+      const lastSetAt = await getSetsForSession(state.sessionId)
+        .then((sets) => sets.reduce<string | null>((a, s) => (a === null || s.performed_at > a ? s.performed_at : a), null))
+        .catch(() => null)
       if (lastSetAt) {
         const sec = Math.round((new Date(lastSetAt).getTime() - new Date(state.startedAt).getTime()) / 1000)
         if (sec > 0 && sec <= MAX_PLAUSIBLE_SESSION_MIN * 60) durationSec = sec

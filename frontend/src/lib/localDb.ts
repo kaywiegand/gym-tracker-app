@@ -25,6 +25,11 @@ let dbPromise: Promise<IDBPDatabase<GymTrackerDB>> | null = null
 function getDb(): Promise<IDBPDatabase<GymTrackerDB>> {
   if (!dbPromise) {
     dbPromise = openDB<GymTrackerDB>('gym-tracker', 2, {
+      // iOS kills the connection while the PWA sits in the background; a
+      // cached dead connection would make every later read/write throw.
+      terminated() {
+        dbPromise = null
+      },
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           db.createObjectStore('sessions', { keyPath: 'id' })

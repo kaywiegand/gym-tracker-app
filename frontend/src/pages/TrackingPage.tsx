@@ -323,10 +323,17 @@ export function TrackingPage() {
     setConfirmFinishOpen(false)
     const workoutIdForCompare = store.workoutId
     const sessionIdForCompare = store.sessionId
-    const result = await store.finish()
-    setSummary(result)
+    // Sheet first, numbers when they are ready: finish() awaits IndexedDB,
+    // and on an iOS PWA that can fail or hang (connection killed in the
+    // background). Opening only after it resolved left the screen dead.
+    setSummary(null)
     setPrevious(null)
     setFinishOpen(true)
+    try {
+      setSummary(await store.finish())
+    } catch (err) {
+      console.error('finish failed', err)
+    }
 
     if (workoutIdForCompare && sessionIdForCompare) {
       setComparingVolume(true)
@@ -489,7 +496,13 @@ export function TrackingPage() {
         </div>
       )}
 
-      <Button type="button" className="mb-10 mt-4 w-full bg-status-good text-white hover:bg-status-good/90" onClick={requestFinish}>
+      {/* After the last set the rest bar is up and fixed at the bottom; the
+          extra margin keeps it from covering the button's lower edge. */}
+      <Button
+        type="button"
+        className={`${store.restEndAt !== null ? 'mb-28' : 'mb-10'} mt-4 w-full bg-status-good text-white hover:bg-status-good/90`}
+        onClick={requestFinish}
+      >
         Finish workout
       </Button>
 
