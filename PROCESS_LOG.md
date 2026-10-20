@@ -623,3 +623,25 @@
 - Arbeitsweise (Kay): keine eigenen BACKLOG-Items — eigene Funde erst klären, dann im Chat nennen.
 
 **Nächster Schritt:** Analyse-Projekt: Übergabe aus dem vollständigen Stand neu erzeugen, dann `02_preparation`.
+
+## Session 2026-10-15 — Plateau-Regel, Trendlinien, Diagramm-Achsen (#142–#154)
+
+*Nachgetragen 2026-10-20 aus Git-Historie und `DEPLOYMENTS.md`.*
+
+**Was passiert ist:** #142–#148 und die Trendlinien-/Plateau-Punkte #149–#154 umgesetzt und deployt (`ae4ad59` … `44f3790`, siehe `DEPLOYMENTS.md`). Plateau-Logik in `frontend/src/lib/plateau.ts`, Trendlinien in `TrendlineLayer.tsx`. Dazu Konzept-Punkte aus der Konkurrenz-Recherche ins BACKLOG (heute #155–#159).
+
+**Entscheidungen:**
+- Kay: Plateau bewertet den Verlauf, nicht zwei Einzelpunkte; flach heißt unter +0,5 % pro Session; bei 0 kg zählen die Reps.
+- Kay: Gesamttrend grau, kurzer Trend grün beim Steigen; bei 12M/All kein kurzer Trend.
+
+## Session 2026-10-20 — Finish-Sheet auf iOS (#155), BACKLOG bereinigt
+
+**Was passiert ist:**
+- #155 (Finish ohne Anzeige) gefixt in `ad46142`, gepusht, nicht deployt, nicht auf iOS geprüft.
+- BACKLOG: erledigte Punkte vom 15.10. mit Commit abgehakt; doppelt vergebene Nummern 149–153 aufgelöst.
+
+**Entscheidungen:**
+- Die Trendlinien-/Plateau-Punkte behalten 149–153, weil Commits und `DEPLOYMENTS.md` sie so nennen; die Konzept-Punkte wurden zu #155–#159. `ad46142` nennt noch #149.
+- Ursache der fehlenden Häkchen: in der Session vom 15.10. wurde das Post-Commit-Protokoll übersprungen.
+
+**Nächster Schritt:** #155 deployen und auf dem iPhone prüfen.
