@@ -60,6 +60,7 @@ Basis `/api`, JSON. Fehlerform `{"error": "..."}`. Routing: If-Kette in `api/ind
 | Name | Input | Output | Datei |
 | :--- | :--- | :--- | :--- |
 | `POST /sync/push` | `{sessions[],sets[],bodyweight[],body_measurements[]}` | `{ok}` | `sync.php` |
+| `GET /sync/snapshot` | – | `{workouts,workout_groups,workout_details,settings,last_sets}` für den Offline-Start | `sync.php`, `lib/OfflineSnapshot.php` |
 | `GET /bodyweight` | `limit` | `Bodyweight[]` | `bodyweight.php` |
 | `GET /body-measurements` | `site, limit` | `BodyMeasurement[]` | `bodymeasurements.php` |
 | `GET /bia/template` | – | CSV | `bia.php` |
@@ -127,7 +128,9 @@ Es gibt kein Lese-Endpoint für `hr_samples`, keines für Sessions als Liste und
 | `resolveRange` | Bereich | Fenster, Tage | `lib/dashboardRanges.ts:130` |
 | `putRow`, `getUnsynced`, `markSynced` | Store, Zeile | IndexedDB | `lib/localDb.ts:48,63,93` |
 | `findOpenSessions` | Workout | offene Sessions | `lib/localDb.ts:77` |
-| `pushPending` | – | Sync-Lauf | `lib/syncService.ts:16` |
+| `pushPending` | – | Sync-Lauf, Auslöser während eines Laufs starten danach einen weiteren | `lib/syncService.ts` |
+| `syncNow` | – | Push, dann `refreshOfflineCache` | `lib/syncService.ts` |
+| `loadWorkoutList`, `loadTrackingData` | Workout | Netz mit 4 s Limit, sonst `cache`, sonst `null` | `lib/offlineCache.ts` |
 | `useTrackingStore` | Aktionen | Session-Zustand | `store/useTrackingStore.ts:128` |
 | `checkForNewVersion` | – | Reload oder Banner | `lib/versionCheck.ts:129` |
 
@@ -172,8 +175,9 @@ sequenceDiagram
     participant D as SQLite
 
     K->>T: Start
-    T->>A: GET /workouts/:id, /settings, last-sets
+    T->>A: GET /workouts/:id, /settings, last-sets (max. 4 s)
     A-->>T: Plan und letzte Saetze
+    Note over T,L: offline oder Zeitlimit: dasselbe aus dem Store cache
     T->>L: findOpenSessions
     T->>S: start oder resume
     K->>S: Satz abhaken

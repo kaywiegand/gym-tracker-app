@@ -41,3 +41,9 @@ function handleSyncPush(): void
 
     Http::respond(['ok' => true]);
 }
+
+function handleSyncSnapshot(): void
+{
+    Auth::require();
+    Http::respond(OfflineSnapshot::build());
+}

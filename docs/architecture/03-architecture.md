@@ -77,7 +77,7 @@ flowchart TB
     Hand --> Files
 ```
 
-Nur Tracking und Körperdaten laufen über IndexedDB, alle anderen Screens sprechen direkt mit der API. Die Fachlogik ist geteilt: Volumen, ACWR und Recovery rechnen im Backend, Progression und Plateau im Client.
+Tracking und Körperdaten schreiben über IndexedDB. Workout-Liste und Tracking lesen mit Rückfall auf den Store `cache` (`lib/offlineCache.ts`), alle anderen Screens sprechen direkt mit der API und zeigen ohne Netz `LoadError`. Die Fachlogik ist geteilt: Volumen, ACWR und Recovery rechnen im Backend, Progression und Plateau im Client.
 
 ## Datenfluss
 
@@ -113,4 +113,4 @@ Nur Tracking und Körperdaten laufen über IndexedDB, alle anderen Screens sprec
 - **Auth:** Jeder Handler ruft `Auth::require()` selbst auf. Kein zentraler Guard, aber alle Handler außer Login, Logout und Status tun es (`api/endpoints/`).
 - **Zeit:** Serverzeit ist UTC. Lokale Tage entstehen über den `tz`-Parameter (`lib/dashboardRanges.ts:15`, `SessionRepository::timeZone`). Nicht alle Aufrufe senden ihn (R-12).
 - **Rückwärtskompatibilität:** Weil eine installierte PWA kurz das alte Bundle fährt, liefert die API alte Felder weiter (`this_week`, `last_7_days`, `by_region`), und der Client fängt fehlende neue Felder ab (`lib/workoutDevelopment.ts:47-64`).
-- **Fehlerbild:** Viele `api.get`-Aufrufe in Screens haben kein `catch`. Offline bleibt dann der Ladezustand oder eine leere Liste stehen (R-01).
+- **Fehlerbild:** `api.get` bricht nach 15 s ab. Screens mit Ladezustand zeigen dann `LoadError`, Workout-Liste und Tracking die lokale Kopie. Leere Listen ohne Hinweis bleiben bei `WorkoutGroupsPage` und Teilen der Dashboard-Scopes (R-16).

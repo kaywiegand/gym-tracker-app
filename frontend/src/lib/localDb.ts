@@ -11,6 +11,9 @@ interface GymTrackerDB extends DBSchema {
   sets: { key: string; value: LocalSet }
   bodyweight: { key: string; value: LocalBodyweight }
   body_measurements: { key: string; value: LocalBodyMeasurement }
+  // Copy of server data for an offline start (lib/offlineCache.ts). Unlike
+  // the stores above it is never pushed and can be rebuilt at any time.
+  cache: { key: string; value: { key: string; value: unknown } }
 }
 
 export type StoreName = 'sessions' | 'sets' | 'bodyweight' | 'body_measurements'
@@ -24,10 +27,15 @@ let dbPromise: Promise<IDBPDatabase<GymTrackerDB>> | null = null
 // key-type restrictions (booleans aren't valid index keys).
 function getDb(): Promise<IDBPDatabase<GymTrackerDB>> {
   if (!dbPromise) {
-    dbPromise = openDB<GymTrackerDB>('gym-tracker', 2, {
+    dbPromise = openDB<GymTrackerDB>('gym-tracker', 3, {
       // iOS kills the connection while the PWA sits in the background; a
       // cached dead connection would make every later read/write throw.
       terminated() {
+        dbPromise = null
+      },
+      // A newer build wants to upgrade: let go, or its open would wait forever.
+      blocking(_current, _blocked, event) {
+        ;(event.target as IDBDatabase).close()
         dbPromise = null
       },
       upgrade(db, oldVersion) {
@@ -39,6 +47,9 @@ function getDb(): Promise<IDBPDatabase<GymTrackerDB>> {
         if (oldVersion < 2) {
           db.createObjectStore('body_measurements', { keyPath: 'id' })
         }
+        if (oldVersion < 3) {
+          db.createObjectStore('cache', { keyPath: 'key' })
+        }
       },
     })
   }
@@ -48,6 +59,19 @@ function getDb(): Promise<IDBPDatabase<GymTrackerDB>> {
 export async function putRow<T extends { id: string }>(store: StoreName, row: T): Promise<void> {
   const db = await getDb()
   await db.put(store, row as never)
+}
+
+export async function getCached<T>(key: string): Promise<T | undefined> {
+  const db = await getDb()
+  return (await db.get('cache', key))?.value as T | undefined
+}
+
+export async function replaceCache(entries: [string, unknown][]): Promise<void> {
+  const db = await getDb()
+  const tx = db.transaction('cache', 'readwrite')
+  await tx.store.clear()
+  await Promise.all(entries.map(([key, value]) => tx.store.put({ key, value })))
+  await tx.done
 }
 
 export async function getRow<T>(store: StoreName, id: string): Promise<T | undefined> {

@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import { refreshOfflineCache } from '@/lib/offlineCache'
 import { getUnsynced, markSynced, type LocalBodyMeasurement, type LocalBodyweight, type LocalSession, type LocalSet } from '@/lib/localDb'
 
 let running: Promise<void> | null = null
@@ -72,8 +73,15 @@ export function pushPending(): Promise<void> {
   return running
 }
 
+// Push first: the copy for the next offline start should contain what was
+// just trained.
+export async function syncNow(): Promise<void> {
+  await pushPending()
+  await refreshOfflineCache()
+}
+
 export function initSyncListeners(): void {
   window.addEventListener('online', () => {
-    pushPending()
+    void syncNow()
   })
 }

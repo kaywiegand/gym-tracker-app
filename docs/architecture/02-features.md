@@ -10,7 +10,7 @@ Die Einstufung ist eine Code-Bewertung. Wie stabil sich ein Feature auf dem iPho
 
 | Feature | Beschreibung | Screens | Dateien | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| Workout starten | Start aus der Liste, Vorbelegung aus letzten Sätzen | `/workouts`, `/track/:id` | `pages/WorkoutsPage.tsx:44-55`, `pages/TrackingPage.tsx:115-153` | wackelig: braucht Netz (R-01) |
+| Workout starten | Start aus der Liste, Vorbelegung aus letzten Sätzen | `/workouts`, `/track/:id` | `pages/WorkoutsPage.tsx:44-55`, `pages/TrackingPage.tsx:115-153` | stabil, offline aus `lib/offlineCache.ts` |
 | Sätze loggen | Gewicht/Reps, Abhaken schreibt `sets`-Zeile, Rückgängig per Soft-Delete | `/track/:id` | `store/useTrackingStore.ts:208-264` | stabil |
 | Offline-Puffer | IndexedDB zuerst, dann Push | `/track/:id` | `lib/localDb.ts`, `lib/syncService.ts` | stabil |
 | Offene Session fortsetzen | Mehrere offene Sessions, Resume, Discard, Neu | `/track/:id` | `pages/TrackingPage.tsx:135-237`, `lib/localDb.ts:77-82` | stabil, aber nur je Gerät |

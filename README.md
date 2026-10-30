@@ -86,11 +86,15 @@ Den PHP-Server kurz stoppen, während getrackt wird, zeigt den
 Offline-Puffer in Aktion; nach Neustart des Servers synct die nächste
 Interaktion automatisch nach.
 
-Bewusst **kein** vollständiger Pull-Sync der Historie aufs Gerät — die
-Vorbelegung neuer Sätze mit den letzten Ist-Werten (`GET
-/api/exercises/:id/last-sets`) ist ein Online-Best-Effort-Abruf beim
-Workout-Start, mit leerem Fallback wenn offline (Details im Plan der
-Stufe-2-Session).
+Für den Start ohne Netz hält das Gerät eine Kopie: `GET /api/sync/snapshot`
+liefert Workouts, Gruppen, Settings und die letzten Sätze je Übung, gespeichert
+im IndexedDB-Store `cache` (`frontend/src/lib/offlineCache.ts`). Aktualisiert
+wird sie beim App-Start, beim `online`-Event und beim Öffnen der Workout-Liste.
+Workout-Liste und Tracking fragen zuerst das Netz (maximal 4 Sekunden) und
+fallen dann auf die Kopie zurück. Einmal mit Verbindung geöffnet, startet ein
+Workout also auch ohne Empfang. Die Session entsteht im Client und läuft über
+denselben Push-Sync. Bewusst **kein** vollständiger Pull-Sync der Historie aufs
+Gerät, und das Bearbeiten von Workouts braucht weiterhin Netz.
 
 ## BIA-/HR-Import & Backup (Stufe 5)
 

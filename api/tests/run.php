@@ -1316,6 +1316,21 @@ check('clearing a variant in the editor persists', $partialAfter['variant'] === 
 check('clearing an alias in the editor persists', $partialAfter['display_alias'] === null, $failures);
 check('exercise update keeps fields it was not sent', $partialAfter['movement'] === 'Press' && $partialAfter['equipment'] === 'barbell', $failures);
 
+echo "OfflineSnapshot (R-01)\n";
+$snapshotWorkout = (new WorkoutRepository())->create([
+    'name' => 'Offline', 'mode_id' => 2, 'notes' => 'gym note',
+    'exercises' => [['exercise_id' => $created['id'], 'planned_sets' => 3]],
+]);
+$sessionRepo->upsert(['id' => 'sess-snapshot', 'workout_id' => $snapshotWorkout['id'], 'started_at' => '2026-10-20T10:00:00Z', 'ended_at' => '2026-10-20T11:00:00Z', 'updated_at' => '2026-10-20T11:00:00Z']);
+$setRepo->upsert(['id' => 'set-snapshot', 'session_id' => 'sess-snapshot', 'exercise_id' => $created['id'], 'set_index' => 0, 'weight_kg' => 77.5, 'reps' => 8, 'is_warmup' => 0, 'performed_at' => '2026-10-20T10:05:00Z', 'updated_at' => '2026-10-20T10:05:00Z']);
+$snapshot = OfflineSnapshot::build();
+check('snapshot lists the workouts', in_array('Offline', array_column($snapshot['workouts'], 'name'), true), $failures);
+check('snapshot has the workout with its exercises', count($snapshot['workout_details'][$snapshotWorkout['id']]['exercises']) === 1, $failures);
+check('snapshot has the groups', is_array($snapshot['workout_groups']), $failures);
+check('snapshot has the settings', isset($snapshot['settings']['rest_seconds']), $failures);
+check('snapshot never carries the password hash', !isset($snapshot['settings']['password_hash']), $failures);
+check('snapshot has the last sets per exercise', (float) $snapshot['last_sets'][$created['id']][0]['weight_kg'] === 77.5, $failures);
+
 echo "Uploads (R-05)\n";
 $uploadsRoot = sys_get_temp_dir() . '/gym_tracker_uploads_' . uniqid();
 Db::setOverrides(['sqlite_path' => $dbPath, 'uploads_path' => $uploadsRoot]);
@@ -1418,6 +1433,9 @@ check('uploads status answers after login', json_decode($http('GET', '/api/uploa
 $httpWorkout = $noteRepo->create(['name' => 'Http', 'mode_id' => 1, 'notes' => 'stays', 'exercises' => []]);
 check('PUT with only notes is accepted', $http('PUT', "/api/workouts/{$httpWorkout['id']}", ['notes' => 'changed'], $cookie)['status'] === 200, $failures);
 check('PUT with a blank name is rejected', $http('PUT', "/api/workouts/{$httpWorkout['id']}", ['name' => ' '], $cookie)['status'] === 400, $failures);
+
+check('snapshot needs a login', $http('GET', '/api/sync/snapshot')['status'] === 401, $failures);
+check('snapshot answers after login', isset(json_decode($http('GET', '/api/sync/snapshot', null, $cookie)['body'], true)['workout_details']), $failures);
 
 $boundary = 'gymtestboundary';
 $multipart = "--{$boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"export.xml\"\r\nContent-Type: text/xml\r\n\r\n"

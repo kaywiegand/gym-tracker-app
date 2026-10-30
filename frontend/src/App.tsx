@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { api, UNAUTHORIZED_EVENT } from '@/lib/api'
-import { initSyncListeners, pushPending } from '@/lib/syncService'
+import { initSyncListeners, syncNow } from '@/lib/syncService'
 import { initVersionCheck } from '@/lib/versionCheck'
 import { UpdateBanner } from '@/components/UpdateBanner'
 import type { Settings } from '@/types'
@@ -47,7 +47,7 @@ export default function App() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      pushPending()
+      void syncNow()
     }
   }, [status])
 

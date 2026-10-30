@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
+import { LoadError } from '@/components/LoadError'
 import { resolveRangeWeeks, TZ_PARAM } from '@/lib/dashboardRanges'
 import { pickBiaKpi, type BiaKpiKey } from '@/lib/biaMetrics'
 import type { AcwrResponse, BiaMeasurementDetail, ConsistencyResponse, MuscleVolumeResponse, TrainingLoadResponse } from '@/types'
@@ -37,6 +38,7 @@ interface ReportData {
 // RequireAuth -- same pattern, see App.tsx.
 export function ReportPage() {
   const [data, setData] = useState<ReportData | null>(null)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     resolveRangeWeeks('All').then((weeks) => Promise.all([
@@ -47,7 +49,7 @@ export function ReportPage() {
       api.get<{ measurement: BiaMeasurementDetail['measurement'] | null; values: BiaMeasurementDetail['values'] }>('/bia/latest'),
     ])).then(([acwr, trainingLoad, muscleVolume, consistency, bia]) => {
       setData({ acwr, trainingLoad, muscleVolume, consistency, bia: bia.measurement ? { measurement: bia.measurement, values: bia.values } : null })
-    })
+    }).catch(() => setFailed(true))
   }, [])
 
   return (
@@ -68,7 +70,9 @@ export function ReportPage() {
         Generated {new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
       </p>
 
-      {!data ? (
+      {failed ? (
+        <LoadError />
+      ) : !data ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         <ReportBody data={data} />

@@ -16,6 +16,7 @@ import {
 } from '@/lib/dashboardRanges'
 import { formatNumber } from '@/lib/format'
 import { FilterChips } from '@/components/FilterChips'
+import { LoadError } from '@/components/LoadError'
 import { DashboardStickyBar } from '@/components/dashboard/DashboardStickyBar'
 import { KpiTile } from '@/components/KpiTile'
 import { AcwrCard } from '@/components/AcwrCard'
@@ -45,6 +46,7 @@ export function OverviewScope() {
   // you -- that is the question the comparison is asked.
   const [radarMetric, setRadarMetric] = useState<RadarMetric>('best_e1rm')
   const [resolved, setResolved] = useState<ResolvedRange | null>(null)
+  const [failed, setFailed] = useState(false)
   const [acwr, setAcwr] = useState<AcwrResponse | null>(null)
   const [muscleVolume, setMuscleVolume] = useState<MuscleVolumeResponse | null>(null)
   const [sessionVolumes, setSessionVolumes] = useState<SessionVolumesResponse['sessions']>([])
@@ -86,6 +88,10 @@ export function OverviewScope() {
         setMuscleVolume(muscleVolumeData)
         setSessionVolumes(sessionVolumeData.sessions)
         setTopExercises(topExerciseData)
+        setFailed(false)
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
       })
     return () => {
       cancelled = true
@@ -98,7 +104,7 @@ export function OverviewScope() {
         <DashboardStickyBar>
           <FilterChips options={[...RANGE_OPTIONS]} value={range} onChange={(v) => setRange(v as DashboardRange)} />
         </DashboardStickyBar>
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        {failed ? <LoadError /> : <p className="text-sm text-muted-foreground">Loading…</p>}
       </div>
     )
   }

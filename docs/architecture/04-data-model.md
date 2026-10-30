@@ -237,4 +237,4 @@ Die Typen stehen in `frontend/src/types/index.ts`, die Entwurfsform in `store/us
 
 ## IndexedDB
 
-DB `gym-tracker`, Version 2, Stores `sessions`, `sets`, `bodyweight`, `body_measurements`, jeweils `keyPath: id` plus `synced: boolean` (`frontend/src/lib/localDb.ts:9-46`). Weder Workouts noch Übungen oder Settings liegen lokal.
+DB `gym-tracker`, Version 3, Stores `sessions`, `sets`, `bodyweight`, `body_measurements`, jeweils `keyPath: id` plus `synced: boolean` (`frontend/src/lib/localDb.ts`). Dazu `cache` (`keyPath: key`): Kopie von Workouts, Gruppen, Settings und letzten Sätzen je Übung für den Offline-Start, wird nie gepusht und bei jedem `GET /sync/snapshot` komplett ersetzt. Die Übungsbibliothek liegt nicht lokal.

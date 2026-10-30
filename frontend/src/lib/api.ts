@@ -5,6 +5,17 @@ const BASE = '/api'
 // on a screen that claims there is nothing to show.
 export const UNAUTHORIZED_EVENT = 'api:unauthorized'
 
+// A request on a barely-there connection neither answers nor fails. Without
+// a limit, every screen waiting for one would sit on "Loading…" for good.
+const GET_TIMEOUT_MS = 15000
+
+export function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Timed out')), ms)
+    work.then(resolve, reject).finally(() => clearTimeout(timer))
+  })
+}
+
 export class ApiError extends Error {
   status: number
   constructor(message: string, status: number) {
@@ -51,7 +62,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
+  get: <T>(path: string) => request<T>(path, { signal: AbortSignal.timeout(GET_TIMEOUT_MS) }),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body !== undefined ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body?: unknown) =>

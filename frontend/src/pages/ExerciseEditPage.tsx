@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { Exercise, ExerciseNamingVocabulary } from '@/types'
+import { LoadError } from '@/components/LoadError'
 import { PageHeader } from '@/components/PageHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { NumberField } from '@/components/NumberField'
@@ -25,6 +26,7 @@ export function ExerciseEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [name, setName] = useState('')
   const [movement, setMovement] = useState('')
   const [variant, setVariant] = useState('')
@@ -51,11 +53,11 @@ export function ExerciseEditPage() {
       setCategory(ex.category ?? '')
       setMechanic(ex.mechanic === 'isolation' ? 'isolation' : 'compound')
       setIncrement(ex.default_increment_kg ?? 2.5)
-    })
+    }).catch(() => setLoadFailed(true))
   }, [id])
 
   useEffect(() => {
-    api.get<ExerciseNamingVocabulary>('/exercises/naming-vocabulary').then(setVocabulary)
+    api.get<ExerciseNamingVocabulary>('/exercises/naming-vocabulary').then(setVocabulary).catch(() => {})
   }, [])
 
   // Mirrors ExerciseNaming::displayName() on the server so the preview below
@@ -94,7 +96,7 @@ export function ExerciseEditPage() {
     return (
       <>
         <PageHeader title="Edit exercise" showThemeToggle={false} onBack={() => navigate('/exercises')} />
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        {loadFailed ? <LoadError /> : <p className="text-sm text-muted-foreground">Loading…</p>}
       </>
     )
   }

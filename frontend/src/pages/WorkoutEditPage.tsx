@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '@/lib/api'
 import type { ExerciseListItem, TrainingMode, Workout, WorkoutGroup } from '@/types'
+import { LoadError } from '@/components/LoadError'
 import { PageHeader } from '@/components/PageHeader'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { NumberField } from '@/components/NumberField'
@@ -36,6 +37,7 @@ export function WorkoutEditPage() {
   const [modeId, setModeId] = useState<number | null>(null)
   const [exercises, setExercises] = useState<DraftExercise[]>([])
   const [loading, setLoading] = useState(isEditing)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [saving, setSaving] = useState(false)
   // A save that fails has to say so. Without this the button just flipped
   // back from "Saving…" and the page stayed put, which reads as "saved" --
@@ -47,14 +49,17 @@ export function WorkoutEditPage() {
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
-    api.get<WorkoutGroup[]>('/workout-groups').then(setGroups)
+    api.get<WorkoutGroup[]>('/workout-groups').then(setGroups).catch(() => {})
   }, [])
 
   useEffect(() => {
-    api.get<TrainingMode[]>('/training-modes').then((m) => {
-      setModes(m)
-      setModeId((current) => current ?? m[0]?.id ?? null)
-    })
+    api
+      .get<TrainingMode[]>('/training-modes')
+      .then((m) => {
+        setModes(m)
+        setModeId((current) => current ?? m[0]?.id ?? null)
+      })
+      .catch(() => setLoadFailed(true))
   }, [])
 
   useEffect(() => {
@@ -77,6 +82,9 @@ export function WorkoutEditPage() {
           showOverrides: e.rep_low_override !== null || e.rep_high_override !== null || e.increment_override_kg !== null,
         })),
       )
+      setLoading(false)
+    }).catch(() => {
+      setLoadFailed(true)
       setLoading(false)
     })
   }, [id])
@@ -168,11 +176,11 @@ export function WorkoutEditPage() {
     }
   }
 
-  if (loading) {
+  if (loading || loadFailed) {
     return (
       <>
         <PageHeader title={isEditing ? 'Edit workout' : 'New workout'} subtitle="Template" showThemeToggle={false} onBack={() => navigate('/workouts')} />
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        {loadFailed ? <LoadError /> : <p className="text-sm text-muted-foreground">Loading…</p>}
       </>
     )
   }

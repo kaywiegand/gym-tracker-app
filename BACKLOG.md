@@ -282,4 +282,4 @@ Ablauf funktioniert, Sätze und Session-Ende kommen in der DB an. Funde:
 | 161 | **Sync verschluckt Änderungen (R-02)** — Kay 2026-10-30: `markSynced` markiert nur, wenn `updated_at` noch dem gesendeten Wert entspricht; Test reproduziert Änderung während laufendem Push. — ✅ in v1.2 | — |
 | 162 | **Bearbeiten löscht Workout-Notizen (R-10)** — Kay 2026-10-30: Updates ändern nur mitgeschickte Felder, Notizfeld ins Bearbeiten-Formular. — ✅ in v1.2 | — |
 | 163 | **Tests ohne CI (R-06)** — Kay 2026-10-30: Engine-Tests mit festen Daten, Winterzeit-Testfehler an der Ursache beheben, Deploy bricht bei rotem Test ab. Kein CI. — ✅ in v1.2 | — |
-| 164 | **Workout offline starten (R-01)** — Kay 2026-10-30: Workouts und Stammdaten in IndexedDB, Session mit Client-ID über den Push-Sync, kein Screen hängt ohne Netz auf „Loading". | 1 |
+| 164 | **Workout offline starten (R-01)** — Kay 2026-10-30: Workouts und Stammdaten in IndexedDB, Session mit Client-ID über den Push-Sync, kein Screen hängt ohne Netz auf „Loading". — ✅ in v1.2, auf dem iPhone noch zu prüfen | — |

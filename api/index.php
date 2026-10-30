@@ -69,6 +69,8 @@ try {
         handleUpdateExercise($segments[1]);
     } elseif ($method === 'POST' && $path === '/sync/push') {
         handleSyncPush();
+    } elseif ($method === 'GET' && $path === '/sync/snapshot') {
+        handleSyncSnapshot();
     } elseif ($method === 'GET' && $path === '/bodyweight') {
         handleGetBodyweight();
     // Must stay above the two-segment workout routes, which would otherwise

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '@/lib/api'
+import { loadWorkoutList } from '@/lib/offlineCache'
+import { syncNow } from '@/lib/syncService'
 import type { WorkoutGroup, WorkoutListItem } from '@/types'
 import { groupWorkouts, useCollapsedWorkoutGroups, type WorkoutSection } from '@/lib/workoutGrouping'
 import { PageHeader } from '@/components/PageHeader'
@@ -16,15 +17,24 @@ export function WorkoutsPage() {
   const [groups, setGroups] = useState<WorkoutGroup[]>([])
   const { collapsed, toggle } = useCollapsedWorkoutGroups()
   const [loading, setLoading] = useState(true)
+  const [source, setSource] = useState<'network' | 'cache' | 'none'>('network')
   const navigate = useNavigate()
 
   useEffect(() => {
-    Promise.all([api.get<WorkoutListItem[]>('/workouts'), api.get<WorkoutGroup[]>('/workout-groups')])
-      .then(([w, g]) => {
-        setWorkouts(w)
-        setGroups(g)
-      })
-      .finally(() => setLoading(false))
+    let cancelled = false
+    loadWorkoutList().then((list) => {
+      if (cancelled) return
+      setWorkouts(list?.workouts ?? [])
+      setGroups(list?.groups ?? [])
+      setSource(list?.source ?? 'none')
+      setLoading(false)
+    })
+    // Every edit and every finished session lands back here, so this keeps
+    // the copy for the next offline start current.
+    void syncNow()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const sections: Section[] = useMemo(() => groupWorkouts(workouts, groups), [workouts, groups])
@@ -62,7 +72,11 @@ export function WorkoutsPage() {
       <PageHeader title="Workouts" subtitle="Your templates" />
 
       {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {!loading && workouts.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">No workouts yet</p>}
+      {!loading && source === 'cache' && <p className="mb-2 text-[12px] text-muted-foreground">Offline — your saved workouts. Sets sync when you are back online.</p>}
+      {!loading && source === 'none' && (
+        <p className="mt-6 text-center text-sm text-muted-foreground">Workouts are not on this device yet. Open the app once with a connection.</p>
+      )}
+      {!loading && source !== 'none' && workouts.length === 0 && <p className="mt-6 text-center text-sm text-muted-foreground">No workouts yet</p>}
 
       <WorkoutGroupList sections={sections} hasNamedGroups={groups.length > 0} collapsed={collapsed} onToggle={toggle} renderWorkout={card} />
 

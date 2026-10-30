@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, ApiError } from '@/lib/api'
+import { loadCachedSettings } from '@/lib/offlineCache'
 import { getAllRows, putRow, type LocalBodyMeasurement, type LocalBodyweight } from '@/lib/localDb'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
@@ -21,6 +22,7 @@ import { REGION_LABELS } from '@/lib/muscleColors'
 import { buildInfo, formatBuildTime } from '@/lib/buildInfo'
 import { PROFILE_KEYS, ageFromBirthDate, profileHeightCm, type ProfileSex } from '@/lib/bodyProfile'
 import { pickBiaKpi, pickBiaSex } from '@/lib/biaMetrics'
+import { LoadError } from '@/components/LoadError'
 import { PageHeader } from '@/components/PageHeader'
 import { NumberField } from '@/components/NumberField'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -57,6 +59,9 @@ export function SettingsPage() {
         setModes(m)
         setVolumeTargets(vt)
       })
+      // Body weight is logged here and works offline, so the page has to
+      // open on the local copy.
+      .catch(() => loadCachedSettings().then(setSettings))
       .finally(() => setLoading(false))
   }, [])
 
@@ -95,7 +100,7 @@ export function SettingsPage() {
     return (
       <>
         <PageHeader title="Settings" subtitle="App & training" />
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : <LoadError />}
       </>
     )
   }

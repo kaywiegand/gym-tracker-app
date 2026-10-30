@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/lib/api'
+import { LoadError } from '@/components/LoadError'
 import { regionLabel, REGION_BADGE_CLASS } from '@/lib/muscleColors'
 import type { Exercise, ExerciseHistoryEntry } from '@/types'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -18,6 +19,7 @@ interface ExerciseDetailSheetProps {
 export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicated }: ExerciseDetailSheetProps) {
   const navigate = useNavigate()
   const [exercise, setExercise] = useState<Exercise | null>(null)
+  const [failed, setFailed] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [history, setHistory] = useState<ExerciseHistoryEntry[] | null>(null)
 
@@ -25,9 +27,14 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
     if (!exerciseId) {
       setExercise(null)
       setHistory(null)
+      setFailed(false)
       return
     }
-    api.get<Exercise>(`/exercises/${exerciseId}`).then(setExercise)
+    setFailed(false)
+    api
+      .get<Exercise>(`/exercises/${exerciseId}`)
+      .then(setExercise)
+      .catch(() => setFailed(true))
     api
       .get<ExerciseHistoryEntry[]>(`/exercises/${exerciseId}/history?limit=20`)
       .then(setHistory)
@@ -42,7 +49,7 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[86%] overflow-y-auto rounded-t-2xl">
         {!exercise ? (
-          <div className="p-4 text-sm text-muted-foreground">Loading…</div>
+          <div className="p-4 text-sm text-muted-foreground">{failed ? <LoadError /> : 'Loading…'}</div>
         ) : (
           <>
             <SheetHeader>

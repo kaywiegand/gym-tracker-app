@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, withTimeout } from '@/lib/api'
+import { fetchLastSets, loadTrackingData, NETWORK_WAIT_MS } from '@/lib/offlineCache'
 import { findOpenSessions, getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
 import { suggestNext, type Suggestion } from '@/lib/progression'
 import { playRestDoneSound, primeAudio, vibrateRestDone } from '@/lib/sound'
@@ -56,18 +57,6 @@ function formatSessionStart(iso: string): string {
   return `${started.toLocaleDateString(undefined, { day: '2-digit', month: 'short' })} ${time}`
 }
 
-// excludeSessionId is the session being resumed -- its own sets must not
-// count as "last time", or prefill and suggestion change on every reopen.
-async function fetchLastSets(
-  workout: Workout,
-  excludeSessionId?: string,
-): Promise<PromiseSettledResult<SetEntry[]>[]> {
-  const query = excludeSessionId ? `?exclude_session=${excludeSessionId}` : ''
-  return Promise.allSettled(
-    workout.exercises.map((we) => api.get<SetEntry[]>(`/exercises/${we.exercise_id}/last-sets${query}`)),
-  )
-}
-
 function buildSuggestions(
   workout: Workout,
   settings: Settings,
@@ -98,6 +87,7 @@ export function TrackingPage() {
   const navigate = useNavigate()
   const store = useTrackingStore()
   const [loading, setLoading] = useState(true)
+  const [unavailable, setUnavailable] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [finishOpen, setFinishOpen] = useState(false)
   const [confirmFinishOpen, setConfirmFinishOpen] = useState(false)
@@ -113,33 +103,32 @@ export function TrackingPage() {
     let cancelled = false
 
     async function load() {
-      const [workout, settings] = await Promise.all([
-        api.get<Workout>(`/workouts/${wid}`),
-        api.get<Settings>('/settings'),
-      ])
-      const lastSetsResults = await fetchLastSets(workout)
-      const lastSetsByExercise: Record<string, SetEntry[]> = {}
-      workout.exercises.forEach((we, i) => {
-        const result = lastSetsResults[i]
-        lastSetsByExercise[we.exercise_id] = result.status === 'fulfilled' ? result.value : []
-      })
+      const data = await loadTrackingData(wid)
+      if (cancelled) return
+      if (!data) {
+        setUnavailable(true)
+        setLoading(false)
+        return
+      }
+      const { workout, settings, lastSetsByExercise } = data
       const restSeconds = parseInt(settings.rest_seconds, 10)
 
-      if (cancelled) return
       setSuggestions(buildSuggestions(workout, settings, lastSetsByExercise))
 
       // A session left ended_at:null means it was abandoned (browser
       // closed / navigated away without "Finish workout") -- its sets are
       // already safe in IndexedDB, but starting fresh here would orphan it
       // under a new session id instead of letting the user continue it.
-      const openSessions = await findOpenSessions(wid)
+      // IndexedDB can fail on an iOS PWA; a screen without the resume offer
+      // beats one that never opens.
+      const openSessions = await findOpenSessions(wid).catch(() => [])
       if (cancelled) return
 
       // Sessions without a logged set (left behind by older versions that
       // wrote the row on open) are not offered -- hidden, not deleted.
       const options: OpenSessionOption[] = []
       for (const session of openSessions) {
-        const loggedSets = await getSetsForSession(session.id)
+        const loggedSets = await getSetsForSession(session.id).catch(() => [])
         if (loggedSets.length > 0) options.push({ session, loggedSets })
       }
       if (cancelled) return
@@ -195,13 +184,9 @@ export function TrackingPage() {
   async function handleResume(option: OpenSessionOption) {
     if (!pendingChoice) return
     const { workout, settings, restSeconds } = pendingChoice
-    // Offline the refetch fails -- then the sets loaded above stay in place.
-    const results = await fetchLastSets(workout, option.session.id)
-    const lastSetsByExercise = { ...pendingChoice.lastSetsByExercise }
-    workout.exercises.forEach((we, i) => {
-      const result = results[i]
-      if (result.status === 'fulfilled') lastSetsByExercise[we.exercise_id] = result.value
-    })
+    // Offline nothing comes back -- then the sets loaded above stay in place.
+    const fresh = await fetchLastSets(workout, option.session.id)
+    const lastSetsByExercise = { ...pendingChoice.lastSetsByExercise, ...fresh }
     setSuggestions(buildSuggestions(workout, settings, lastSetsByExercise))
     useTrackingStore.getState().resume(workout, option.session, option.loggedSets, lastSetsByExercise, restSeconds)
     setPendingChoice(null)
@@ -240,6 +225,16 @@ export function TrackingPage() {
     return (
       <TrackShell title="Loading…" onBack={() => navigate('/workouts')}>
         <p className="text-sm text-muted-foreground">Loading workout…</p>
+      </TrackShell>
+    )
+  }
+
+  if (unavailable) {
+    return (
+      <TrackShell title="Workout" onBack={() => navigate('/workouts')}>
+        <p className="text-sm text-muted-foreground">
+          This workout is not available offline yet. It is saved on this device the next time the app opens with a connection.
+        </p>
       </TrackShell>
     )
   }
@@ -338,8 +333,11 @@ export function TrackingPage() {
     if (workoutIdForCompare && sessionIdForCompare) {
       setComparingVolume(true)
       try {
-        const prev = await api.get<PreviousSession | null>(
-          `/workouts/${workoutIdForCompare}/last-session-volume?exclude_session=${sessionIdForCompare}`,
+        const prev = await withTimeout(
+          api.get<PreviousSession | null>(
+            `/workouts/${workoutIdForCompare}/last-session-volume?exclude_session=${sessionIdForCompare}`,
+          ),
+          NETWORK_WAIT_MS,
         )
         setPrevious(prev)
       } catch {

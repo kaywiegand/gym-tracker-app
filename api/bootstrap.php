@@ -15,3 +15,5 @@ require_once __DIR__ . '/lib/Uploads.php';
 foreach (glob(__DIR__ . '/lib/Repository/*.php') as $file) {
     require_once $file;
 }
+
+require_once __DIR__ . '/lib/OfflineSnapshot.php';

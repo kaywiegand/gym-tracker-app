@@ -100,7 +100,7 @@ Risiko dabei: zwei Implementierungen der Progression. Entweder portieren und TS 
 
 - Navigation: 5. Tab in `components/BottomNav.tsx:7-12`, Routen in `App.tsx`. Platz wird eng, beim Design-Refactor prüfen.
 - Modulgrenze: `api/endpoints/nutrition.php`, `api/lib/Repository/Nutrition*Repository.php`, `api/lib/Nutrition.php`, `frontend/src/pages/nutrition/`, `lib/nutrition/`. Kein Import aus Tracking. Verbindung nur über Tagesdaten.
-- Sync: Stores in `localDb.ts` ergänzen (Version 3), Zweig in `sync.php` und `syncService.ts`.
+- Sync: Stores in `localDb.ts` ergänzen (Version 4), Zweig in `sync.php` und `syncService.ts`.
 
 **Was im Datenmodell fehlt**
 

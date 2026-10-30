@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
+import { LoadError } from '@/components/LoadError'
 import { RANGE_OPTIONS, RANGE_WEEKS, type DashboardRange } from '@/lib/dashboardRanges'
 import {
   BIA_BANDED_METRICS,
@@ -38,6 +39,7 @@ export function BodyScope() {
   const [segmentKind, setSegmentKind] = useState<SegmentKind>('muscle')
   const [scans, setScans] = useState<BiaSeriesEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
   const [openMeasurementId, setOpenMeasurementId] = useState<string | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loggedWeight, setLoggedWeight] = useState<Bodyweight | null>(null)
@@ -57,6 +59,7 @@ export function BodyScope() {
     api
       .get<BiaSeriesEntry[]>('/bia/series')
       .then(setScans)
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false))
   }, [])
 
@@ -77,6 +80,15 @@ export function BodyScope() {
       <div className="flex flex-col gap-3">
         {rangeSwitch}
         <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    )
+  }
+
+  if (failed) {
+    return (
+      <div className="flex flex-col gap-3">
+        {rangeSwitch}
+        <LoadError />
       </div>
     )
   }
