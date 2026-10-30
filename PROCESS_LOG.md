@@ -645,3 +645,27 @@
 - Ursache der fehlenden Häkchen: in der Session vom 15.10. wurde das Post-Commit-Protokoll übersprungen.
 
 **Nächster Schritt:** #155 deployen und auf dem iPhone prüfen.
+
+## Session 2026-10-30 — Stabilisierung, Version 1.2 (#160–#164)
+
+**Was passiert ist:**
+- R-05 `93357e4`: private Dateien außerhalb des Docroots, `GET /media/:id` mit Login, Sperrregel für `uploads/`.
+- R-02 `644eb08`: Sync-Quittung vergleicht `updated_at`, Auslöser während eines Laufs gehen nicht mehr verloren.
+- R-10 `c95b9fd`: Updates ändern nur Gesendetes, Notizfeld im Workout-Editor.
+- R-06 `f57f321`: Engine-Tests, Winterzeit-Fehler behoben, `deploy.sh` stoppt bei rotem Test.
+- R-01 `c4dcc80`: Workout-Start ohne Netz aus einer lokalen Kopie (`GET /sync/snapshot`, Store `cache`).
+- Prüfung im Browser gegen Wegwerf-DB: API gestoppt, alle Screens abgelaufen, Satz offline abgehakt, nach Neustart der API in SQLite angekommen. Service Worker und iPhone nicht geprüft. Status je R-ID: `docs/architecture/07-refactoring.md`.
+
+**Entscheidungen:**
+- Kay: Reihenfolge, Lösungswege und kein CI, siehe Auftrag (#160–#164).
+- Version 1.2 statt 1.1: Kays Auftrag heißt „v1.1", verlangt aber die nächste Minor, und `v1.1` ist schon vergeben. Annahme.
+- Die Versionierung besteht aus annotiertem Tag und `README`-Stand, der Version-Check läuft über die Build-ID. Kein `CHANGELOG`, `DEPLOYMENTS.md` schreibt nur `deploy.sh`. Release-Notizen stehen deshalb in der Tag-Nachricht und hier. Annahme.
+- `updated_at` hat Sekundenauflösung und der Server ignoriert Gleichstand. `laterThan` erzwingt beim zweiten Schreiben eines Satzes einen späteren Wert, sonst hätte der Vergleich aus #161 Abhaken plus Zurücknehmen in einer Sekunde nicht erkannt.
+- Über R-02 hinaus: Rerun nach Laufende (Empfehlung aus R-02). Über #162 hinaus: `PUT /exercises/:id` behandelt `null` jetzt als Leeren, sonst blieben geleerte Variante und Alias stehen.
+- HR-Export wird nach dem Import gelöscht (Empfehlung aus R-05).
+- Snapshot-Endpoint statt je Workout und Übung ein Request: ein Aufruf statt rund hundert auf Shared Hosting.
+- Offline-Login: `localStorage` merkt sich den letzten erfolgreichen Login, ohne das hätte R-01 am Login-Screen geendet.
+- Der rote Winterzeit-Test blieb bis Punkt 4 stehen, weil die Reihenfolge 1 → 5 vorgegeben war. Alle anderen Tests waren nach jedem Punkt grün.
+- Kays uncommittete Änderung in `04-data-model.md` blieb außen vor, nur die IndexedDB-Zeile wurde committet.
+
+**Nächster Schritt:** Kay gibt frei, dann Deploy nach Checkliste, danach Offline-Start auf dem iPhone prüfen.

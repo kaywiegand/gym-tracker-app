@@ -5,7 +5,7 @@ einen Repository-Layer). Frontend: React-PWA (Vite, TypeScript, Tailwind,
 shadcn/ui). Siehe `CLAUDE.md` für das vollständige Briefing und
 `docs/references/workout-app-v3.html` für die UX-Referenz.
 
-**Stand:** Version 1.0 (Tag `v1.0`, 14.10.2026). Stufe 1–6 sind fertig — Settings/Exercise-Library/
+**Stand:** Version 1.2 (Tag `v1.2`, 30.10.2026). Stufe 1–6 sind fertig — Settings/Exercise-Library/
 Workout-Templates, Tracking-Loop mit Offline-Sync, Progression/e1RM/PR-Badges,
 das komplette Analyse-Dashboard (Overview/Exercise/Workout/Body), BIA-Import/
 HR-Import/Body-Measurements/Backup, Plateau-Detection sowie CSV-/PDF-Export.

@@ -3,9 +3,10 @@
 | | |
 | :--- | :--- |
 | Stand | 2026-10-30 |
-| Commit | `b1e47b8` (`b1e47b829694ec9ad798185d0f3d6e1338948fb5`) |
+| Version | 1.2 (Stabilisierung, Status in [07](07-refactoring.md)) |
+| Commit der Zeilenbelege | `b1e47b8` (`b1e47b829694ec9ad798185d0f3d6e1338948fb5`) |
 | Letzter Deploy | `20261023-1127-a6d5935` (`DEPLOYMENTS.md`) |
-| Tags | `v1.0`, `v1.1` |
+| Tags | `v1.0`, `v1.1`, `v1.2` (lokal) |
 
 ## Kurzfassung
 
@@ -14,8 +15,8 @@
 - Im Gym: Workout starten, Sätze abhaken, Rest-Timer, Vorschlag aus Double Progression. Jeder Satz landet zuerst in IndexedDB, dann per Push-Sync auf dem Server.
 - Am Desktop: Dashboard mit vier Scopes (Overview, Exercise, Workout, Body), CSV-Export, Druck-Report, JSON-Backup.
 - Es gibt bereits Bausteine fürs Briefing (`progression.ts`, `plateau.ts`, `Recovery.php`, ACWR), aber keine Stelle, die sie zusammenführt.
-- Stärkste Risiken: Workout-Start braucht Netz, Sync-Quittung kann neuere lokale Änderungen verschlucken, Backup deckt `workout_groups` und FEDB-Kuration nicht ab, HR-Upload liegt im Docroot.
-- Tests: PHP 273 `check()`-Aufrufe (1 rot, Testfehler bei Winterzeit), Frontend 10 Tests. `tsc -b` grün. Progressions-Engine und Sync ohne Tests.
+- Stärkste Risiken: Backup deckt `workout_groups` und FEDB-Kuration nicht ab (R-03), das Upload-Verzeichnis außerhalb des Docroots ist in keiner Sicherung, Offline-Start auf dem iPhone nicht geprüft.
+- Tests: PHP 335 Prüfungen, Frontend 38 Tests, alle grün. `tsc -b` grün. `deploy.sh` stoppt bei Rot.
 
 ## Index
 
@@ -33,6 +34,6 @@
 
 ## Lesehilfe
 
-- Belege stehen als `pfad:zeile` im Text. Zeilen gelten für den Commit oben.
+- Belege stehen als `pfad:zeile` im Text. Zeilen gelten für den Commit oben, nicht für v1.2.
 - `⚠️ Annahme` markiert, was nicht sicher aus dem Repo folgt.
 - Füllgrade stammen aus der Live-Kopie vom 2026-10-26 (`backups/20261026-analysis/`, nur lesend abgefragt). Sie stehen nur als Prozent. Echte Trainings- oder Körperwerte sind nicht enthalten.
