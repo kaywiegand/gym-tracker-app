@@ -12,7 +12,7 @@ Die Einstufung ist eine Code-Bewertung. Wie stabil sich ein Feature auf dem iPho
 | :--- | :--- | :--- | :--- | :--- |
 | Workout starten | Start aus der Liste, Vorbelegung aus letzten Sätzen | `/workouts`, `/track/:id` | `pages/WorkoutsPage.tsx:44-55`, `pages/TrackingPage.tsx:115-153` | wackelig: braucht Netz (R-01) |
 | Sätze loggen | Gewicht/Reps, Abhaken schreibt `sets`-Zeile, Rückgängig per Soft-Delete | `/track/:id` | `store/useTrackingStore.ts:208-264` | stabil |
-| Offline-Puffer | IndexedDB zuerst, dann Push | `/track/:id` | `lib/localDb.ts`, `lib/syncService.ts` | wackelig: Sync-Quittung (R-02) |
+| Offline-Puffer | IndexedDB zuerst, dann Push | `/track/:id` | `lib/localDb.ts`, `lib/syncService.ts` | stabil |
 | Offene Session fortsetzen | Mehrere offene Sessions, Resume, Discard, Neu | `/track/:id` | `pages/TrackingPage.tsx:135-237`, `lib/localDb.ts:77-82` | stabil, aber nur je Gerät |
 | Rest-Timer | Absolute Endzeit, Ton, Vibration, Wake Lock | `/track/:id` | `pages/TrackingPage.tsx:167-193`, `lib/sound.ts`, `lib/wakeLock.ts` | stabil |
 | Progressions-Vorschlag | Double Progression mit Begründung | `/track/:id`, Dashboard Exercise | `lib/progression.ts`, `pages/TrackingPage.tsx:71-88` | wackelig: Rundung (R-08), keine Tests (R-06) |

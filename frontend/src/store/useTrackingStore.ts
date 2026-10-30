@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import { getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
+import { getRow, getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
 import { epley1RM } from '@/lib/metrics'
 import { pushPending } from '@/lib/syncService'
-import { MAX_PLAUSIBLE_SESSION_MIN, nowIso } from '@/lib/time'
+import { laterThan, MAX_PLAUSIBLE_SESSION_MIN, nowIso } from '@/lib/time'
 import type { SetEntry, Workout } from '@/types'
 
 interface DraftSet {
@@ -232,6 +232,7 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       await persistingSession
     }
 
+    const previous = draft.setId ? await getRow<LocalSet>('sets', draft.setId) : undefined
     const row: LocalSet = {
       id: setId,
       session_id: state.sessionId,
@@ -244,7 +245,7 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       rpe: null,
       performed_at: now,
       created_at: now,
-      updated_at: now,
+      updated_at: laterThan(previous?.updated_at),
       // Toggling a done set back off soft-deletes its row rather than
       // removing it -- consistent with how every other syncable table
       // handles "undo" (CLAUDE.md §6).

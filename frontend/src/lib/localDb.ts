@@ -90,13 +90,16 @@ export async function getSetsForSession(sessionId: string): Promise<LocalSet[]> 
   return sets.filter((s) => s.session_id === sessionId && s.deleted_at === null)
 }
 
-export async function markSynced(store: StoreName, ids: string[]): Promise<void> {
-  if (ids.length === 0) return
+// `sent` is what the server actually received. A row changed while the
+// request was running has a newer updated_at and stays queued -- marking it
+// synced would lose that change for good (R-02).
+export async function markSynced(store: StoreName, sent: { id: string; updated_at: string }[]): Promise<void> {
+  if (sent.length === 0) return
   const db = await getDb()
   const tx = db.transaction(store, 'readwrite')
-  for (const id of ids) {
+  for (const { id, updated_at } of sent) {
     const row = await tx.store.get(id)
-    if (row) {
+    if (row && row.updated_at === updated_at) {
       await tx.store.put({ ...row, synced: true } as never)
     }
   }
