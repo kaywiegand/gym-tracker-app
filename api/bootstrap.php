@@ -10,6 +10,7 @@ require_once __DIR__ . '/lib/Recovery.php';
 require_once __DIR__ . '/lib/ExerciseNaming.php';
 require_once __DIR__ . '/lib/BiaImport.php';
 require_once __DIR__ . '/lib/HrImport.php';
+require_once __DIR__ . '/lib/Uploads.php';
 
 foreach (glob(__DIR__ . '/lib/Repository/*.php') as $file) {
     require_once $file;

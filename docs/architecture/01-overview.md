@@ -37,7 +37,7 @@ flowchart TD
     app["Workout Tracker PWA<br/>React + IndexedDB"]
     api["PHP API<br/>Hetzner Webhosting"]
     db[("SQLite<br/>db/fitness.db")]
-    up[("uploads/<br/>Health-Export")]
+    up[("Upload-Verzeichnis<br/>außerhalb Docroot")]
     fedb["Free Exercise DB<br/>Bilder auf GitHub Raw"]
     health["Apple Health<br/>export.xml, manuell"]
     ai["Externe KI<br/>BIA-Foto zu CSV, manuell"]

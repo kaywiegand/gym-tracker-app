@@ -21,7 +21,7 @@ final class Db
             return self::$instance;
         }
 
-        $config = self::loadConfig();
+        $config = self::config();
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -44,7 +44,7 @@ final class Db
         return $pdo;
     }
 
-    private static function loadConfig(): array
+    public static function config(): array
     {
         $config = require __DIR__ . '/../config.php';
         $localFile = __DIR__ . '/../config.local.php';

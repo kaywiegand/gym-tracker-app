@@ -18,17 +18,26 @@ function handleHrImport(): void
         Http::error('No file uploaded');
     }
 
-    $targetPath = __DIR__ . '/../../uploads/apple-health-export.xml';
-    if (!move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+    // Kept only for the length of this request: the export holds the whole
+    // Apple Health history, the app needs nothing from it after matching.
+    $relative = 'hr/' . Uuid::v4() . '.xml';
+    try {
+        $targetPath = Uploads::storeUploaded($_FILES['file']['tmp_name'], $relative);
+    } catch (RuntimeException $e) {
         Http::error('Could not store uploaded file');
     }
 
     $sessionWindows = (new SessionRepository())->allTimeWindows();
 
+    $parseError = null;
     try {
         $matched = HrImport::matchFromAppleHealthXml($targetPath, $sessionWindows);
     } catch (Throwable $e) {
-        Http::error('Could not parse the uploaded file as an Apple Health export: ' . $e->getMessage());
+        $parseError = $e->getMessage();
+    }
+    Uploads::remove($relative);
+    if ($parseError !== null) {
+        Http::error('Could not parse the uploaded file as an Apple Health export: ' . $parseError);
     }
 
     $inserted = (new HrRepository())->insertMatched($matched);

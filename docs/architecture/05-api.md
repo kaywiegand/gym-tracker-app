@@ -69,7 +69,9 @@ Basis `/api`, JSON. Fehlerform `{"error": "..."}`. Routing: If-Kette in `api/ind
 | `GET /bia/measurements` | `limit` | `BiaMeasurement[]` | `bia.php` |
 | `GET /bia/measurements/:id` | – | `{measurement,values}` | `bia.php` |
 | `DELETE /bia/measurements/:id` | – | `{ok}` | `bia.php` |
-| `POST /hr/import` | Multipart `file` | `{matched,sessions_touched}` | `hr.php` |
+| `POST /hr/import` | Multipart `file` | `{matched,sessions_touched}`. Datei liegt nur während des Requests im Upload-Verzeichnis | `hr.php` |
+| `GET /media/:id` | – | Datei aus dem Upload-Verzeichnis, 404 für URL-Zeilen. Bilder inline, Rest als Download | `media.php` |
+| `GET /uploads/status` | – | `{writable,outside_docroot}`, ohne Pfad | `media.php` |
 
 Es gibt kein Lese-Endpoint für `hr_samples`, keines für Sessions als Liste und kein Schreib-Endpoint für Körperdaten außer Sync.
 

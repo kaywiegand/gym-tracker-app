@@ -112,9 +112,11 @@ rsync -a --exclude 'tests/' --exclude 'config.local.php' api/ deploy-upload/api/
 # local PHP session files; the server keeps its own.
 rsync -a --exclude 'fitness.db' --exclude '*.db-journal' --exclude '*.sqlite' --exclude 'sessions/' db/ deploy-upload/db/
 
-# Empty uploads/ so the directory exists on a fresh install. Real images
-# live only on the server.
+# uploads/ is retired: private files live outside the docroot (uploads_path
+# in api/config.php). The directory stays with a deny rule, so anything left
+# there cannot be fetched and backup.sh keeps finding it.
 mkdir -p deploy-upload/uploads && touch deploy-upload/uploads/.gitkeep
+cp uploads/.htaccess deploy-upload/uploads/.htaccess
 
 # Build marker, readable without opening the app: /build.json
 NOTE_JSON=$(printf '%s' "${NOTE:-}" | sed 's/\\/\\\\/g; s/"/\\"/g')

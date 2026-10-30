@@ -298,6 +298,16 @@ Die Daten sind das Wertvolle, nicht der Code. Vier Mechanismen, unabhängig vone
 
 Was auf dem Server **nie** angefasst wird: `db/fitness.db` und `uploads/`.
 
+### Private Dateien
+
+Uploads liegen **außerhalb des Docroots**, Pfad: `uploads_path` in `api/config.php`,
+überschreibbar in `api/config.local.php`. Standard ist `gym-tracker-uploads/` neben
+`public_html/`. PHP legt das Verzeichnis beim ersten Zugriff selbst an (Rechte 0700)
+und verweigert einen Pfad innerhalb der App. Eine Datei kommt nur über
+`GET /api/media/:id` mit Login heraus. `GET /api/uploads/status` zeigt nach dem Login,
+ob das Verzeichnis nutzbar ist. Das FTP-Konto endet am Docroot, `backup.sh` erreicht
+das Verzeichnis deshalb nicht. Das alte `uploads/` bleibt nur mit Sperrregel bestehen.
+
 Backup allein ziehen, ohne Deploy:
 
 ```bash
@@ -363,6 +373,6 @@ nicht dauerhaft stehen).
 frontend/    React-PWA (Vite, TS, Tailwind, shadcn/ui)
 api/         PHP Front-Controller + Repository-Layer (index.php, lib/, endpoints/)
 db/          schema.sql, migrate.php, seed/ (FEDB-Import, Muskeln, Modi, Settings)
-uploads/     private Bilder, gitignored
+uploads/     stillgelegt, nur Sperrregel (.htaccess)
 docs/        Konzept-Dokumente + UX-Referenzprototyp
 ```

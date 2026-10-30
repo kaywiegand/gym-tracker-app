@@ -32,7 +32,7 @@ kw-gym-tracker/
 │       ├── store/        4 Zustand-Stores
 │       └── types/        index.ts
 ├── scripts/              Importe, Merges, Reviews
-└── uploads/              gitignored
+└── uploads/              stillgelegt, nur .htaccess
 ```
 
 ## Einstiegspunkte

@@ -15,6 +15,7 @@ db/*.sqlite
 db/sessions/
 /uploads/*
 !/uploads/.gitkeep
+!/uploads/.htaccess
 
 # Local config overrides
 api/config.local.php

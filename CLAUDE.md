@@ -33,7 +33,7 @@ Self-hosted Web-App als Ersatz für Gainfire: Workouts/Übungen einrichten, im G
 
 - **PHP 8.x**, dependency-frei, ein Front-Controller (`api/index.php`) als Mini-Router, JSON-REST unter `/api`.
 - **SQLite** (via PDO, eine Datei `db/fitness.db`). **Fallback MySQL** (1 DB verfügbar), falls `PDO_SQLite` am Host aus ist — Zugriff hinter einem Repository-Layer kapseln, damit austauschbar.
-- Bilder als Dateien in `/uploads` (gitignored); in DB nur der Pfad.
+- Private Dateien außerhalb des Docroots (`uploads_path` in `api/config.php`), Auslieferung nur über `GET /api/media/:id` mit Login; in DB nur der relative Pfad.
 - **Auth:** ein einziges Passwort → Login-Endpoint prüft Hash aus `settings`, setzt HTTP-only-Session-Cookie; API-Requests prüfen Session.
 
 **Deployment:** Frontend-Build (statische Dateien) + `/api` (PHP) im selben Docroot des Webhostings. Beim ersten Deploy `PDO_SQLite` prüfen.
@@ -41,7 +41,7 @@ Self-hosted Web-App als Ersatz für Gainfire: Workouts/Übungen einrichten, im G
 ## 4. Architektur
 
 ```
-[ React-PWA (Browser) ]  --HTTP/JSON-->  [ PHP-API ]  -->  [ SQLite ]  (+ /uploads)
+[ React-PWA (Browser) ]  --HTTP/JSON-->  [ PHP-API ]  -->  [ SQLite ]  (+ Upload-Verzeichnis)
   Handy (Gym) / Desktop                    Login·Sync·                 Bilder
   + IndexedDB (Offline-Puffer)             CRUD·Import·Export
 ```
@@ -59,7 +59,7 @@ Self-hosted Web-App als Ersatz für Gainfire: Workouts/Übungen einrichten, im G
 /frontend            React-PWA (Vite, TS, shadcn/ui, Tailwind)
 /api                 PHP (index.php Front-Controller, db.php, endpoints/, auth.php)
 /db                  schema.sql · migrate.php · seed/ (fedb import, muscles, sample bia)
-/uploads             (gitignored) Bilder
+/uploads             stillgelegt, nur Sperrregel (.htaccess); private Dateien liegen außerhalb des Docroots
 /docs                Konzept-Kopien + references/workout-app-v3.html (UX-Referenz)
 CLAUDE.md · README.md · .gitignore
 ```

@@ -4,7 +4,8 @@
 #
 # Pulls two things, and only these two:
 #   db/fitness.db   the whole database (every workout, set, scan)
-#   uploads/        the image files (not part of the JSON backup)
+#   uploads/        retired docroot directory; the private directory outside the
+#                   docroot is out of reach for this FTP account (see README)
 #
 # Nothing is ever written to the server. Run it any time, not just before
 # a deploy. deploy.sh calls it automatically and refuses to continue if it

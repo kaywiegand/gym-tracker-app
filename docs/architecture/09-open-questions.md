@@ -14,7 +14,7 @@
 
 | # | Punkt | Art |
 | :--- | :--- | :--- |
-| F-06 | Wird `/uploads/` auf dem Host wirklich direkt ausgeliefert? Nicht live getestet (R-05) | Prüfen |
+| F-06 | Wird `/uploads/` auf dem Host wirklich direkt ausgeliefert? Nicht live getestet. Mit v1.2 egal: `uploads/.htaccess` sperrt, private Dateien liegen außerhalb des Docroots (R-05) | Erledigt |
 | F-07 | Warum hat keine Session einen HR-Datensatz? Import nie benutzt oder Upload-Limit gescheitert? | Klären |
 | F-08 | Ist der Status "wackelig/stabil" im Alltag so spürbar? Bewertung stammt aus dem Code, keine Nutzungsdaten | Im Alltag bewerten |
 | F-09 | Welche Backlog-Einträge #79 bis #95, #118 bis #122, #143 sind real erledigt? Text sagt "nicht deployt" oder "ungesehen". Deploys danach sprechen dagegen | Backlog-Hygiene |
@@ -31,7 +31,8 @@
 | ⚠️ `backups/20261026-analysis/` spiegelt den aktuellen Live-Stand ausreichend | `04-data-model.md` | Manifest nennt Live-Quelle, Integrität ok. Vier Tage alt |
 | ⚠️ `recovery_*` fehlt live, weil seit Einführung keine Migration lief | `04-data-model.md`, R-20 | Seed legt sie an, Kopie enthält sie nicht |
 | ⚠️ `workouts.notes` stammen aus Seed oder Import | `04-data-model.md` | Kein UI schreibt das Feld. Inhalte nicht gelesen |
-| ⚠️ `/uploads` ist öffentlich erreichbar | R-05 | Keine Regel im Repo sperrt es, Host nicht getestet |
+| ⚠️ Host läuft auf Apache und wertet `.htaccess` aus | R-05 | `api/.htaccess`, `frontend/public/.htaccess` (`mod_pagespeed`), `db/.htaccess` belegen es, Sperrregel live nicht getestet |
+| ⚠️ FTP-Konto endet am Docroot, Home liegt über `public_html/` | R-05 | `DEPLOY.md`, `deploy.sh` (`mirror … /`). `uploads_path` setzt das voraus, Prüfung per `GET /api/uploads/status` |
 | ⚠️ Fehlende Rate-Limits gelten auch serverseitig | R-13 | Kein Code im Repo, Hosting-Schutz unbekannt |
 | ⚠️ iOS-Verhalten (Offline-Start, Finish) | R-01, R-02 | Aus Code abgeleitet, nicht auf Gerät reproduziert |
 | ⚠️ Bedarfs- und Foto-Vorschläge für Nutrition | `08-v2-touchpoints.md` | Keine Anforderungen im Repo. `grep` nach Ernährung findet nichts |

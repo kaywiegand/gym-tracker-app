@@ -271,3 +271,15 @@ Ablauf funktioniert, Sätze und Session-Ende kommen in der DB an. Funde:
 | 157 | **Deload-Woche auf Knopfdruck** — Kay 2026-10-15: aus Recovery-Hinweis, Plateau-Hinweis oder Settings eine 7-Tage-Deload-Woche starten (halbe Sätze, ~−10 % Gewicht); Deload-Sessions verfälschen Plateau, Recovery, PR und den ersten Vorschlag danach nicht. Keine Mesozyklus-Planung. Konzept: Plan, Schritt 5. | 2 |
 | 158 | **Feedback pro Muskelgruppe (RP-Stil)** — Kay 2026-10-15: nach dem Workout je trainierter Region Pump · Workload · Gelenke; Muskelkater beim nächsten Training der Region. Ergibt pro Region eine Empfehlung +1 / halten / −1 Satz pro Woche im Dashboard (nur Hinweis, keine automatische Planänderung). Konzept: Plan, Schritt 3. Hängt an #155. | 2 |
 | 159 | **Erholung pro Muskelgruppe** — Kay 2026-10-15: geschätzte Bereitschaft je Region (Ermüdung aus gewichteten Sätzen, klingt über Zeit ab, Muskelkater aus #158 deckelt) als Karte „Muscle readiness“ im Dashboard und als Hinweis beim Workout-Start. Ergänzt die ganzkörperbezogene Recovery estimate (#129). Konzept: Plan, Schritt 4. | 2 |
+
+---
+
+## Kays Auftrag v1.2 Stabilisierung 2026-10-30
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 160 | **Uploads aus dem Docroot (R-05)** — Kay 2026-10-30: Upload-Verzeichnis außerhalb des Docroots, Pfad per Konfiguration, Auslieferung nur über PHP mit Login-Prüfung, generisch für spätere Essensfotos; zusätzlich Sperrregel für das alte `uploads/`. — ✅ in v1.2 | — |
+| 161 | **Sync verschluckt Änderungen (R-02)** — Kay 2026-10-30: `markSynced` markiert nur, wenn `updated_at` noch dem gesendeten Wert entspricht; Test reproduziert Änderung während laufendem Push. | 1 |
+| 162 | **Bearbeiten löscht Workout-Notizen (R-10)** — Kay 2026-10-30: Updates ändern nur mitgeschickte Felder, Notizfeld ins Bearbeiten-Formular. | 1 |
+| 163 | **Tests ohne CI (R-06)** — Kay 2026-10-30: Engine-Tests mit festen Daten, Winterzeit-Testfehler an der Ursache beheben, Deploy bricht bei rotem Test ab. Kein CI. | 1 |
+| 164 | **Workout offline starten (R-01)** — Kay 2026-10-30: Workouts und Stammdaten in IndexedDB, Session mit Client-ID über den Push-Sync, kein Screen hängt ohne Netz auf „Loading". | 1 |

@@ -115,7 +115,7 @@ Risiko dabei: zwei Implementierungen der Progression. Entweder portieren und TS 
 
 **Fotos: offene Architekturfrage.** Hetzner Level 1 hat kein Node und keinen Worker. Ein Foto-Upload per PHP geht, offline nur mit Blob-Queue in IndexedDB, die heute nicht existiert. Automatische Erkennung braucht einen externen KI-Dienst, die App hat aktuell keinen (`05-api.md`) und das widerspräche dem bisherigen Prinzip "extern per Hand" (`docs/konzept.md:85`). Details in `09-open-questions.md`.
 
-**Nötige Refactorings:** R-02, R-03, R-05 (Upload-Muster und `uploads/`-Schutz), R-13, R-15, R-20. Fotos sind Gesundheitsdaten im Docroot, ohne `.htaccess`-Schutz und Auslieferung über PHP nicht akzeptabel.
+**Nötige Refactorings:** R-03, R-13, R-15, R-20. Fotos laufen über `Uploads::storeUploaded()` plus `media`-Zeile und kommen per `GET /media/:id` zurück (R-05, v1.2). Offen: Sicherung des Upload-Verzeichnisses, das FTP-Konto erreicht es nicht.
 
 ## 4 · Design/UI-Refactor (zuletzt)
 

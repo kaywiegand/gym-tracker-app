@@ -29,6 +29,12 @@ Sortiert nach Nutzen für v2. Aufwand: S bis ca. 1 Session, M mehrere, L eigener
 | R-23 | Bilder der Übungen hängen an GitHub Raw. Offline und im Gym ohne Empfang keine Anleitung | `db/seed/exercises.php:101` | niedrig | M | Nur für Übungen im Plan lokal cachen, wenn gewünscht |
 | R-24 | `scripts/` enthält Einmal-Importe und Auswertungen in Python, die Regeln der App nachbauen | `scripts/` | niedrig | S | Erledigte Importe archivieren |
 
+## Status v1.2
+
+| ID | Status | Stand |
+| :--- | :--- | :--- |
+| R-05 | erledigt | Private Dateien außerhalb des Docroots, `GET /media/:id` mit Login, `uploads/.htaccess` sperrt den alten Ort. HR-Export wird nach dem Import gelöscht. Offen: Backup dieses Verzeichnisses |
+
 ## Nutzen vs. Aufwand
 
 ```mermaid

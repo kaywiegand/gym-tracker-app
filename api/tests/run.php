@@ -1282,6 +1282,119 @@ check('title of the custom single-leg deadlift',
     ExerciseNaming::displayName(['primary_muscle' => 'Hamstrings', 'movement' => 'Deadlift', 'variant' => 'Single-Leg',
         'equipment' => 'dumbbell', 'name' => 'Dumbbell Single-Leg Deadlift']) === 'Deadlift Dumbbell Single-Leg', $failures);
 
+echo "Uploads (R-05)\n";
+$uploadsRoot = sys_get_temp_dir() . '/gym_tracker_uploads_' . uniqid();
+Db::setOverrides(['sqlite_path' => $dbPath, 'uploads_path' => $uploadsRoot]);
+check('uploads root is created on first use', Uploads::root() === $uploadsRoot && is_dir($uploadsRoot), $failures);
+check('uploads root is private to the PHP user', (fileperms($uploadsRoot) & 0077) === 0, $failures);
+check('relative path resolves below the root', Uploads::path('food/a.jpg') === $uploadsRoot . '/food/a.jpg', $failures);
+foreach (['../db/fitness.db', 'a/../../x', '/etc/passwd', "a\0b", '', 'https://example.com/x.jpg'] as $badPath) {
+    $rejected = false;
+    try {
+        Uploads::path($badPath);
+    } catch (InvalidArgumentException $e) {
+        $rejected = true;
+    }
+    check('uploads rejects path ' . json_encode($badPath), $rejected, $failures);
+}
+$insideDocroot = false;
+Db::setOverrides(['sqlite_path' => $dbPath, 'uploads_path' => dirname(__DIR__, 2) . '/uploads']);
+try {
+    Uploads::root();
+} catch (RuntimeException $e) {
+    $insideDocroot = true;
+}
+check('uploads refuses a directory inside the docroot', $insideDocroot, $failures);
+Db::setOverrides(['sqlite_path' => $dbPath, 'uploads_path' => $uploadsRoot]);
+check('images are shown inline', Uploads::deliveryHeaders('image/jpeg')['Content-Disposition'] === 'inline', $failures);
+check('anything else downloads', Uploads::deliveryHeaders('text/html')['Content-Disposition'] === 'attachment'
+    && Uploads::deliveryHeaders('text/html')['Content-Type'] === 'application/octet-stream', $failures);
+check('svg is no image here (it can carry scripts)', Uploads::deliveryHeaders('image/svg+xml')['Content-Type'] === 'application/octet-stream', $failures);
+check('delivery forbids sniffing', Uploads::deliveryHeaders('image/png')['X-Content-Type-Options'] === 'nosniff', $failures);
+$storedHr = $uploadsRoot . '/hr/x.xml';
+mkdir(dirname($storedHr), 0700, true);
+file_put_contents($storedHr, 'x');
+Uploads::remove('hr/x.xml');
+check('remove deletes the stored file', !is_file($storedHr), $failures);
+Uploads::remove('hr/x.xml');
+$status = Uploads::status();
+check('status reports a usable directory without its path', $status === ['writable' => true, 'outside_docroot' => true], $failures);
+
+$oldUploadsRule = (string) @file_get_contents(__DIR__ . '/../../uploads/.htaccess');
+check('old uploads/ is denied on Apache', str_contains($oldUploadsRule, 'Require all denied') && str_contains($oldUploadsRule, 'Deny from all'), $failures);
+check('deploy ships the uploads/ rule', str_contains((string) file_get_contents(__DIR__ . '/../../deploy/deploy.sh'), 'cp uploads/.htaccess deploy-upload/uploads/.htaccess'), $failures);
+
+echo "HTTP (front controller, login gate)\n";
+$now = gmdate('Y-m-d\TH:i:s\Z');
+$pdo->prepare("INSERT INTO settings (key, value) VALUES ('password_hash', ?)")->execute([password_hash('test-password', PASSWORD_BCRYPT)]);
+mkdir($uploadsRoot . '/food', 0700, true);
+file_put_contents($uploadsRoot . '/food/meal.jpg', 'jpeg-bytes');
+$insertMedia = $pdo->prepare('INSERT INTO media (id, kind, path, mime, sort, created_at) VALUES (?, ?, ?, ?, 0, ?)');
+$insertMedia->execute(['media-local', 'food', 'food/meal.jpg', 'image/jpeg', $now]);
+$insertMedia->execute(['media-html', 'food', 'food/meal.jpg', 'text/html', $now]);
+$insertMedia->execute(['media-remote', 'exercise', 'https://example.com/a.jpg', 'image/jpeg', $now]);
+$insertMedia->execute(['media-gone', 'food', 'food/missing.jpg', 'image/jpeg', $now]);
+
+$probe = stream_socket_server('tcp://127.0.0.1:0');
+$port = (int) substr(strrchr(stream_socket_get_name($probe, false), ':'), 1);
+fclose($probe);
+$server = proc_open(
+    [PHP_BINARY, '-S', "127.0.0.1:{$port}", '-t', dirname(__DIR__, 2), __DIR__ . '/test_router.php'],
+    [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+    $serverPipes,
+    null,
+    ['GYM_TEST_OVERRIDES' => json_encode(['sqlite_path' => $dbPath, 'uploads_path' => $uploadsRoot])] + getenv()
+);
+for ($i = 0; $i < 100 && !@fsockopen('127.0.0.1', $port, $errno, $errstr, 0.1); $i++) {
+    usleep(50000);
+}
+$http = static function (string $method, string $path, ?array $body = null, ?string $cookie = null) use ($port): array {
+    $headers = "Content-Type: application/json\r\n" . ($cookie ? "Cookie: {$cookie}\r\n" : '');
+    $context = stream_context_create(['http' => [
+        'method' => $method, 'header' => $headers, 'ignore_errors' => true, 'timeout' => 5,
+        'content' => $body === null ? '' : json_encode($body),
+    ]]);
+    $content = file_get_contents("http://127.0.0.1:{$port}{$path}", false, $context);
+    return ['status' => (int) explode(' ', $http_response_header[0])[1], 'body' => (string) $content, 'headers' => $http_response_header];
+};
+$header = static function (array $response, string $name): ?string {
+    foreach ($response['headers'] as $line) {
+        if (stripos($line, $name . ':') === 0) {
+            return trim(substr($line, strlen($name) + 1));
+        }
+    }
+    return null;
+};
+
+check('media needs a login', $http('GET', '/api/media/media-local')['status'] === 401, $failures);
+check('uploads status needs a login', $http('GET', '/api/uploads/status')['status'] === 401, $failures);
+$login = $http('POST', '/api/auth/login', ['password' => 'test-password']);
+$cookie = explode(';', (string) $header($login, 'Set-Cookie'))[0];
+check('login works over HTTP', $login['status'] === 200 && $cookie !== '', $failures);
+$media = $http('GET', '/api/media/media-local', null, $cookie);
+check('media is delivered after login', $media['status'] === 200 && $media['body'] === 'jpeg-bytes', $failures);
+check('media keeps its image type', $header($media, 'Content-Type') === 'image/jpeg', $failures);
+check('media stays out of shared caches', str_contains((string) $header($media, 'Cache-Control'), 'private'), $failures);
+check('non-image media downloads', $header($http('GET', '/api/media/media-html', null, $cookie), 'Content-Disposition') === 'attachment', $failures);
+check('remote media is not ours to deliver', $http('GET', '/api/media/media-remote', null, $cookie)['status'] === 404, $failures);
+check('missing file is a 404', $http('GET', '/api/media/media-gone', null, $cookie)['status'] === 404, $failures);
+check('unknown media is a 404', $http('GET', '/api/media/nope', null, $cookie)['status'] === 404, $failures);
+check('uploads status answers after login', json_decode($http('GET', '/api/uploads/status', null, $cookie)['body'], true)['writable'] === true, $failures);
+
+$boundary = 'gymtestboundary';
+$multipart = "--{$boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"export.xml\"\r\nContent-Type: text/xml\r\n\r\n"
+    . "<HealthData></HealthData>\r\n--{$boundary}--\r\n";
+$hrResponse = file_get_contents("http://127.0.0.1:{$port}/api/hr/import", false, stream_context_create(['http' => [
+    'method' => 'POST', 'ignore_errors' => true, 'timeout' => 5, 'content' => $multipart,
+    'header' => "Content-Type: multipart/form-data; boundary={$boundary}\r\nCookie: {$cookie}\r\n",
+]]));
+check('HR import still works', isset(json_decode((string) $hrResponse, true)['matched']), $failures);
+check('HR import leaves no file behind', glob($uploadsRoot . '/hr/*') === [], $failures);
+
+proc_terminate($server);
+proc_close($server);
+exec('rm -rf ' . escapeshellarg($uploadsRoot));
+
 @unlink($dbPath);
 
 if ($failures) {

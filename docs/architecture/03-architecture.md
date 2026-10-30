@@ -14,7 +14,7 @@
 | Handler | `api/endpoints/*.php` | Auth prüfen, Parameter begrenzen, antworten |
 | Backend-Domäne | `api/lib/*.php` | `MuscleVolume`, `Recovery`, `ExerciseNaming`, `BiaImport`, `HrImport` |
 | Repositories | `api/lib/Repository/` | SQL, LWW-Upsert |
-| Speicher | `db/schema.sql`, `db/fitness.db`, `uploads/` | Tabellen, Dateien |
+| Speicher | `db/schema.sql`, `db/fitness.db`, `lib/Uploads.php` | Tabellen, private Dateien außerhalb des Docroots |
 
 ## Komponenten
 
@@ -48,7 +48,7 @@ flowchart TB
     end
     subgraph Daten
         Sql[("SQLite")]
-        Files[("uploads/")]
+        Files[("Upload-Verzeichnis<br/>außerhalb Docroot")]
     end
 
     Tracking --> Store

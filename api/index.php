@@ -128,6 +128,10 @@ try {
         handleGetBiaMeasurement($segments[2]);
     } elseif ($method === 'DELETE' && count($segments) === 3 && $segments[0] === 'bia' && $segments[1] === 'measurements') {
         handleDeleteBiaMeasurement($segments[2]);
+    } elseif ($method === 'GET' && $path === '/uploads/status') {
+        handleUploadsStatus();
+    } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'media') {
+        handleGetMedia($segments[1]);
     } elseif ($method === 'POST' && $path === '/hr/import') {
         handleHrImport();
     } elseif ($method === 'GET' && $path === '/backup/export') {
