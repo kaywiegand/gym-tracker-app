@@ -125,13 +125,29 @@ final class WorkoutRepository extends BaseRepository
             return null;
         }
 
+        // Only what was sent changes. A key that is present but null clears
+        // the field; a missing key leaves it alone (R-10).
+        $changes = [];
+        if (array_key_exists('name', $data)) {
+            $changes['name'] = $data['name'];
+        }
+        if (array_key_exists('mode_id', $data)) {
+            $changes['mode_id'] = (int) $data['mode_id'];
+        }
+        if (array_key_exists('group_id', $data)) {
+            $changes['group_id'] = self::blankToNull($data['group_id']);
+        }
+        if (array_key_exists('notes', $data)) {
+            $changes['notes'] = $data['notes'];
+        }
+
         $now = self::nowIso();
+        $changes['updated_at'] = $now;
+        $assignments = implode(', ', array_map(static fn (string $column) => "{$column} = ?", array_keys($changes)));
+
         $this->db->beginTransaction();
         try {
-            $this->execute(
-                'UPDATE workouts SET name = ?, mode_id = ?, group_id = ?, notes = ?, updated_at = ? WHERE id = ?',
-                [$data['name'], (int) $data['mode_id'], self::blankToNull($data['group_id'] ?? null), $data['notes'] ?? null, $now, $id]
-            );
+            $this->execute("UPDATE workouts SET {$assignments} WHERE id = ?", [...array_values($changes), $id]);
             if (isset($data['exercises'])) {
                 $this->syncExercises($id, $data['exercises']);
             }
@@ -176,8 +192,12 @@ final class WorkoutRepository extends BaseRepository
         $now = self::nowIso();
 
         $existing = [];
-        foreach ($this->fetchAll('SELECT id, exercise_id FROM workout_exercises WHERE workout_id = ?', [$workoutId]) as $row) {
-            $existing[$row['exercise_id']] = $row['id'];
+        foreach ($this->fetchAll(
+            'SELECT id, exercise_id, planned_sets, rep_low_override, rep_high_override, increment_override_kg
+             FROM workout_exercises WHERE workout_id = ?',
+            [$workoutId]
+        ) as $row) {
+            $existing[$row['exercise_id']] = $row;
         }
 
         $update = $this->db->prepare(
@@ -194,16 +214,19 @@ final class WorkoutRepository extends BaseRepository
         $keep = [];
         foreach (array_values($exercises) as $i => $ex) {
             $exerciseId = (string) $ex['exercise_id'];
+            $current = $existing[$exerciseId] ?? [];
+            // Same rule as the workout itself: a field not sent stays as it is.
+            $value = static fn (string $field) => array_key_exists($field, $ex) ? $ex[$field] : ($current[$field] ?? null);
             $overrides = [
                 $i,
-                (int) $ex['planned_sets'],
-                $ex['rep_low_override'] ?? null,
-                $ex['rep_high_override'] ?? null,
-                $ex['increment_override_kg'] ?? null,
+                (int) ($value('planned_sets') ?? 3),
+                $value('rep_low_override'),
+                $value('rep_high_override'),
+                $value('increment_override_kg'),
                 $now,
             ];
-            if (isset($existing[$exerciseId])) {
-                $id = $existing[$exerciseId];
+            if ($current !== []) {
+                $id = $current['id'];
                 $update->execute([...$overrides, $id]);
             } else {
                 $id = Uuid::v4();
@@ -212,7 +235,7 @@ final class WorkoutRepository extends BaseRepository
             $keep[$id] = true;
         }
 
-        foreach ($existing as $id) {
+        foreach (array_column($existing, 'id') as $id) {
             if (!isset($keep[$id])) {
                 $this->execute(
                     'UPDATE workout_exercises SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',

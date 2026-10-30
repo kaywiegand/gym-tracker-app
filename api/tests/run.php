@@ -1282,6 +1282,39 @@ check('title of the custom single-leg deadlift',
     ExerciseNaming::displayName(['primary_muscle' => 'Hamstrings', 'movement' => 'Deadlift', 'variant' => 'Single-Leg',
         'equipment' => 'dumbbell', 'name' => 'Dumbbell Single-Leg Deadlift']) === 'Deadlift Dumbbell Single-Leg', $failures);
 
+echo "Partial updates (R-10)\n";
+$noteRepo = new WorkoutRepository();
+$noteWorkout = $noteRepo->create([
+    'name' => 'Notes A', 'mode_id' => 1, 'notes' => 'Keep the seat on 4', 'group_id' => 'g-partial',
+    'exercises' => [['exercise_id' => $created['id'], 'planned_sets' => 3, 'rep_low_override' => 8, 'rep_high_override' => 12, 'increment_override_kg' => 1.25]],
+]);
+$edited = $noteRepo->update($noteWorkout['id'], ['name' => 'Notes B', 'mode_id' => 2]);
+check('editing without notes keeps the notes', $edited['notes'] === 'Keep the seat on 4', $failures);
+check('editing without notes changes what was sent', $edited['name'] === 'Notes B' && (int) $edited['mode_id'] === 2, $failures);
+check('editing without group_id keeps the group', $edited['group_id'] === 'g-partial', $failures);
+check('editing without exercises keeps them', count($edited['exercises']) === 1, $failures);
+$renamed = $noteRepo->update($noteWorkout['id'], ['name' => 'Notes C']);
+check('a single field is enough', $renamed['name'] === 'Notes C' && (int) $renamed['mode_id'] === 2, $failures);
+$changedNote = $noteRepo->update($noteWorkout['id'], ['notes' => 'Seat on 5']);
+check('notes can be changed', $changedNote['notes'] === 'Seat on 5' && $changedNote['name'] === 'Notes C', $failures);
+$clearedNote = $noteRepo->update($noteWorkout['id'], ['notes' => null, 'group_id' => null]);
+check('an explicit null clears notes and group', $clearedNote['notes'] === null && $clearedNote['group_id'] === null, $failures);
+$slot = $noteRepo->update($noteWorkout['id'], ['exercises' => [['exercise_id' => $created['id'], 'planned_sets' => 5]]])['exercises'][0];
+check('a slot keeps overrides it was not sent', (int) $slot['planned_sets'] === 5 && (int) $slot['rep_low_override'] === 8 && (float) $slot['increment_override_kg'] === 1.25, $failures);
+$slot = $noteRepo->update($noteWorkout['id'], ['exercises' => [['exercise_id' => $created['id'], 'rep_low_override' => null]]])['exercises'][0];
+check('a slot override can be cleared', $slot['rep_low_override'] === null && (int) $slot['planned_sets'] === 5, $failures);
+check('update of an unknown workout is null', $noteRepo->update('nope', ['name' => 'x']) === null, $failures);
+
+$partialExercise = $exRepo->create(['name' => 'Partial Press', 'equipment' => 'barbell', 'mechanic' => 'compound', 'muscles' => []]);
+$exRepo->update($partialExercise['id'], ['movement' => 'Press', 'variant' => 'Incline', 'display_alias' => 'Incline Bench']);
+$partialAfter = $pdo->query("SELECT variant, display_alias, movement, equipment FROM exercises WHERE id = '{$partialExercise['id']}'")->fetch();
+check('exercise update sets what was sent', $partialAfter['variant'] === 'Incline' && $partialAfter['equipment'] === 'barbell', $failures);
+$exRepo->update($partialExercise['id'], ['variant' => null, 'display_alias' => null]);
+$partialAfter = $pdo->query("SELECT variant, display_alias, movement, equipment FROM exercises WHERE id = '{$partialExercise['id']}'")->fetch();
+check('clearing a variant in the editor persists', $partialAfter['variant'] === null, $failures);
+check('clearing an alias in the editor persists', $partialAfter['display_alias'] === null, $failures);
+check('exercise update keeps fields it was not sent', $partialAfter['movement'] === 'Press' && $partialAfter['equipment'] === 'barbell', $failures);
+
 echo "Uploads (R-05)\n";
 $uploadsRoot = sys_get_temp_dir() . '/gym_tracker_uploads_' . uniqid();
 Db::setOverrides(['sqlite_path' => $dbPath, 'uploads_path' => $uploadsRoot]);
@@ -1355,7 +1388,7 @@ $http = static function (string $method, string $path, ?array $body = null, ?str
         'content' => $body === null ? '' : json_encode($body),
     ]]);
     $content = file_get_contents("http://127.0.0.1:{$port}{$path}", false, $context);
-    return ['status' => (int) explode(' ', $http_response_header[0])[1], 'body' => (string) $content, 'headers' => $http_response_header];
+    return ['status' => (int) explode(' ', (http_get_last_response_headers() ?? ['x 0'])[0])[1], 'body' => (string) $content, 'headers' => http_get_last_response_headers() ?? []];
 };
 $header = static function (array $response, string $name): ?string {
     foreach ($response['headers'] as $line) {
@@ -1380,6 +1413,10 @@ check('remote media is not ours to deliver', $http('GET', '/api/media/media-remo
 check('missing file is a 404', $http('GET', '/api/media/media-gone', null, $cookie)['status'] === 404, $failures);
 check('unknown media is a 404', $http('GET', '/api/media/nope', null, $cookie)['status'] === 404, $failures);
 check('uploads status answers after login', json_decode($http('GET', '/api/uploads/status', null, $cookie)['body'], true)['writable'] === true, $failures);
+
+$httpWorkout = $noteRepo->create(['name' => 'Http', 'mode_id' => 1, 'notes' => 'stays', 'exercises' => []]);
+check('PUT with only notes is accepted', $http('PUT', "/api/workouts/{$httpWorkout['id']}", ['notes' => 'changed'], $cookie)['status'] === 200, $failures);
+check('PUT with a blank name is rejected', $http('PUT', "/api/workouts/{$httpWorkout['id']}", ['name' => ' '], $cookie)['status'] === 400, $failures);
 
 $boundary = 'gymtestboundary';
 $multipart = "--{$boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"export.xml\"\r\nContent-Type: text/xml\r\n\r\n"

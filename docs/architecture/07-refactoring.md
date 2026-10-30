@@ -34,6 +34,7 @@ Sortiert nach Nutzen für v2. Aufwand: S bis ca. 1 Session, M mehrere, L eigener
 | ID | Status | Stand |
 | :--- | :--- | :--- |
 | R-02 | erledigt | `markSynced` vergleicht `updated_at`, ein Auslöser während eines Laufs startet danach einen weiteren. `laterThan` erzwingt einen späteren Zeitstempel beim zweiten Schreiben derselben Satz-Zeile in einer Sekunde, sonst wären Quittung und Server blind dafür |
+| R-10 | erledigt | `PUT /workouts/:id` und `PUT /exercises/:id` ändern nur mitgeschickte Felder, explizites `null` leert. Gilt auch je Slot in `exercises`. Bei Übungen behob das zugleich den Gegenfehler: geleerte Variante und Alias blieben stehen. Notizfeld im Editor |
 | R-05 | erledigt | Private Dateien außerhalb des Docroots, `GET /media/:id` mit Login, `uploads/.htaccess` sperrt den alten Ort. HR-Export wird nach dem Import gelöscht. Offen: Backup dieses Verzeichnisses |
 
 ## Nutzen vs. Aufwand

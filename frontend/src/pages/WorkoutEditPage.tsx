@@ -44,6 +44,7 @@ export function WorkoutEditPage() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [groups, setGroups] = useState<WorkoutGroup[]>([])
   const [groupId, setGroupId] = useState<string>('')
+  const [notes, setNotes] = useState('')
 
   useEffect(() => {
     api.get<WorkoutGroup[]>('/workout-groups').then(setGroups)
@@ -62,6 +63,7 @@ export function WorkoutEditPage() {
       setName(w.name)
       setModeId(w.mode_id)
       setGroupId(w.group_id ?? '')
+      setNotes(w.notes ?? '')
       setExercises(
         w.exercises.map((e) => ({
           tempId: e.id,
@@ -131,6 +133,7 @@ export function WorkoutEditPage() {
       name: name.trim(),
       mode_id: modeId,
       group_id: groupId || null,
+      notes: notes.trim() || null,
       exercises: exercises.map((e) => ({
         exercise_id: e.exercise_id,
         planned_sets: e.planned_sets,
@@ -214,6 +217,15 @@ export function WorkoutEditPage() {
           ))}
         </select>
       )}
+
+      <div className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Notes</div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        rows={2}
+        aria-label="Workout notes"
+        className="w-full resize-y rounded-md border border-border bg-secondary px-2 py-1.5 text-[14px] outline-none"
+      />
 
       <div className="mb-1.5 mt-4 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Exercises</div>
       <div className="flex flex-col gap-1.5">

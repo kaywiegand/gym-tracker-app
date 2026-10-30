@@ -30,7 +30,7 @@ Basis `/api`, JSON. Fehlerform `{"error": "..."}`. Routing: If-Kette in `api/ind
 | `POST /exercises` | `{id?,name,...,muscles[]}` | `Exercise` 201 | `exercises.php` |
 | `GET /exercises/naming-vocabulary` | – | `{movements,variants}` | `exercises.php` |
 | `GET /exercises/:id` | – | `Exercise` mit `muscles`, `media` | `exercises.php` |
-| `PUT /exercises/:id` | Teilfelder | `Exercise` | `exercises.php` |
+| `PUT /exercises/:id` | Teilfelder, nur Gesendetes ändert sich, `null` leert | `Exercise` | `exercises.php` |
 | `GET /exercises/:id/last-sets` | `exclude_session` | `SetEntry[]` | `exercises.php` |
 | `GET /exercises/:id/progression-context` | – | `ProgressionContext` oder `null` | `exercises.php` |
 | `GET /exercises/:id/history` | `limit, weeks` | `ExerciseHistoryEntry[]` | `exercises.php` |
@@ -46,7 +46,7 @@ Basis `/api`, JSON. Fehlerform `{"error": "..."}`. Routing: If-Kette in `api/ind
 | `POST /workouts` | `{id?,name,mode_id,group_id,exercises[]}` | `Workout` 201 | `workouts.php` |
 | `GET /workouts/recent` | `days` | `RecentWorkout[]` | `workouts.php` |
 | `GET /workouts/:id` | – | `Workout` mit `exercises[]` | `workouts.php` |
-| `PUT /workouts/:id` | wie POST | `Workout` | `workouts.php` |
+| `PUT /workouts/:id` | Teilfelder aus POST, nur Gesendetes ändert sich, `null` leert | `Workout` | `workouts.php` |
 | `DELETE /workouts/:id` | – | `{ok}` | `workouts.php` |
 | `GET /workouts/:id/last-session-volume` | `exclude_session` | `PreviousSession` | `workouts.php` |
 | `GET /workouts/:id/muscle-split` | `limit, weeks` | `{sessions[]}` | `workouts.php` |

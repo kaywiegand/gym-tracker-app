@@ -31,8 +31,11 @@ function handleUpdateWorkout(string $id): void
 {
     Auth::require();
     $body = Http::jsonBody();
-    if (!isset($body['name']) || trim((string) $body['name']) === '' || !isset($body['mode_id'])) {
-        Http::error('name and mode_id are required');
+    if (array_key_exists('name', $body) && trim((string) $body['name']) === '') {
+        Http::error('name must not be empty');
+    }
+    if (array_key_exists('mode_id', $body) && $body['mode_id'] === null) {
+        Http::error('mode_id must not be empty');
     }
     $workout = (new WorkoutRepository())->update($id, $body);
     if ($workout === null) {

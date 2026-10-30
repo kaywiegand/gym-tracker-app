@@ -262,19 +262,23 @@ final class ExerciseRepository extends BaseRepository
             return null;
         }
 
+        // A key that is present but null clears the field (the editor sends
+        // null for an emptied variant); a missing key leaves it alone (R-10).
+        $value = static fn (string $field) => array_key_exists($field, $data) ? $data[$field] : $existing[$field];
+
         $this->execute(
             'UPDATE exercises SET name = ?, movement = ?, variant = ?, display_alias = ?, is_curated = ?, equipment = ?, mechanic = ?, category = ?, default_increment_kg = ?, updated_at = ?
              WHERE id = ?',
             [
                 $data['name'] ?? $existing['name'],
-                self::blankToNull($data['movement'] ?? $existing['movement']),
-                self::blankToNull($data['variant'] ?? $existing['variant']),
-                self::blankToNull($data['display_alias'] ?? $existing['display_alias']),
+                self::blankToNull($value('movement')),
+                self::blankToNull($value('variant')),
+                self::blankToNull($value('display_alias')),
                 self::curatedFlag($data + ['movement' => $existing['movement'], 'is_curated' => $existing['is_curated']]),
-                $data['equipment'] ?? $existing['equipment'],
-                $data['mechanic'] ?? $existing['mechanic'],
-                $data['category'] ?? $existing['category'],
-                $data['default_increment_kg'] ?? $existing['default_increment_kg'],
+                $value('equipment'),
+                $value('mechanic'),
+                $value('category'),
+                $value('default_increment_kg'),
                 self::nowIso(),
                 $id,
             ]
