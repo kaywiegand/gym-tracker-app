@@ -35,6 +35,7 @@ Sortiert nach Nutzen für v2. Aufwand: S bis ca. 1 Session, M mehrere, L eigener
 | :--- | :--- | :--- |
 | R-02 | erledigt | `markSynced` vergleicht `updated_at`, ein Auslöser während eines Laufs startet danach einen weiteren. `laterThan` erzwingt einen späteren Zeitstempel beim zweiten Schreiben derselben Satz-Zeile in einer Sekunde, sonst wären Quittung und Server blind dafür |
 | R-10 | erledigt | `PUT /workouts/:id` und `PUT /exercises/:id` ändern nur mitgeschickte Felder, explizites `null` leert. Gilt auch je Slot in `exercises`. Bei Übungen behob das zugleich den Gegenfehler: geleerte Variante und Alias blieben stehen. Notizfeld im Editor |
+| R-06 | erledigt | Tests für `suggestNext`, Plateau-Grenzfälle, Sync. Winterzeit-Fehler behoben: Testzeit 23:30Z fällt in Berlin ganzjährig auf den Folgetag. `deploy.sh` stoppt vor dem Backup bei rotem Test. Kein CI (Kay). R-08 ist bewusst nicht als Soll festgeschrieben |
 | R-05 | erledigt | Private Dateien außerhalb des Docroots, `GET /media/:id` mit Login, `uploads/.htaccess` sperrt den alten Ort. HR-Export wird nach dem Import gelöscht. Offen: Backup dieses Verzeichnisses |
 
 ## Nutzen vs. Aufwand

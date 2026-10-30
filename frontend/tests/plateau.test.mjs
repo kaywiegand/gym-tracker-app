@@ -19,6 +19,30 @@ test('triceps overhead: plateau', () => {
   assert.equal(run([45.3, 21.5, 23.0, 21.5, 21.0, 35.8, 50.4, 60.0, 60.0, 66.7, 45.6, 54.5, 40.0, 39.0, 39.0, 39.0, 40.5]).status, 'plateau')
 })
 
+test('exactly P sessions without a new best on a flat trend: plateau', () => {
+  const r = run([100, 110, 110, 110, 110, 110, 110, 110])
+  assert.equal(r.status, 'plateau')
+  assert.equal(r.sessionsSinceBest, 6)
+})
+
+test('P - 2 sessions without a new best: stalling', () => {
+  const r = run([108, 108, 108, 108, 111, 111, 111, 111, 111])
+  assert.equal(r.status, 'stalling')
+  assert.equal(r.sessionsSinceBest, 4)
+})
+
+test('a new best in the last session: none', () => {
+  assert.equal(run([100, 100, 100, 100, 100, 100, 110]).status, 'none')
+})
+
+test('a rise under the 2% margin is no new best', () => {
+  assert.equal(run([100, 100, 100, 100, 100, 100, 100, 101]).status, 'plateau')
+})
+
+test('a clear slope outweighs a long gap to the best', () => {
+  assert.equal(run([120, 100, 102, 104, 106, 108, 110, 112]).status, 'none')
+})
+
 test('fewer than 6 sessions: none', () => {
   assert.equal(run([50, 50, 50, 50, 50]).status, 'none')
 })

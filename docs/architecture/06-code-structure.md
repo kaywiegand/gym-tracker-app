@@ -202,11 +202,11 @@ Die letzte Kante ist Befund R-02: `markSynced` prüft nicht, ob sich die Zeile w
 
 | Bereich | Umfang | Lücke |
 | :--- | :--- | :--- |
-| Backend | 273 `check()`, 1 rot | Endpunkte und Auth ungetestet, nur Repositories und Domäne |
-| Frontend | 10 Tests (`chartTicks`, `plateau`) | `progression`, `syncService`, `localDb`, Tracking-Store ungetestet |
+| Backend | `php api/tests/run.php`, Repositories, Domäne, Login-Sperre und Media-Auslieferung über echtes HTTP (`test_router.php`) | Übrige Endpunkte nur indirekt |
+| Frontend | `npm test`, `chartTicks`, `plateau`, `progression`, `sync` | Screens selbst ungetestet |
 | E2E | keine | |
 | CI | keine | |
 | Typecheck | `npx tsc -b` grün | |
 | Lint | oxlint: Warnungen `set-state-in-effect`, `purity`, `only-export-components` | |
 
-Der rote Test `recentDates uses the local start day` (`api/tests/run.php:451`) ist ein Testfehler: Er setzt `22:30Z` und erwartet den Folgetag in Berlin. Das stimmt nur bei Sommerzeit, im Winter ist es 23:30 am selben Tag. Der Code ist nicht betroffen.
+`deploy/deploy.sh` führt beide Läufe vor dem Backup aus und bricht bei Rot ab. Client-Tests laufen in Node über `tests/helpers/setup.mjs` (`@/`-Alias, `fake-indexeddb`).

@@ -445,10 +445,11 @@ check('recentDates counts an open session with a working set (#90)', in_array($w
 check('recentDates ignores an open session with only a warm-up set', !in_array($warmDay, $openDates, true), $failures);
 $tzDay = gmdate('Y-m-d', time() - 2 * 86400);
 $tzNext = gmdate('Y-m-d', time() - 86400);
-$sessionRepo->upsert(['id' => 'sess-tz', 'workout_id' => $wo['id'], 'started_at' => $tzDay . 'T22:30:00Z', 'ended_at' => $tzNext . 'T00:30:00Z', 'updated_at' => $recentIso]);
+// 23:30Z is the next day in Berlin all year: +1 in winter, +2 in summer.
+$sessionRepo->upsert(['id' => 'sess-tz', 'workout_id' => $wo['id'], 'started_at' => $tzDay . 'T23:30:00Z', 'ended_at' => $tzNext . 'T01:30:00Z', 'updated_at' => $recentIso]);
 $berlin = (new SessionRepository())->recentDates(7, 'Europe/Berlin');
 $utcDates = (new SessionRepository())->recentDates(7, 'UTC');
-check('recentDates uses the local start day (22:30Z is next day in Berlin)', in_array($tzNext, $berlin, true) && !in_array($tzDay, $berlin, true), $failures);
+check('recentDates uses the local start day (23:30Z is next day in Berlin)', in_array($tzNext, $berlin, true) && !in_array($tzDay, $berlin, true), $failures);
 check('recentDates in UTC keeps the UTC start day', in_array($tzDay, $utcDates, true), $failures);
 check('recentDates falls back to UTC for an invalid zone', (new SessionRepository())->recentDates(7, 'Nope/Zone') === $utcDates, $failures);
 check('recentDates excludes sessions outside the window', !in_array('2026-04-01', $recentDates, true), $failures);

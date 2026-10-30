@@ -268,10 +268,11 @@ einmalig etwas überschreiben will.
 
 Das ist der einzige Weg zu deployen. Nichts von Hand kopieren.
 
-### Was das Script tut — immer diese 5 Schritte
+### Was das Script tut — immer diese 5 Schritte, davor die Tests
 
 | # | Schritt | Was passiert |
 | :--- | :--- | :--- |
+| 0 | **Tests** | `php api/tests/run.php` und `npm test`. **Ein roter Test bricht ab**, auch bei `--dry-run`. |
 | 1 | **Build-ID** | aus Git-Commit + Zeitstempel, z.B. `20260830-1028-b237d66` |
 | 2 | **Backup** | Live-DB + `uploads/` von Hetzner nach `backups/<build-id>/`. **Schlägt das fehl, bricht der Deploy ab.** |
 | 3 | **Build** | `frontend/dist/`, mit der Build-ID fest eingebacken |

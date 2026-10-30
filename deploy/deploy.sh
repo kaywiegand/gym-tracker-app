@@ -2,6 +2,7 @@
 #
 # deploy.sh -- the ONE way to deploy. Always the same five steps:
 #
+#   0  tests         PHP checks + client tests, a red test stops everything
 #   1  build id      from git commit + timestamp, baked into the frontend
 #   2  backup        live DB + uploads pulled to backups/<build-id>/  (aborts on failure)
 #   3  build         frontend/dist/
@@ -56,6 +57,23 @@ if [ "$DRY_RUN" -eq 0 ]; then
     command -v lftp >/dev/null || { echo "lftp missing -- brew install lftp" >&2; exit 1; }
 fi
 command -v npm >/dev/null || { echo "npm missing." >&2; exit 1; }
+
+# ---- 0  tests --------------------------------------------------------
+# Before the backup and before anything else: a red test ends the run here,
+# also with --dry-run.
+command -v php >/dev/null || { echo "php missing -- the tests cannot run." >&2; exit 1; }
+echo "==> [0/5] tests"
+if ! TEST_OUTPUT=$(php api/tests/run.php 2>&1); then
+    printf '%s\n' "$TEST_OUTPUT" | grep -E 'FAIL|failure|Fatal|^  - ' >&2 || printf '%s\n' "$TEST_OUTPUT" >&2
+    echo "ERROR: PHP checks failed -- deploy aborted, nothing was touched." >&2
+    exit 1
+fi
+if ! TEST_OUTPUT=$(cd frontend && npm test 2>&1); then
+    printf '%s\n' "$TEST_OUTPUT" >&2
+    echo "ERROR: client tests failed -- deploy aborted, nothing was touched." >&2
+    exit 1
+fi
+echo "    all green"
 
 # ---- 1  build id -----------------------------------------------------
 COMMIT=$(git rev-parse --short HEAD)
