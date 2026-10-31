@@ -43,6 +43,23 @@ export function linearFit(ys: number[]): { slope: number; intercept: number } {
   return { slope, intercept: meanY - slope * meanX }
 }
 
+export interface VisibleTrends {
+  overall: boolean
+  recent: 'rising' | 'flat' | null
+}
+
+// Which trendlines a chart draws. Chart and legend both read this, so a
+// legend entry always has its line. A chart holding no more than
+// TREND_SESSIONS points only gets the recent line -- it is no long-term trend
+// (#151). `showRecent: false` drops the recent line on long ranges, where six
+// sessions are a sliver.
+export function visibleTrends(values: number[], showRecent: boolean): VisibleTrends {
+  if (values.length < 2) return { overall: false, recent: null }
+  const direction = linearFit(values.slice(-TREND_SESSIONS)).slope > 0 ? 'rising' : 'flat'
+  if (values.length <= TREND_SESSIONS) return { overall: false, recent: direction }
+  return { overall: true, recent: showRecent ? direction : null }
+}
+
 // Slope of the last `TREND_SESSIONS` values in % of their mean per session.
 export function trendSlopePct(e1rms: number[]): number {
   const recent = e1rms.slice(-TREND_SESSIONS)

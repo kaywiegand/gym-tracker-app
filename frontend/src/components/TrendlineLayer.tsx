@@ -1,24 +1,48 @@
 import type { LineCustomSvgLayerProps, LineSvgProps } from '@nivo/line'
-import { linearFit, TREND_SESSIONS } from '@/lib/plateau'
+import { linearFit, TREND_SESSIONS, visibleTrends } from '@/lib/plateau'
 
 // Series shape of the line charts that use this: x is the session index.
 type IndexedSeries = { id: string; data: { x: number; y: number }[] }
 
+const OVERALL_STROKE = { stroke: 'var(--muted-foreground)', opacity: 0.45 }
+const recentStroke = (direction: 'rising' | 'flat') => ({
+  stroke: direction === 'rising' ? 'var(--status-good)' : 'var(--status-warn)',
+  opacity: 0.8,
+})
+
+// Names the trendlines of a chart (#167), in their real color: the recent
+// line turns orange when it stops climbing. Keeps its height without lines,
+// so a tile does not jump between ranges (BACKLOG #141).
+export function TrendLegend({ values, showRecent = true }: { values: number[]; showRecent?: boolean }) {
+  const { overall, recent } = visibleTrends(values, showRecent)
+  const items = [
+    ...(overall ? [{ label: 'Overall trend', ...OVERALL_STROKE }] : []),
+    ...(recent ? [{ label: `Last ${TREND_SESSIONS} sessions`, ...recentStroke(recent) }] : []),
+  ]
+  return (
+    <div className="mb-0.5 flex h-4 items-center gap-x-4 overflow-hidden">
+      {items.map((item) => (
+        <span key={item.label} className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+          <span className="h-0.5 w-3.5 rounded-full" style={{ background: item.stroke, opacity: item.opacity }} />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 // Custom Nivo layers: thin least-squares lines over the first series, drawn
-// before 'lines' so they sit behind the data. No legend entry, no color from
-// the data palette (CLAUDE.md §7).
+// before 'lines' so they sit behind the data. No color from the data palette
+// (CLAUDE.md §7).
 //  - overall: through every point, neutral grey.
 //  - recent: through the last TREND_SESSIONS points (the plateau indicator's
 //    window), green while it climbs, warn while it is flat or falling.
-// A chart holding no more than TREND_SESSIONS points only gets the recent,
-// colored line -- it is no long-term trend (#151). `showRecent: false` drops
-// the recent line on long ranges (12M, All), where six sessions are a sliver.
 function makeTrendlineLayer(showRecent: boolean) {
   return function TrendlineLayer({ series, yScale }: LineCustomSvgLayerProps<IndexedSeries>) {
     const points = series[0]?.data ?? []
-    if (points.length < 2) return null
+    const { overall, recent } = visibleTrends(points.map((p) => Number(p.data.y)), showRecent)
 
-    const fitLine = (pts: typeof points, stroke: string, strokeOpacity: number) => {
+    const fitLine = (pts: typeof points, { stroke, opacity }: { stroke: string; opacity: number }) => {
       const { slope, intercept } = linearFit(pts.map((p) => Number(p.data.y)))
       return (
         <line
@@ -27,23 +51,17 @@ function makeTrendlineLayer(showRecent: boolean) {
           x2={pts[pts.length - 1].position.x}
           y2={yScale(intercept + slope * (pts.length - 1))}
           stroke={stroke}
-          strokeOpacity={strokeOpacity}
+          strokeOpacity={opacity}
           strokeWidth={1.25}
           pointerEvents="none"
         />
       )
     }
-    const recentLine = () => {
-      const recent = points.slice(-TREND_SESSIONS)
-      const rising = linearFit(recent.map((p) => Number(p.data.y))).slope > 0
-      return fitLine(recent, rising ? 'var(--status-good)' : 'var(--status-warn)', 0.8)
-    }
 
-    if (points.length <= TREND_SESSIONS) return <g>{recentLine()}</g>
     return (
       <g>
-        {fitLine(points, 'var(--muted-foreground)', 0.45)}
-        {showRecent && recentLine()}
+        {overall && fitLine(points, OVERALL_STROKE)}
+        {recent && fitLine(points.slice(-TREND_SESSIONS), recentStroke(recent))}
       </g>
     )
   }

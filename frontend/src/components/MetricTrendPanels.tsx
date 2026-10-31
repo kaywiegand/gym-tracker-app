@@ -3,7 +3,7 @@ import type { ExerciseHistoryEntry } from '@/types'
 import type { DashboardRange } from '@/lib/dashboardRanges'
 import { formatNumber } from '@/lib/format'
 import { MONTHS, evenTickIndices } from '@/lib/chartTicks'
-import { trendLayersFor } from '@/components/TrendlineLayer'
+import { TrendLegend, trendLayersFor } from '@/components/TrendlineLayer'
 
 // Only the fields the panels read, so a workout's per-session totals can feed
 // the same component as an exercise's history (BACKLOG #87).
@@ -44,8 +44,8 @@ const PANELS: Panel[] = [
 // Height of the three stacked panels (measured: 283.1 px with charts of
 // 62/62/82; #147 doubled the plot areas to 124/124/144, +188 px). A tile body
 // that holds them is this tall whether or not there is data to draw
-// (BACKLOG #141).
-export const TREND_PANELS_HEIGHT = 472
+// (BACKLOG #141). +18 for the trendline legend (#167).
+export const TREND_PANELS_HEIGHT = 490
 
 // Day for a short window, month for the middle ones, month + year once the
 // range spans years -- "08-14" repeated across three years tells you nothing.
@@ -70,6 +70,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
 
   // At most six labels, evenly spaced, and never the same date twice.
   const tickIndices = evenTickIndices(history.length, 6)
+  const showRecentTrend = range !== 'All' && range !== '12M'
 
   return (
     <div className="flex flex-col gap-3">
@@ -93,6 +94,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
                 {panel.unit && ` ${panel.unit}`}
               </span>
             </div>
+            {panel.key === 'best_e1rm' && <TrendLegend values={values} showRecent={showRecentTrend} />}
             <div style={{ height: isLast ? 144 : 124 }} className="w-full">
               <ResponsiveLine
                 data={[{ id: label, data: history.map((h, i) => ({ x: i, y: h[panel.key] ?? 0 })) }]}
@@ -105,7 +107,7 @@ export function MetricTrendPanels({ history, range, e1rmLabel }: MetricTrendPane
                 enableGridX={false}
                 enableGridY
                 gridYValues={[min, max]}
-                layers={panel.key === 'best_e1rm' ? trendLayersFor(range !== 'All' && range !== '12M') : undefined}
+                layers={panel.key === 'best_e1rm' ? trendLayersFor(showRecentTrend) : undefined}
                 curve="monotoneX"
                 axisLeft={{
                   tickSize: 0,

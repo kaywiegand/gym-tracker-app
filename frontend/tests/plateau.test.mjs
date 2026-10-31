@@ -1,7 +1,7 @@
 // Run with: npm test (Node strips the TypeScript types itself).
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { detectPlateau } from '../src/lib/plateau.ts'
+import { detectPlateau, visibleTrends } from '../src/lib/plateau.ts'
 
 const P = 6
 const run = (seq) => detectPlateau(seq.map((best_e1rm) => ({ best_e1rm, top_weight_kg: 50, best_reps: 8 })), P)
@@ -62,4 +62,25 @@ test('bodyweight: flat reps is a plateau', () => {
 test('mixed weighted and 0 kg window stays on e1RM', () => {
   const mixed = [0, 0, 0, 20, 20, 20, 20, 20].map((w) => ({ best_e1rm: w * 1.3, top_weight_kg: w, best_reps: 10 }))
   assert.equal(detectPlateau(mixed, P).metric, 'e1rm')
+})
+
+const rising = [50, 51, 52, 53, 54, 55, 56, 57]
+const falling = [57, 56, 55, 54, 53, 52, 51, 50]
+
+test('trend lines: long history shows both, the recent one by direction', () => {
+  assert.deepEqual(visibleTrends(rising, true), { overall: true, recent: 'rising' })
+  assert.deepEqual(visibleTrends(falling, true), { overall: true, recent: 'flat' })
+})
+
+test('trend lines: long ranges drop the recent line', () => {
+  assert.deepEqual(visibleTrends(rising, false), { overall: true, recent: null })
+})
+
+test('trend lines: up to 6 sessions only the recent line', () => {
+  assert.deepEqual(visibleTrends([50, 51, 52, 53, 54, 55], true), { overall: false, recent: 'rising' })
+  assert.deepEqual(visibleTrends([50, 51, 52, 53, 54, 55], false), { overall: false, recent: 'rising' })
+})
+
+test('trend lines: a single session has none', () => {
+  assert.deepEqual(visibleTrends([50], true), { overall: false, recent: null })
 })

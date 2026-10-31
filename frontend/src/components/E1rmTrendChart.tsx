@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ResponsiveLine } from '@nivo/line'
 import type { ExerciseHistoryEntry } from '@/types'
-import { trendLayersFor } from '@/components/TrendlineLayer'
+import { TrendLegend, trendLayersFor } from '@/components/TrendlineLayer'
 import { MONTHS, chooseDateTicks } from '@/lib/chartTicks'
 
 const MARGIN = { top: 12, right: 16, bottom: 56, left: 40 }
@@ -39,6 +39,8 @@ export function E1rmTrendChart({ history }: E1rmTrendChartProps) {
   ]
 
   return (
+    <>
+    <TrendLegend values={data[0].data.map((point) => point.y)} />
     <div ref={wrapRef} className="h-[200px] w-full">
       <ResponsiveLine
         data={data}
@@ -79,5 +81,6 @@ export function E1rmTrendChart({ history }: E1rmTrendChartProps) {
         isInteractive={false}
       />
     </div>
+    </>
   )
 }
