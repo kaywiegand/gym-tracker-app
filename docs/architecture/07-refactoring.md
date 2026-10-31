@@ -37,6 +37,7 @@ Sortiert nach Nutzen für v2. Aufwand: S bis ca. 1 Session, M mehrere, L eigener
 | R-10 | erledigt `c95b9fd` | `PUT /workouts/:id` und `PUT /exercises/:id` ändern nur mitgeschickte Felder, explizites `null` leert. Gilt auch je Slot in `exercises`. Bei Übungen behob das zugleich den Gegenfehler: geleerte Variante und Alias blieben stehen. Notizfeld im Editor |
 | R-06 | erledigt `f57f321` | Tests für `suggestNext`, Plateau-Grenzfälle, Sync. Winterzeit-Fehler behoben: Testzeit 23:30Z fällt in Berlin ganzjährig auf den Folgetag. `deploy.sh` stoppt vor dem Backup bei rotem Test. Kein CI (Kay). R-08 ist bewusst nicht als Soll festgeschrieben |
 | R-01 | erledigt `c4dcc80` | `GET /sync/snapshot` füllt den Store `cache`, Workout-Liste und Tracking fallen darauf zurück. Session bleibt client-seitig, die Zeile entsteht weiter erst beim ersten Satz (#69). Dazu: bekannter Login überlebt den Offline-Start, `api.get` bricht nach 15 s ab, kein Screen bleibt auf Loading. Grenze: letzte Sätze stammen vom letzten Snapshot, zwei Offline-Workouts hintereinander sehen einander nicht. Auf dem iPhone nicht getestet |
+| R-20 | teilweise | Die beiden Einmal-Updates sind entfernt, nachdem sie Live-Daten geändert hatten (#170). Versionstabelle fehlt weiter |
 | R-05 | erledigt `93357e4` | Private Dateien außerhalb des Docroots, `GET /media/:id` mit Login, `uploads/.htaccess` sperrt den alten Ort. HR-Export wird nach dem Import gelöscht. Offen: Backup dieses Verzeichnisses |
 
 ## Nutzen vs. Aufwand

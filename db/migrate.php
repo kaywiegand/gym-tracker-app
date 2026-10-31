@@ -71,15 +71,6 @@ foreach ([
     }
 }
 
-// One-time cleanup for installs seeded before movement carried meaning: the
-// old FEDB import copied the exercise name into movement. Movement now marks
-// an exercise as curated, so those copies have to go -- a hand-curated
-// movement is a single word and never equals the full source name.
-$cleared = $pdo->exec('UPDATE exercises SET movement = NULL WHERE movement = name');
-if ($cleared > 0) {
-    echo "   cleared {$cleared} copied movement value(s)\n";
-}
-
 $seedDir = __DIR__ . '/seed';
 $seedOrder = ['muscles.php', 'muscle_volume_targets.php', 'training_modes.php', 'settings.php', 'exercises.php', 'exercise_naming.php', 'workouts.php'];
 foreach ($seedOrder as $file) {
@@ -92,12 +83,16 @@ foreach ($seedOrder as $file) {
     $seed($pdo, $args);
 }
 
-// The plateau rule changed (two-stage, default 6 sessions instead of 4).
-// Installs still on the old default move over; a value the user set to
-// anything else stays. Runs after the settings seed has created the row.
-$moved = $pdo->exec("UPDATE settings SET value = '6' WHERE key = 'plateau_sessions' AND value = '4'");
-if ($moved > 0) {
-    echo "-> settings.plateau_sessions 4 -> 6 (new plateau rule default)\n";
+// Undoes what the 2026-10-31 migration did (BACKLOG #170): two one-time rules
+// that ran on every migration cleared the movement of "Face Pull" and "Sit-Up"
+// and moved plateau_sessions off Kay's 4. Runs once, guarded by a marker, so a
+// later change to any of these stays.
+$repairDone = $pdo->query("SELECT COUNT(*) FROM settings WHERE key = 'repair_20261031_done'")->fetchColumn();
+if ((int) $repairDone === 0) {
+    $restored = $pdo->exec("UPDATE exercises SET movement = name WHERE name IN ('Face Pull', 'Sit-Up') AND movement IS NULL AND source = 'fedb'");
+    $pdo->exec("UPDATE settings SET value = '4' WHERE key = 'plateau_sessions'");
+    $pdo->exec("INSERT INTO settings (key, value) VALUES ('repair_20261031_done', '1')");
+    echo "-> repair 2026-10-31: {$restored} movement(s) restored, plateau_sessions = 4\n";
 }
 
 echo "Done.\n";

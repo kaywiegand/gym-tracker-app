@@ -688,3 +688,13 @@
 - Kein Tag `v1.3` gesetzt, Kay hat nur das Committen freigegeben.
 
 **Nächster Schritt:** Deploy mit `--with-migration` nach Kays Freigabe, dann iPhone-Test.
+
+## Session 2026-10-31 (Fortsetzung) — Migration repariert (#170)
+
+**Was passiert ist:** Die Migration beim Deploy von `0695c86` leerte `movement` bei `Face Pull` und `Sit-Up` und setzte `plateau_sessions` von 4 auf 6. Beide Regeln liefen bei jeder Migration. Entfernt, Reparatur einmalig über den Marker `repair_20261031_done`.
+
+**Entscheidungen:**
+- Kay: Plateau bleibt bei 4. Der Seed-Default 6 gilt nur für Neuinstallationen.
+- Einmal-Regeln in `migrate.php` brauchen einen Marker oder R-20 (versionierte Migrationen).
+
+**Nächster Schritt:** iPhone-Test, dann `v1.3` taggen.
