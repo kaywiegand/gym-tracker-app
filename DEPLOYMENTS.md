@@ -74,3 +74,5 @@ und bleiben unverändert.
 | `20261015-0406-e96d11c` | `e96d11c` | 2026-10-15T04:06:18Z | `backups/20261015-0406-e96d11c/` | trendline logic (#151) |
 | `20261015-0412-44f3790` | `44f3790` | 2026-10-15T04:12:33Z | `backups/20261015-0412-44f3790/` | plateau threshold 0.5%, bodyweight via reps (#152, #153) |
 | `20261023-1127-a6d5935` | `a6d5935` | 2026-10-23T11:27:49Z | `backups/20261023-1127-a6d5935/` | finish sheet opens on iOS PWA even if IndexedDB fails (#155) |
+| `20261031-1124-0695c86` | `0695c86` | 2026-10-31T11:24:31Z | `backups/20261031-1124-0695c86/` | v1.3 Features |
+| `20261031-1151-fbaac1b` | `fbaac1b` | 2026-10-31T11:51:28Z | `backups/20261031-1151-fbaac1b/` | Migration repariert: Face Pull, Sit-Up, Plateau 4 (#170) |

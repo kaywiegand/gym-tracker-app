@@ -3,10 +3,10 @@
 | | |
 | :--- | :--- |
 | Stand | 2026-10-30 |
-| Version | 1.2 (Stabilisierung, Status in [07](07-refactoring.md)) |
+| Version | 1.3 (Features nach der Stabilisierung, Status in [07](07-refactoring.md)) |
 | Commit der Zeilenbelege | `b1e47b8` (`b1e47b829694ec9ad798185d0f3d6e1338948fb5`) |
-| Letzter Deploy | `20261023-1127-a6d5935` (`DEPLOYMENTS.md`) |
-| Tags | `v1.0`, `v1.1`, `v1.2` (lokal) |
+| Letzter Deploy | `20261031-1151-fbaac1b` (`DEPLOYMENTS.md`) |
+| Tags | `v1.0`, `v1.1`, `v1.2`, `v1.3` |
 
 ## Kurzfassung
 
