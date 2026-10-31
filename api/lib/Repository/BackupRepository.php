@@ -24,7 +24,7 @@ final class BackupRepository extends BaseRepository
     // even though this schema declares no enforced FK constraints.
     private const UPSERT_ORDER = [
         'exercises', 'workouts', 'workout_exercises', 'sessions', 'sets',
-        'bodyweight', 'body_measurements', 'bia_measurements',
+        'bodyweight', 'body_measurements', 'bia_measurements', 'exercise_watchlist',
     ];
 
     public function exportAll(): array

@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Search, BicepsFlexed, SlidersHorizontal } from 'lucide-react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Bookmark, ChevronDown, Search, BicepsFlexed, SlidersHorizontal } from 'lucide-react'
 import { api } from '@/lib/api'
-import { sortByDisplayName } from '@/lib/exerciseGrouping'
+import { groupExercises, isPrimaryMatch, sortByDisplayName, type ExerciseGroup } from '@/lib/exerciseGrouping'
 import { searchExercises } from '@/lib/offlineCache'
 import type { ExerciseListItem, RecentWorkout } from '@/types'
 import { Input } from '@/components/ui/input'
@@ -13,17 +13,28 @@ import { cn } from '@/lib/utils'
 
 const REGION_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core']
 const MECHANIC_FILTERS = ['All', 'Compound', 'Isolation']
+// The level below a muscle group (BACKLOG #169); values of ExerciseFocus.php.
+const FOCUS_FILTERS: Record<string, string[]> = {
+  Chest: ['All', 'Upper', 'Mid', 'Lower'],
+  Back: ['All', 'Lats', 'Mid Back', 'Lower Back', 'Traps', 'Neck'],
+  Shoulders: ['All', 'Front', 'Side', 'Rear'],
+  Arms: ['All', 'Biceps', 'Brachialis', 'Triceps', 'Forearms'],
+  Legs: ['All', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Adductors', 'Abductors'],
+  Core: ['All', 'Upper', 'Lower', 'Obliques'],
+}
 
 // Exactly one mechanism is visible at a time (#62/#63): the filter chips, a
-// search input, or the browse-by-workout drill-down. 'filter' is the default.
-type SelectorMode = 'filter' | 'search' | 'workout'
+// search input, the browse-by-workout drill-down or the saved exercises
+// (#166). 'filter' is the default.
+type SelectorMode = 'filter' | 'search' | 'workout' | 'saved'
 
 const MODE_META: Record<SelectorMode, { label: string; icon: typeof Search }> = {
   filter: { label: 'Filter', icon: SlidersHorizontal },
   search: { label: 'Search', icon: Search },
   workout: { label: 'Browse by workout', icon: BicepsFlexed },
+  saved: { label: 'Saved exercises', icon: Bookmark },
 }
-const ALL_MODES: SelectorMode[] = ['filter', 'search', 'workout']
+const ALL_MODES: SelectorMode[] = ['filter', 'search', 'saved', 'workout']
 
 // One list item for an exercise, wherever one is chosen. Title and subtitle
 // sit close together, the chevron says "tap me", and exercises the user
@@ -32,12 +43,12 @@ const ALL_MODES: SelectorMode[] = ['filter', 'search', 'workout']
 // no status or muscle colour for this). Foreground at low opacity rather
 // than --brand-accent, which is literally --muscle-chest's hex value and
 // would read as "this is a chest exercise" here.
-export function ExerciseRow({ item, onClick }: { item: ExerciseListItem; onClick: () => void }) {
+export function ExerciseRow({ item, onClick, title }: { item: ExerciseListItem; onClick: () => void; title?: string }) {
   return (
     <Card className="relative cursor-pointer flex-row items-center justify-between gap-2 px-3 py-2.5" onClick={onClick}>
       {item.is_used ? <span aria-hidden className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-foreground/35" /> : null}
       <div className="min-w-0">
-        <div className="truncate text-[13.5px] font-bold">{item.display_name}</div>
+        <div className="truncate text-[13.5px] font-bold">{title ?? item.display_name}</div>
         <div className="mt-0.5 truncate text-[10.5px] text-muted-foreground">{item.display_subtitle}</div>
       </div>
       <span className="shrink-0 text-muted-foreground">›</span>
@@ -56,6 +67,8 @@ export function ExerciseRow({ item, onClick }: { item: ExerciseListItem; onClick
 function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }: { trackedOnly?: boolean } = {}) {
   const [query, setQuery] = useState('')
   const [region, setRegionRaw] = useState('All')
+  const [focus, setFocus] = useState('All')
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [mechanic, setMechanicRaw] = useState('All')
   const [exercises, setExercises] = useState<ExerciseListItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +132,12 @@ function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }:
     }
   }, [mode, recent, reloadKey])
 
-  const visible = exercises.filter((e) => !excludeIds.includes(e.id))
+  const visible = exercises.filter(
+    (e) =>
+      !excludeIds.includes(e.id) &&
+      (mode !== 'saved' || e.is_watched) &&
+      (mode !== 'filter' || focus === 'All' || e.focus?.includes(focus)),
+  )
   const sorted = sortByDisplayName(visible)
 
   // Each mode is independent (#62): what you see is exactly what filters the
@@ -134,6 +152,7 @@ function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }:
       if (current === 'search') setQuery('')
       if (current === 'filter') {
         setRegionRaw('All')
+        setFocus('All')
         setMechanicRaw('All')
       }
       if (next === 'workout') setOpenWorkout(null)
@@ -145,7 +164,19 @@ function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }:
     query,
     setQuery,
     region,
-    setRegion: setRegionRaw,
+    // A focus belongs to one muscle group, so a new group starts without one.
+    setRegion: (next: string) => {
+      setRegionRaw(next)
+      setFocus('All')
+      setOpenGroup(null)
+    },
+    focus,
+    setFocus: (next: string) => {
+      setFocus(next)
+      setOpenGroup(null)
+    },
+    openGroup,
+    setOpenGroup,
     mechanic,
     setMechanic: setMechanicRaw,
     exercises,
@@ -154,6 +185,8 @@ function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }:
     loading,
     error,
     retry: () => setReloadKey((k) => k + 1),
+    setWatched: (exerciseId: string, watched: boolean) =>
+      setExercises((rows) => rows.map((e) => (e.id === exerciseId ? { ...e, is_watched: watched ? 1 : 0 } : e))),
     mode,
     switchMode,
     recent,
@@ -190,22 +223,35 @@ function ModeButton({ mode, onClick }: { mode: SelectorMode; onClick: () => void
 // Search, the filter-chip rows and the browse-by-workout line -- the part of
 // the selector a page may want pinned in its own sticky header (BACKLOG
 // #50). Exactly one mechanism is visible at a time (#62/#63): the active
-// mode's content sits on the left, icons for the two hidden modes on the
-// right. Filter mode's content is two chip rows, so its icons stack
-// vertically to match; search/workout are a single line, so their icons sit
-// side by side at the same height as that line.
+// mode's content, plus icons for the hidden modes on the right.
 export function ExerciseSelectorControls({ state: s }: { state: ExerciseSelectorState }) {
-  const hiddenModes = ALL_MODES.filter((m) => m !== s.mode)
+  const modeButtons = (
+    <div className="flex shrink-0 flex-row items-center gap-1">
+      {ALL_MODES.filter((m) => m !== s.mode).map((m) => (
+        <ModeButton key={m} mode={m} onClick={() => s.switchMode(m)} />
+      ))}
+    </div>
+  )
 
-  let content: ReactNode
+  // Filter mode has two chip rows: the muscle chips get the full width, the
+  // icons share the shorter second row.
   if (s.mode === 'filter') {
-    content = (
+    return (
       <div className="flex min-w-0 flex-col gap-1">
         <FilterChips options={REGION_FILTERS} value={s.region} onChange={s.setRegion} />
-        <FilterChips options={MECHANIC_FILTERS} value={s.mechanic} onChange={s.setMechanic} />
+        {FOCUS_FILTERS[s.region] && <FilterChips options={FOCUS_FILTERS[s.region]} value={s.focus} onChange={s.setFocus} />}
+        <div className="flex items-center gap-1.5">
+          <div className="min-w-0 flex-1">
+            <FilterChips options={MECHANIC_FILTERS} value={s.mechanic} onChange={s.setMechanic} />
+          </div>
+          {modeButtons}
+        </div>
       </div>
     )
-  } else if (s.mode === 'search') {
+  }
+
+  let content: ReactNode
+  if (s.mode === 'search') {
     content = (
       <Input
         autoFocus
@@ -214,6 +260,8 @@ export function ExerciseSelectorControls({ state: s }: { state: ExerciseSelector
         onChange={(e) => s.setQuery(e.target.value)}
       />
     )
+  } else if (s.mode === 'saved') {
+    content = <div className="flex h-8 items-center text-[12.5px] font-semibold text-muted-foreground">Saved exercises</div>
   } else {
     content = (
       <div className="flex h-8 items-center text-[12.5px] font-semibold text-muted-foreground">
@@ -224,13 +272,49 @@ export function ExerciseSelectorControls({ state: s }: { state: ExerciseSelector
   }
 
   return (
-    <div className={cn('flex gap-1.5', s.mode === 'filter' ? 'items-start' : 'items-center')}>
+    <div className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">{content}</div>
-      <div className={cn('flex shrink-0 gap-1', s.mode === 'filter' ? 'flex-col' : 'flex-row items-center')}>
-        {hiddenModes.map((m) => (
-          <ModeButton key={m} mode={m} onClick={() => s.switchMode(m)} />
-        ))}
-      </div>
+      {modeButtons}
+    </div>
+  )
+}
+
+// A group row and, when open, its variants right below it. Only one group is
+// open at a time; closing the one above would otherwise move this row out of
+// view, so an opened group scrolls itself back in.
+function ExerciseGroupRow({
+  group,
+  open,
+  onToggle,
+  onSelect,
+}: {
+  group: ExerciseGroup
+  open: boolean
+  onToggle: () => void
+  onSelect: (exercise: ExerciseListItem) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (open) ref.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
+
+  return (
+    <div ref={ref} className="scroll-mt-40">
+      <Card className="relative cursor-pointer flex-row items-center justify-between gap-2 px-3 py-2.5" onClick={onToggle} aria-expanded={open}>
+        {group.isUsed ? <span aria-hidden className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-foreground/35" /> : null}
+        <div className="min-w-0 truncate text-[13.5px] font-bold">{group.name}</div>
+        <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
+          <span className="text-[11.5px] tabular-nums">{group.items.length}</span>
+          <ChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} />
+        </span>
+      </Card>
+      {open && (
+        <div className="mt-1.5 flex flex-col gap-1.5 pl-3">
+          {group.items.map((item) => (
+            <ExerciseRow key={item.id} item={item} title={item.variant_name} onClick={() => onSelect(item)} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -301,6 +385,12 @@ export function ExerciseSelectorResults({
     )
   }
 
+  if (s.mode === 'saved' && !s.loading && s.error === null && s.sorted.length === 0) {
+    const message = s.exercises.some((e) => e.is_watched)
+      ? 'Every saved exercise is already in this workout.'
+      : 'Nothing saved yet. Tap the bookmark in an exercise’s details.'
+    return <p className="mt-6 text-center text-sm text-muted-foreground">{message}</p>
+  }
   if (s.loading && s.exercises.length === 0) return <p className="mt-6 text-center text-sm text-muted-foreground">Loading…</p>
   if (!s.loading && s.error !== null) return <ErrorLine message={s.error} onRetry={s.retry} />
   if (!s.loading && s.error === null && s.exercises.length === 0) {
@@ -314,9 +404,39 @@ export function ExerciseSelectorResults({
         <p className="mt-6 text-center text-sm text-muted-foreground">Every match is already in this workout.</p>
       )}
       <div className="mt-3 flex flex-col gap-1.5">
-        {s.sorted.map((item) => (
-          <ExerciseRow key={item.id} item={item} onClick={() => onSelect(item)} />
-        ))}
+        {s.mode === 'filter' ? (
+          (() => {
+            const region = s.region !== 'All' ? s.region.toLowerCase() : null
+            const focus = s.focus !== 'All' ? s.focus : null
+            const primary = s.sorted.filter((e) => isPrimaryMatch(e, region, focus))
+            const assisting = s.sorted.filter((e) => !isPrimaryMatch(e, region, focus))
+            const groupRows = (items: ExerciseListItem[], scope: string) =>
+              groupExercises(items).map((group) =>
+                group.items.length === 1 ? (
+                  <ExerciseRow key={group.items[0].id} item={group.items[0]} onClick={() => onSelect(group.items[0])} />
+                ) : (
+                  <ExerciseGroupRow
+                    key={scope + group.name}
+                    group={group}
+                    open={s.openGroup === scope + group.name}
+                    onToggle={() => s.setOpenGroup(s.openGroup === scope + group.name ? null : scope + group.name)}
+                    onSelect={onSelect}
+                  />
+                ),
+              )
+            return (
+              <>
+                {groupRows(primary, 'primary:')}
+                {assisting.length > 0 && (
+                  <div className="mt-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Also trains this</div>
+                )}
+                {groupRows(assisting, 'assisting:')}
+              </>
+            )
+          })()
+        ) : (
+          s.sorted.map((item) => <ExerciseRow key={item.id} item={item} onClick={() => onSelect(item)} />)
+        )}
       </div>
     </>
   )

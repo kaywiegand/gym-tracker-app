@@ -60,6 +60,16 @@ function handleUpdateExercise(string $id): void
     Http::respond($exercise);
 }
 
+function handleSetExerciseWatched(string $id): void
+{
+    Auth::require();
+    $watched = (bool) (Http::jsonBody()['watched'] ?? false);
+    if (!(new ExerciseWatchlistRepository())->set($id, $watched)) {
+        Http::error('Exercise not found', 404);
+    }
+    Http::respond(['watched' => $watched]);
+}
+
 function handleLastSetsForExercise(string $id): void
 {
     Auth::require();

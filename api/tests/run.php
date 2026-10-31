@@ -1337,6 +1337,81 @@ check('snapshot has last sets outside any plan (#165)', (float) $snapshot['last_
 check('a set without a workout slot counts as last set (#165)', $setRepo->lastSetsForExercise($unplanned['id'])[0]['workout_exercise_id'] === null, $failures);
 check('snapshot has the last sets per exercise', (float) $snapshot['last_sets'][$created['id']][0]['weight_kg'] === 77.5, $failures);
 
+echo "Exercise watchlist (#166)\n";
+$watchRepo = new ExerciseWatchlistRepository();
+$watched = $exRepo->create(['name' => 'Watched Press', 'equipment' => 'machine', 'mechanic' => 'compound', 'muscles' => []]);
+$flag = static fn (string $id) => array_column($exRepo->list(null, null, null), 'is_watched', 'id')[$id];
+check('a new exercise is not on the watchlist', $flag($watched['id']) === 0 && $exRepo->find($watched['id'])['is_watched'] === 0, $failures);
+check('saving reports success', $watchRepo->set($watched['id'], true) === true, $failures);
+check('saved shows in the list and the detail', $flag($watched['id']) === 1 && $exRepo->find($watched['id'])['is_watched'] === 1, $failures);
+$watchRepo->set($watched['id'], true);
+check('saving twice stays one row', (int) $pdo->query("SELECT COUNT(*) FROM exercise_watchlist WHERE exercise_id = '{$watched['id']}'")->fetchColumn() === 1, $failures);
+$watchRepo->set($watched['id'], false);
+check('removing clears the flag', $flag($watched['id']) === 0, $failures);
+check('removing is a soft delete', (int) $pdo->query("SELECT COUNT(*) FROM exercise_watchlist WHERE exercise_id = '{$watched['id']}' AND deleted_at IS NOT NULL")->fetchColumn() === 1, $failures);
+$watchRepo->set($watched['id'], true);
+check('saving again revives the row', $flag($watched['id']) === 1 && (int) $pdo->query("SELECT COUNT(*) FROM exercise_watchlist WHERE exercise_id = '{$watched['id']}'")->fetchColumn() === 1, $failures);
+check('an unknown exercise cannot be saved', $watchRepo->set('nope', true) === false, $failures);
+$backupRepo = new BackupRepository();
+$backup = $backupRepo->exportAll();
+check('the backup contains the watchlist', in_array($watched['id'], array_column($backup['exercise_watchlist'], 'exercise_id'), true), $failures);
+$pdo->exec('DELETE FROM exercise_watchlist');
+$backupRepo->importAll(['exercise_watchlist' => $backup['exercise_watchlist']]);
+check('a restore brings the watchlist back', $flag($watched['id']) === 1, $failures);
+
+echo "Exercise groups and focus (#169)\n";
+$focusOf = static fn (string $name, string $muscle, array $secondary = []) => ExerciseFocus::of(['name' => $name, 'primary_muscle' => $muscle, 'movement' => null, 'display_alias' => null, 'category' => null], $secondary);
+foreach ([
+    ['Reverse Flyes', 'Shoulders', 'Rear'], ['Reverse Machine Flyes', 'Shoulders', 'Rear'], ['Face Pull', 'Shoulders', 'Rear'],
+    ['Band Pull Apart', 'Shoulders', 'Rear'], ['Barbell Rear Delt Row', 'Shoulders', 'Rear'],
+    ['Bent Over Low-Pulley Side Lateral', 'Shoulders', 'Rear'], ['Dumbbell Lying Rear Lateral Raise', 'Shoulders', 'Rear'],
+    ['Side Lateral Raise', 'Shoulders', 'Side'], ['Upright Barbell Row', 'Shoulders', 'Side'], ['Standing Low-Pulley Deltoid Raise', 'Shoulders', 'Side'],
+    ['Front Cable Raise', 'Shoulders', 'Front'], ['Standing Military Press', 'Shoulders', 'Front'], ['Arnold Dumbbell Press', 'Shoulders', 'Front'],
+    ['Seated Front Deltoid', 'Shoulders', null], ['Shoulder Circles', 'Shoulders', null], ['Shoulder Stretch', 'Shoulders', null],
+    ['Incline Dumbbell Press', 'Chest', 'Upper'], ['Low Cable Crossover', 'Chest', 'Upper'], ['Decline Push-Up', 'Chest', 'Upper'], ['Push-Ups With Feet Elevated', 'Chest', 'Upper'],
+    ['Decline Barbell Bench Press', 'Chest', 'Lower'], ['Dips - Chest Version', 'Chest', 'Lower'], ['Incline Push-Up', 'Chest', 'Lower'],
+    ['Barbell Bench Press - Medium Grip', 'Chest', 'Mid'], ['Butterfly', 'Chest', 'Mid'], ['Pushups', 'Chest', 'Mid'],
+    ['Dynamic Chest Stretch', 'Chest', null],
+    ['Russian Twist', 'Abdominals', 'Obliques'], ['Side Bridge', 'Abdominals', 'Obliques'], ['Crunches', 'Abdominals', 'Upper'], ['Sit-Up', 'Abdominals', 'Upper'],
+    ['Reverse Crunch', 'Abdominals', 'Lower'], ['Hanging Leg Raise', 'Abdominals', 'Lower'], ['Plank', 'Abdominals', null],
+    ['Barbell Ab Rollout - On Knees', 'Abdominals', null], ['Dead Bug', 'Abdominals', null], ['Overhead Stretch', 'Abdominals', null],
+    ['Scissor Kick', 'Abdominals', 'Lower'], ['Toe Touchers', 'Abdominals', 'Lower'],
+    ['Pullups', 'Lats', 'Lats'], ['Seated Cable Rows', 'Middle Back', 'Mid Back'], ['Leg Extensions', 'Quadriceps', 'Quads'], ['Neck Press', 'Neck', 'Neck'],
+] as [$focusName, $focusMuscle, $expected]) {
+    check("focus of {$focusName}", $focusOf($focusName, $focusMuscle) === ($expected === null ? [] : [$expected]), $failures);
+}
+$sidePlank = ExerciseFocus::of(['name' => 'Side Bridge', 'primary_muscle' => 'Abdominals', 'movement' => null, 'display_alias' => 'Side Plank', 'category' => null]);
+check('a side plank stays with the obliques', $sidePlank === ['Obliques'], $failures);
+check('no primary part: an assisting muscle does not become the main one', ExerciseFocus::primary(['name' => 'Shoulder Stretch', 'primary_muscle' => 'Shoulders', 'movement' => null, 'category' => null]) === [], $failures);
+check('hammer curl: biceps and brachialis', $focusOf('Hammer Curls', 'Biceps', ['Forearms']) === ['Biceps', 'Brachialis', 'Forearms'], $failures);
+check('reverse curl: brachialis', in_array('Brachialis', $focusOf('Reverse Barbell Curl', 'Biceps'), true), $failures);
+check('a reverse wrist curl is no brachialis exercise', !in_array('Brachialis', $focusOf('Palms-Down Wrist Curl Over A Bench Reverse Curl', 'Forearms'), true), $failures);
+check('leg press: quads first, then glutes', array_slice($focusOf('Leg Press', 'Quadriceps', ['Glutes', 'Hamstrings']), 0, 2) === ['Quads', 'Glutes'], $failures);
+check('secondary muscles without a clear part add no chip', $focusOf('Barbell Bench Press', 'Chest', ['Shoulders', 'Triceps']) === ['Mid', 'Triceps'], $failures);
+
+$multi = $exRepo->create(['name' => 'Multi Leg Press', 'equipment' => 'machine', 'mechanic' => 'compound', 'muscles' => [
+    ['muscle_id' => 1, 'role' => 'primary', 'weight' => 1.0], ['muscle_id' => 2, 'role' => 'secondary', 'weight' => 0.5],
+]]);
+$multiRow = array_column($exRepo->list(null, null, null), null, 'id')[$multi['id']];
+check('the list carries every region, primary first', $multiRow['regions'] === ['chest', 'arms'], $failures);
+$pdo->exec("INSERT INTO muscles (id, name_en, region, sort) VALUES (40, 'Neck', 'core', 40)");
+$neck = $exRepo->create(['name' => 'Neck Press', 'equipment' => 'machine', 'mechanic' => 'isolation', 'muscles' => [['muscle_id' => 40, 'role' => 'primary', 'weight' => 1.0]]]);
+check('the neck sits under back in the picker', in_array($neck['id'], array_column($exRepo->list(null, 'back', null), 'id'), true) && !in_array($neck['id'], array_column($exRepo->list(null, 'core', null), 'id'), true), $failures);
+check('the region filter finds a secondary muscle', in_array($multi['id'], array_column($exRepo->list(null, 'arms', null), 'id'), true), $failures);
+
+$groupRow = ['name' => 'Cable Rope Overhead Triceps Extension', 'movement' => 'Extension', 'variant' => 'Overhead', 'equipment' => 'cable', 'primary_muscle' => 'Triceps', 'is_curated' => 1];
+check('group is muscle plus movement', ExerciseNaming::groupName($groupRow) === 'Triceps Extension', $failures);
+check('variant is what is left of the title', ExerciseNaming::variantName($groupRow) === 'Cable Overhead', $failures);
+$squatRow = ['name' => 'Barbell Squat', 'movement' => 'Squat', 'variant' => null, 'equipment' => 'barbell', 'primary_muscle' => 'Quadriceps', 'is_curated' => 1];
+check('a muscle-free movement groups under the movement', ExerciseNaming::groupName($squatRow) === 'Squat', $failures);
+check('variant of a muscle-free movement', ExerciseNaming::variantName($squatRow) === 'Barbell', $failures);
+$plainRow = ['name' => 'Pushups', 'movement' => 'Push-Up', 'variant' => null, 'equipment' => 'body only', 'primary_muscle' => 'Chest', 'is_curated' => 1];
+check('the plain variant is called Standard', ExerciseNaming::variantName($plainRow) === 'Standard', $failures);
+$rawRow = ['name' => 'Zzz Unknown', 'movement' => null, 'variant' => null, 'equipment' => null, 'primary_muscle' => 'Chest', 'category' => null];
+check('an unstructured exercise is its own group', ExerciseNaming::groupName($rawRow) === 'Zzz Unknown', $failures);
+$listed = $exRepo->list(null, null, null)[0];
+check('the list carries group, variant and focus', isset($listed['group_name'], $listed['variant_name']) && array_key_exists('focus', $listed), $failures);
+
 echo "Uploads (R-05)\n";
 $uploadsRoot = sys_get_temp_dir() . '/gym_tracker_uploads_' . uniqid();
 Db::setOverrides(['sqlite_path' => $dbPath, 'uploads_path' => $uploadsRoot]);
@@ -1442,6 +1517,12 @@ check('PUT with a blank name is rejected', $http('PUT', "/api/workouts/{$httpWor
 
 check('snapshot needs a login', $http('GET', '/api/sync/snapshot')['status'] === 401, $failures);
 check('snapshot answers after login', isset(json_decode($http('GET', '/api/sync/snapshot', null, $cookie)['body'], true)['workout_details']), $failures);
+
+$watchId = $exRepo->create(['name' => 'Http Watch', 'equipment' => 'machine', 'mechanic' => 'compound', 'muscles' => []])['id'];
+check('the watchlist needs a login', $http('PUT', "/api/exercises/{$watchId}/watchlist", ['watched' => true])['status'] === 401, $failures);
+$watchResponse = $http('PUT', "/api/exercises/{$watchId}/watchlist", ['watched' => true], $cookie);
+check('saving over HTTP', $watchResponse['status'] === 200 && json_decode($watchResponse['body'], true)['watched'] === true, $failures);
+check('saving an unknown exercise is a 404', $http('PUT', '/api/exercises/nope/watchlist', ['watched' => true], $cookie)['status'] === 404, $failures);
 
 $boundary = 'gymtestboundary';
 $multipart = "--{$boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"export.xml\"\r\nContent-Type: text/xml\r\n\r\n"

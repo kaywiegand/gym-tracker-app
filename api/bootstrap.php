@@ -8,6 +8,7 @@ require_once __DIR__ . '/lib/MuscleVolume.php';
 require_once __DIR__ . '/lib/VolumeLandmarks.php';
 require_once __DIR__ . '/lib/Recovery.php';
 require_once __DIR__ . '/lib/ExerciseNaming.php';
+require_once __DIR__ . '/lib/ExerciseFocus.php';
 require_once __DIR__ . '/lib/BiaImport.php';
 require_once __DIR__ . '/lib/HrImport.php';
 require_once __DIR__ . '/lib/Uploads.php';

@@ -31,12 +31,13 @@ const legPress = {
   display_name: 'Quads Press Machine',
   display_subtitle: 'Leg Press',
   region: 'legs',
+  regions: ['legs', 'core'],
   mechanic: 'compound',
   has_sets: 1,
   is_watched: 1,
   default_increment_kg: 5,
 }
-const curl = { ...legPress, id: 'curl', name: 'Curl', display_name: 'Biceps Curl Dumbbell', display_subtitle: 'Curl', region: 'arms', mechanic: 'isolation', has_sets: 0 }
+const curl = { ...legPress, id: 'curl', name: 'Curl', display_name: 'Biceps Curl Dumbbell', display_subtitle: 'Curl', region: 'arms', regions: ['arms'], mechanic: 'isolation', has_sets: 0 }
 const lastLegSets = [{ weight_kg: 100, reps: 12, is_warmup: 0, session_id: 'old' }]
 
 const track = () => useTrackingStore.getState()
@@ -147,6 +148,7 @@ test('the library is searchable offline', async () => {
   assert.deepEqual(await names({ q: 'press quads' }), ['legs'])
   assert.deepEqual(await names({ q: 'bench' }), [])
   assert.deepEqual(await names({ region: 'arms' }), ['curl'])
+  assert.deepEqual(await names({ region: 'core' }), ['legs'])
   assert.deepEqual(await names({ mechanic: 'compound' }), ['legs'])
   assert.deepEqual(await names({ tracked: true }), ['legs'])
   assert.equal((await searchExercises({ region: 'legs' }))[0].is_watched, 1)

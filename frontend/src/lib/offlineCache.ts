@@ -94,7 +94,7 @@ export async function loadWorkoutList(timeoutMs = NETWORK_WAIT_MS): Promise<Work
 
 // Same rule as the server: every word has to appear somewhere in the exercise.
 function matchesFilters(exercise: ExerciseListItem, filters: ExerciseFilters): boolean {
-  if (filters.region && exercise.region !== filters.region) return false
+  if (filters.region && !(exercise.regions ?? [exercise.region]).includes(filters.region)) return false
   if (filters.mechanic && exercise.mechanic !== filters.mechanic) return false
   if (filters.tracked && !exercise.has_sets) return false
   const text = [exercise.display_name, exercise.display_subtitle, exercise.name, exercise.region].join(' ').toLowerCase()

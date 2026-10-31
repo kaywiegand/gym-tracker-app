@@ -63,6 +63,8 @@ try {
         handleExerciseHistory($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'session-summaries') {
         handleExerciseSessionSummaries($segments[1]);
+    } elseif ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'exercises' && $segments[2] === 'watchlist') {
+        handleSetExerciseWatched($segments[1]);
     } elseif ($method === 'GET' && count($segments) === 2 && $segments[0] === 'exercises') {
         handleGetExercise($segments[1]);
     } elseif ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'exercises') {

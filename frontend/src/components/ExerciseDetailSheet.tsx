@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Bookmark } from 'lucide-react'
 import { api } from '@/lib/api'
 import { LoadError } from '@/components/LoadError'
+import { refreshOfflineCache } from '@/lib/offlineCache'
+import { cn } from '@/lib/utils'
 import { regionLabel, REGION_BADGE_CLASS } from '@/lib/muscleColors'
 import type { Exercise, ExerciseHistoryEntry } from '@/types'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -14,12 +17,14 @@ interface ExerciseDetailSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onDuplicated: (detail: Exercise) => void
+  onWatchedChange?: (exerciseId: string, watched: boolean) => void
 }
 
-export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicated }: ExerciseDetailSheetProps) {
+export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicated, onWatchedChange }: ExerciseDetailSheetProps) {
   const navigate = useNavigate()
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [failed, setFailed] = useState(false)
+  const [watchFailed, setWatchFailed] = useState(false)
   const [duplicating, setDuplicating] = useState(false)
   const [history, setHistory] = useState<ExerciseHistoryEntry[] | null>(null)
 
@@ -28,9 +33,11 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
       setExercise(null)
       setHistory(null)
       setFailed(false)
+      setWatchFailed(false)
       return
     }
     setFailed(false)
+    setWatchFailed(false)
     api
       .get<Exercise>(`/exercises/${exerciseId}`)
       .then(setExercise)
@@ -40,6 +47,22 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
       .then(setHistory)
       .catch(() => setHistory([]))
   }, [exerciseId])
+
+  // Flips at once like any bookmark and flips back if the server says no.
+  async function toggleWatched() {
+    if (!exercise) return
+    const watched = !exercise.is_watched
+    setWatchFailed(false)
+    setExercise({ ...exercise, is_watched: watched ? 1 : 0 })
+    try {
+      await api.put(`/exercises/${exercise.id}/watchlist`, { watched })
+      onWatchedChange?.(exercise.id, watched)
+      void refreshOfflineCache()
+    } catch {
+      setExercise({ ...exercise })
+      setWatchFailed(true)
+    }
+  }
 
   const primary = exercise?.muscles.filter((m) => m.role === 'primary') ?? []
   const secondary = exercise?.muscles.filter((m) => m.role === 'secondary') ?? []
@@ -53,11 +76,26 @@ export function ExerciseDetailSheet({ exerciseId, open, onOpenChange, onDuplicat
         ) : (
           <>
             <SheetHeader>
-              <SheetTitle className="text-[17px]">{exercise.display_name}</SheetTitle>
-              <p className="text-[11px] text-muted-foreground">
-                {exercise.display_subtitle}
-                {exercise.is_curated ? '' : ' · not curated yet'}
-              </p>
+              <div className="flex items-start gap-1 pr-8">
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="text-[17px]">{exercise.display_name}</SheetTitle>
+                  <p className="text-[11px] text-muted-foreground">
+                    {exercise.display_subtitle}
+                    {exercise.is_curated ? '' : ' · not curated yet'}
+                  </p>
+                  {watchFailed && <p className="mt-0.5 text-[11px] text-status-crit">Could not save. Check your connection.</p>}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={exercise.is_watched ? 'Remove from saved' : 'Save exercise'}
+                  aria-pressed={exercise.is_watched === 1}
+                  onClick={toggleWatched}
+                >
+                  <Bookmark className={cn('size-5', exercise.is_watched && 'fill-current')} />
+                </Button>
+              </div>
             </SheetHeader>
 
             <div className="px-4">

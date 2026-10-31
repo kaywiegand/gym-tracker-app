@@ -74,6 +74,16 @@ CREATE TABLE IF NOT EXISTS media (
 );
 
 -- Optional grouping for the workout list: "Warm ups", "Full body", ...
+-- Exercises saved for later (BACKLOG #166). Own table rather than a column on
+-- exercises: the plan is for notes and a status to join it.
+CREATE TABLE IF NOT EXISTS exercise_watchlist (
+  id TEXT PRIMARY KEY,
+  exercise_id TEXT NOT NULL UNIQUE,
+  created_at TEXT,
+  updated_at TEXT,
+  deleted_at TEXT
+);
+
 -- A workout may belong to one group or to none.
 CREATE TABLE IF NOT EXISTS workout_groups (
   id TEXT PRIMARY KEY,

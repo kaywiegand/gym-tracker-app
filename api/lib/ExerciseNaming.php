@@ -511,6 +511,28 @@ final class ExerciseNaming
         return $name !== '' ? $name : (string) ($row['name'] ?? '');
     }
 
+    // What variants of an exercise share: the title without equipment and
+    // variant, "Triceps Extension" (BACKLOG #169).
+    public static function groupName(array $row): string
+    {
+        $movement = trim((string) ($row['movement'] ?? ''));
+        if ($movement === '') {
+            $movement = (string) (self::inferMovement($row['name'] ?? null, $row['category'] ?? null) ?? '');
+        }
+        if ($movement === '') {
+            return (string) ($row['name'] ?? '');
+        }
+        return trim(self::titleMuscle($row, $movement) . ' ' . $movement);
+    }
+
+    // The rest of the title: all a row needs inside its group.
+    public static function variantName(array $row): string
+    {
+        $group = self::groupName($row);
+        $variant = trim((string) preg_replace('/^' . preg_quote($group, '/') . '\b/', '', self::displayName($row)));
+        return $variant !== '' ? $variant : 'Standard';
+    }
+
     // ["Single", "Leg"] -> ["Single-Leg"], so the Leg filter above cannot
     // tear a real variant apart.
     private static function joinSingleLeg(array $words): array

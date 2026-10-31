@@ -47,6 +47,7 @@ export function ExercisesPage() {
         open={openId !== null}
         onOpenChange={(open) => !open && setOpenId(null)}
         onDuplicated={handleDuplicated}
+        onWatchedChange={selectorState.setWatched}
       />
     </>
   )

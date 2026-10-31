@@ -31,11 +31,16 @@ final class ExerciseRepository extends BaseRepository
             WHERE s.exercise_id = e.id AND s.deleted_at IS NULL AND se.deleted_at IS NULL)
         THEN 1 ELSE 0 END";
 
+    private const IS_WATCHED_EXPRESSION = 'CASE WHEN EXISTS (
+            SELECT 1 FROM exercise_watchlist wl WHERE wl.exercise_id = e.id AND wl.deleted_at IS NULL)
+          THEN 1 ELSE 0 END';
+
     private const LIST_COLUMNS = 'e.id, e.name, e.movement, e.variant, e.display_alias, e.is_curated,
               e.equipment, e.mechanic, e.category, e.default_increment_kg,
               ' . self::PRIMARY_REGION_SUBQUERY . ' AS region,
               ' . self::PRIMARY_MUSCLE_SUBQUERY . ' AS primary_muscle,
               ' . self::IS_USED_EXPRESSION . ' AS is_used,
+              ' . self::IS_WATCHED_EXPRESSION . ' AS is_watched,
               ' . self::HAS_SETS_EXPRESSION . ' AS has_sets';
 
     public function list(?string $q, ?string $region, ?string $mechanic, bool $curatedOnly = false, bool $trackedOnly = false): array
@@ -53,10 +58,6 @@ final class ExerciseRepository extends BaseRepository
         if ($trackedOnly) {
             $sql .= ' AND t.has_sets = 1';
         }
-        if ($region !== null && strtolower($region) !== 'all') {
-            $sql .= ' AND t.region = :region';
-            $params['region'] = strtolower($region);
-        }
         if ($mechanic !== null && strtolower($mechanic) !== 'all') {
             $sql .= ' AND t.mechanic = :mechanic';
             $params['mechanic'] = strtolower($mechanic);
@@ -73,7 +74,14 @@ final class ExerciseRepository extends BaseRepository
         // with that muscle. Uncurated rows sort last, by their source name.
         $sql .= ' ORDER BY t.region, t.movement IS NULL, t.primary_muscle, t.movement, t.equipment, t.variant, t.name';
 
-        $rows = self::castUsed(ExerciseNaming::decorateAll($this->fetchAll($sql, $params)));
+        $rows = $this->castUsed(ExerciseNaming::decorateAll($this->fetchAll($sql, $params)));
+
+        // After decoration: an exercise shows under every region it trains,
+        // which takes its secondary muscles (BACKLOG #169).
+        if ($region !== null && strtolower($region) !== 'all') {
+            $wanted = strtolower($region);
+            $rows = array_values(array_filter($rows, static fn (array $row) => in_array($wanted, $row['regions'], true)));
+        }
 
         return $q === null || trim($q) === '' ? $rows : self::filterByQuery($rows, $q);
     }
@@ -83,7 +91,7 @@ final class ExerciseRepository extends BaseRepository
     // very same list item.
     public function listForWorkout(string $workoutId): array
     {
-        return self::castUsed(ExerciseNaming::decorateAll($this->fetchAll(
+        return $this->castUsed(ExerciseNaming::decorateAll($this->fetchAll(
             'SELECT ' . self::LIST_COLUMNS . '
              FROM workout_exercises wx
              JOIN exercises e ON e.id = wx.exercise_id AND e.deleted_at IS NULL
@@ -95,11 +103,39 @@ final class ExerciseRepository extends BaseRepository
 
     // SQLite hands the flag back as a string, and "0" is truthy in the
     // browser -- every row would read as used.
-    private static function castUsed(array $rows): array
+    // The picker looks for the neck with the back (Kay, BACKLOG #169). Volume
+    // statistics keep the region from the muscles table.
+    private static function selectorRegion(string $muscle, ?string $region): ?string
     {
-        return array_map(static function (array $row): array {
+        return strcasecmp($muscle, 'Neck') === 0 ? 'back' : $region;
+    }
+
+    private function castUsed(array $rows): array
+    {
+        $secondary = [];
+        $regions = [];
+        foreach ($this->fetchAll(
+            "SELECT em.exercise_id, em.role, mu.name_en, mu.region
+             FROM exercise_muscles em JOIN muscles mu ON mu.id = em.muscle_id
+             ORDER BY CASE WHEN em.role = 'primary' THEN 0 ELSE 1 END, mu.sort"
+        ) as $muscle) {
+            $id = $muscle['exercise_id'];
+            $regions[$id][self::selectorRegion($muscle['name_en'], $muscle['region'])] = true;
+            if ($muscle['role'] === 'secondary') {
+                $secondary[$id][] = $muscle['name_en'];
+            }
+        }
+
+        return array_map(static function (array $row) use ($secondary, $regions): array {
             $row['is_used'] = (int) ($row['is_used'] ?? 0);
             $row['has_sets'] = (int) ($row['has_sets'] ?? 0);
+            $row['is_watched'] = (int) ($row['is_watched'] ?? 0);
+            $row['group_name'] = ExerciseNaming::groupName($row);
+            $row['variant_name'] = ExerciseNaming::variantName($row);
+            $row['focus'] = ExerciseFocus::of($row, $secondary[$row['id']] ?? []);
+            $row['primary_focus'] = ExerciseFocus::primary($row);
+            $row['regions'] = array_keys($regions[$row['id']] ?? []);
+            $row['region'] = self::selectorRegion((string) ($row['primary_muscle'] ?? ''), $row['region'] ?? null);
             return $row;
         }, $rows);
     }
@@ -190,7 +226,8 @@ final class ExerciseRepository extends BaseRepository
             'SELECT e.id, e.name, e.movement, e.variant, e.display_alias, e.is_curated,
                     e.equipment, e.mechanic, e.category, e.default_increment_kg, e.source, e.external_id,
                     e.created_at, e.updated_at,
-                    ' . self::PRIMARY_MUSCLE_SUBQUERY . ' AS primary_muscle
+                    ' . self::PRIMARY_MUSCLE_SUBQUERY . ' AS primary_muscle,
+                    ' . self::IS_WATCHED_EXPRESSION . ' AS is_watched
              FROM exercises e WHERE e.id = ? AND e.deleted_at IS NULL',
             [$id]
         );
@@ -198,6 +235,7 @@ final class ExerciseRepository extends BaseRepository
             return null;
         }
         $exercise = ExerciseNaming::decorate($exercise);
+        $exercise['is_watched'] = (int) $exercise['is_watched'];
 
         $exercise['muscles'] = $this->fetchAll(
             'SELECT mu.id AS muscle_id, mu.name_en, mu.region, em.role, em.weight

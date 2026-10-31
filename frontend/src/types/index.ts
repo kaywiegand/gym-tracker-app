@@ -51,6 +51,15 @@ export interface ExerciseListItem extends ExerciseNames {
   // pickers mark these (BACKLOG #38).
   is_used: number
   has_sets: number
+  // 1 when saved on the watchlist (BACKLOG #166).
+  is_watched: number
+  // BACKLOG #169. Optional: an offline copy from an older build has none.
+  group_name?: string
+  variant_name?: string
+  // Parts and regions trained, primary first; an exercise lists under each.
+  focus?: string[]
+  primary_focus?: string[]
+  regions?: string[]
 }
 
 export interface RecentWorkout {
@@ -92,6 +101,7 @@ export interface Exercise extends ExerciseNames {
   external_id: string | null
   created_at: string
   updated_at: string
+  is_watched: number
   muscles: ExerciseMuscle[]
   media: ExerciseMedia[]
 }
