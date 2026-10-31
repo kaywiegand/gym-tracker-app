@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Check } from 'lucide-react'
 import { api, withTimeout } from '@/lib/api'
-import { fetchLastSets, loadTrackingData, NETWORK_WAIT_MS } from '@/lib/offlineCache'
+import { fetchLastSets, loadCachedLastSets, loadTrackingData, NETWORK_WAIT_MS } from '@/lib/offlineCache'
 import { findOpenSessions, getSetsForSession, putRow, type LocalSession, type LocalSet } from '@/lib/localDb'
 import { suggestNext, type Suggestion } from '@/lib/progression'
 import { playRestDoneSound, primeAudio, vibrateRestDone } from '@/lib/sound'
@@ -10,10 +10,11 @@ import { keepScreenAwake } from '@/lib/wakeLock'
 import { pushPending } from '@/lib/syncService'
 import { nowIso } from '@/lib/time'
 import { formatNumber } from '@/lib/format'
-import { useTrackingStore } from '@/store/useTrackingStore'
-import type { PreviousSession, Settings, SetEntry, Workout } from '@/types'
+import { adHocKey, useTrackingStore } from '@/store/useTrackingStore'
+import type { ExerciseListItem, PreviousSession, Settings, SetEntry, Workout } from '@/types'
 import { TrackShell } from '@/components/TrackShell'
 import { NumberField } from '@/components/NumberField'
+import { ExercisePickerSheet } from '@/components/ExercisePickerSheet'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +77,19 @@ function buildSuggestions(
   return byWorkoutExerciseId
 }
 
+// An exercise added during the session has no overrides and takes the
+// workout's rep range.
+function suggestAdHoc(workout: Workout, settings: Settings, lastSets: SetEntry[], incrementKg: number | null): Suggestion {
+  return suggestNext({
+    lastSets,
+    repLow: workout.rep_low,
+    repHigh: workout.rep_high,
+    incrementKg: incrementKg ?? parseFloat(settings.default_increment_kg),
+    roundingKg: parseFloat(settings.rounding_kg),
+    trigger: settings.progression_trigger,
+  })
+}
+
 function formatClock(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
@@ -96,6 +110,8 @@ export function TrackingPage() {
   const [comparingVolume, setComparingVolume] = useState(false)
   const [pendingChoice, setPendingChoice] = useState<PendingResumeChoice | null>(null)
   const [suggestions, setSuggestions] = useState<Record<string, Suggestion>>({})
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const contextRef = useRef<{ workout: Workout; settings: Settings } | null>(null)
 
   useEffect(() => {
     if (!workoutId) return
@@ -112,6 +128,7 @@ export function TrackingPage() {
       }
       const { workout, settings, lastSetsByExercise } = data
       const restSeconds = parseInt(settings.rest_seconds, 10)
+      contextRef.current = { workout, settings }
 
       setSuggestions(buildSuggestions(workout, settings, lastSetsByExercise))
 
@@ -185,11 +202,31 @@ export function TrackingPage() {
     if (!pendingChoice) return
     const { workout, settings, restSeconds } = pendingChoice
     // Offline nothing comes back -- then the sets loaded above stay in place.
-    const fresh = await fetchLastSets(workout, option.session.id)
-    const lastSetsByExercise = { ...pendingChoice.lastSetsByExercise, ...fresh }
-    setSuggestions(buildSuggestions(workout, settings, lastSetsByExercise))
+    const fresh = await fetchLastSets(workout.exercises.map((we) => we.exercise_id), option.session.id)
+    const adHocIds = [...new Set(option.loggedSets.filter((s) => s.workout_exercise_id === null).map((s) => s.exercise_id))]
+    const adHocLast = await loadCachedLastSets(adHocIds)
+    // The copy can be newer than this session's own sets: those are not "last time".
+    for (const id of adHocIds) adHocLast[id] = adHocLast[id].filter((s) => s.session_id !== option.session.id)
+    const lastSetsByExercise = { ...pendingChoice.lastSetsByExercise, ...fresh, ...adHocLast }
+    const adHocSuggestions = Object.fromEntries(
+      adHocIds.map((id) => [adHocKey(id), suggestAdHoc(workout, settings, adHocLast[id], null)]),
+    )
+    setSuggestions({ ...buildSuggestions(workout, settings, lastSetsByExercise), ...adHocSuggestions })
     useTrackingStore.getState().resume(workout, option.session, option.loggedSets, lastSetsByExercise, restSeconds)
     setPendingChoice(null)
+  }
+
+  // Local copy only, so the card is there at once also with no signal. Nothing
+  // is written anywhere until a set is logged.
+  async function handleAddExercise(exercise: ExerciseListItem) {
+    setPickerOpen(false)
+    const lastSets = (await loadCachedLastSets([exercise.id]))[exercise.id]
+    useTrackingStore.getState().addExercise(exercise, lastSets)
+    const context = contextRef.current
+    if (context) {
+      const suggestion = suggestAdHoc(context.workout, context.settings, lastSets, exercise.default_increment_kg)
+      setSuggestions((prev) => ({ ...prev, [adHocKey(exercise.id)]: suggestion }))
+    }
   }
 
   // Starting fresh deliberately leaves the open sessions open. Closing them
@@ -382,6 +419,7 @@ export function TrackingPage() {
                   {ex.exerciseSubtitle && (
                     <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{ex.exerciseSubtitle}</div>
                   )}
+                  {ex.adHoc && <div className="mt-0.5 text-[10.5px] text-muted-foreground">This session only</div>}
                 </div>
                 {allDone ? (
                   <Badge className="bg-status-good/15 text-status-good" variant="secondary">
@@ -469,12 +507,31 @@ export function TrackingPage() {
                   >
                     + Add set (this session)
                   </Button>
+                  {ex.adHoc && doneCount === 0 && (
+                    <button
+                      type="button"
+                      className="mt-2 w-full text-center text-[11px] text-muted-foreground underline underline-offset-2"
+                      onClick={() => store.removeExercise(exIndex)}
+                    >
+                      Remove exercise
+                    </button>
+                  )}
                 </div>
               )}
             </Card>
           )
         })}
       </div>
+
+      <Button type="button" variant="outline" className="mt-2 w-full border-dashed" onClick={() => setPickerOpen(true)}>
+        + Add exercise (this session)
+      </Button>
+      <ExercisePickerSheet
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onPick={handleAddExercise}
+        excludeIds={store.exercises.map((e) => e.exerciseId)}
+      />
 
       {store.restEndAt !== null && (
         <div

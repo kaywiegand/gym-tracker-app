@@ -2,7 +2,10 @@ import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { BodyMeasurement, Bodyweight, Session, SetEntry } from '@/types'
 
 export type LocalSession = Session & { synced: boolean }
-export type LocalSet = SetEntry & { synced: boolean }
+// exercise_name/_subtitle only on sets of an exercise added during the session:
+// without a workout slot a resume has nothing else to read the name from.
+// Local only, the server stores known columns and ignores these.
+export type LocalSet = SetEntry & { synced: boolean; exercise_name?: string; exercise_subtitle?: string }
 export type LocalBodyweight = Bodyweight & { synced: boolean }
 export type LocalBodyMeasurement = BodyMeasurement & { synced: boolean }
 

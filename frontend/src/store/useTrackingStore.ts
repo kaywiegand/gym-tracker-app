@@ -3,7 +3,7 @@ import { getRow, getSetsForSession, putRow, type LocalSession, type LocalSet } f
 import { epley1RM } from '@/lib/metrics'
 import { pushPending } from '@/lib/syncService'
 import { laterThan, MAX_PLAUSIBLE_SESSION_MIN, nowIso } from '@/lib/time'
-import type { SetEntry, Workout } from '@/types'
+import type { ExerciseListItem, SetEntry, Workout } from '@/types'
 
 interface DraftSet {
   weightKg: number
@@ -20,6 +20,19 @@ interface ExerciseTrack {
   plannedSets: number
   sets: DraftSet[]
   open: boolean
+  // Added during this session (BACKLOG #165): no slot in the workout, the
+  // template stays as it is and its sets carry workout_exercise_id = null.
+  adHoc: boolean
+}
+
+// What an exercise added during the session starts with.
+const AD_HOC_PLANNED_SETS = 3
+
+export const adHocKey = (exerciseId: string) => `adhoc:${exerciseId}`
+
+function draftFromHistory(last: SetEntry[], index: number, repLow: number): DraftSet {
+  const prior = last[index] ?? last[last.length - 1]
+  return { weightKg: prior?.weight_kg ?? 0, reps: prior?.reps ?? repLow, done: false, setId: null }
 }
 
 interface FinishResult {
@@ -46,13 +59,7 @@ function buildExercises(
       if (logged) {
         return { weightKg: logged.weight_kg, reps: logged.reps, done: true, setId: logged.id }
       }
-      const prior = last[j] ?? last[last.length - 1]
-      return {
-        weightKg: prior?.weight_kg ?? 0,
-        reps: prior?.reps ?? workout.rep_low,
-        done: false,
-        setId: null,
-      }
+      return draftFromHistory(last, j, workout.rep_low)
     })
     // Extra sets added mid-session (beyond planned_sets, see addSet) that
     // were already logged before the session was abandoned -- keep them
@@ -69,6 +76,39 @@ function buildExercises(
       plannedSets: we.planned_sets,
       sets,
       open: i === 0,
+      adHoc: false,
+    }
+  })
+}
+
+// Added exercises come back on resume from their logged sets alone. Gaps and
+// the remaining planned sets are filled like a fresh start.
+function rebuildAdHoc(
+  loggedSets: LocalSet[],
+  lastSetsByExercise: Record<string, SetEntry[]>,
+  repLow: number,
+): ExerciseTrack[] {
+  const byExercise = new Map<string, LocalSet[]>()
+  for (const set of loggedSets) {
+    if (set.workout_exercise_id !== null) continue
+    byExercise.set(set.exercise_id, [...(byExercise.get(set.exercise_id) ?? []), set])
+  }
+  return [...byExercise.entries()].map(([exerciseId, logged]) => {
+    const last = lastSetsByExercise[exerciseId] ?? []
+    const count = Math.max(AD_HOC_PLANNED_SETS, ...logged.map((s) => s.set_index + 1))
+    const sets = Array.from({ length: count }, (_, j): DraftSet => {
+      const row = logged.find((s) => s.set_index === j)
+      return row ? { weightKg: row.weight_kg, reps: row.reps, done: true, setId: row.id } : draftFromHistory(last, j, repLow)
+    })
+    return {
+      workoutExerciseId: adHocKey(exerciseId),
+      exerciseId,
+      exerciseName: logged[0].exercise_name ?? exerciseId,
+      exerciseSubtitle: logged[0].exercise_subtitle ?? '',
+      plannedSets: AD_HOC_PLANNED_SETS,
+      sets,
+      open: true,
+      adHoc: true,
     }
   })
 }
@@ -85,6 +125,7 @@ interface TrackingState {
   restEndAt: number | null
   restDurationSec: number
   lastSetsByExercise: Record<string, SetEntry[]>
+  repLow: number
 
   start: (workout: Workout, lastSetsByExercise: Record<string, SetEntry[]>, restSeconds: number) => void
   resume: (
@@ -99,6 +140,8 @@ interface TrackingState {
   updateDraft: (exIndex: number, setIndex: number, patch: Partial<Pick<DraftSet, 'weightKg' | 'reps'>>) => void
   applySuggestion: (exIndex: number, weightKg: number, reps: number) => void
   addSet: (exIndex: number) => void
+  addExercise: (exercise: ExerciseListItem, lastSets: SetEntry[]) => void
+  removeExercise: (exIndex: number) => void
   toggleDone: (exIndex: number, setIndex: number) => Promise<void>
   skipRest: () => void
   finish: () => Promise<FinishResult>
@@ -115,6 +158,7 @@ const initialState = {
   restEndAt: null as number | null,
   restDurationSec: 120,
   lastSetsByExercise: {} as Record<string, SetEntry[]>,
+  repLow: 0,
 }
 
 // Draft weight/reps for a not-yet-done set are pure UI state -- nothing is
@@ -143,12 +187,14 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       restEndAt: null,
       restDurationSec: restSeconds,
       lastSetsByExercise,
+      repLow: workout.rep_low,
     })
   },
 
   resume: (workout, session, loggedSets, lastSetsByExercise, restSeconds) => {
     const loggedByKey = new Map<string, LocalSet>()
     for (const s of loggedSets) {
+      if (s.workout_exercise_id === null) continue
       loggedByKey.set(`${s.workout_exercise_id}:${s.set_index}`, s)
     }
 
@@ -158,10 +204,14 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       workoutName: workout.name,
       startedAt: session.started_at,
       sessionPersisted: true,
-      exercises: buildExercises(workout, lastSetsByExercise, loggedByKey),
+      exercises: [
+        ...buildExercises(workout, lastSetsByExercise, loggedByKey),
+        ...rebuildAdHoc(loggedSets, lastSetsByExercise, workout.rep_low),
+      ],
       restEndAt: null,
       restDurationSec: restSeconds,
       lastSetsByExercise,
+      repLow: workout.rep_low,
     })
   },
 
@@ -205,6 +255,37 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     }))
   },
 
+  addExercise: (exercise, lastSets) => {
+    set((state) => {
+      if (state.exercises.some((e) => e.exerciseId === exercise.id)) return state
+      return {
+        lastSetsByExercise: { ...state.lastSetsByExercise, [exercise.id]: lastSets },
+        exercises: [
+          ...state.exercises,
+          {
+            workoutExerciseId: adHocKey(exercise.id),
+            exerciseId: exercise.id,
+            exerciseName: exercise.display_name,
+            exerciseSubtitle: exercise.display_subtitle,
+            plannedSets: AD_HOC_PLANNED_SETS,
+            sets: Array.from({ length: AD_HOC_PLANNED_SETS }, (_, j) => draftFromHistory(lastSets, j, state.repLow)),
+            open: true,
+            adHoc: true,
+          },
+        ],
+      }
+    })
+  },
+
+  // For a mistaken pick. A logged set stays: it was really performed.
+  removeExercise: (exIndex) => {
+    set((state) => {
+      const ex = state.exercises[exIndex]
+      if (!ex?.adHoc || ex.sets.some((s) => s.done)) return state
+      return { exercises: state.exercises.filter((_, i) => i !== exIndex) }
+    })
+  },
+
   toggleDone: async (exIndex, setIndex) => {
     const state = get()
     if (!state.sessionId) return
@@ -237,7 +318,8 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
       id: setId,
       session_id: state.sessionId,
       exercise_id: ex.exerciseId,
-      workout_exercise_id: ex.workoutExerciseId,
+      workout_exercise_id: ex.adHoc ? null : ex.workoutExerciseId,
+      ...(ex.adHoc ? { exercise_name: ex.exerciseName, exercise_subtitle: ex.exerciseSubtitle } : {}),
       set_index: setIndex,
       weight_kg: draft.weightKg,
       reps: draft.reps,

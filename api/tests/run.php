@@ -1329,6 +1329,12 @@ check('snapshot has the workout with its exercises', count($snapshot['workout_de
 check('snapshot has the groups', is_array($snapshot['workout_groups']), $failures);
 check('snapshot has the settings', isset($snapshot['settings']['rest_seconds']), $failures);
 check('snapshot never carries the password hash', !isset($snapshot['settings']['password_hash']), $failures);
+$unplanned = $exRepo->create(['name' => 'Snapshot Leg Press', 'equipment' => 'machine', 'mechanic' => 'compound', 'muscles' => []]);
+$setRepo->upsert(['id' => 'set-unplanned', 'session_id' => 'sess-snapshot', 'exercise_id' => $unplanned['id'], 'workout_exercise_id' => null, 'set_index' => 0, 'weight_kg' => 120, 'reps' => 10, 'is_warmup' => 0, 'performed_at' => '2026-10-20T10:06:00Z', 'updated_at' => '2026-10-20T10:06:00Z']);
+$snapshot = OfflineSnapshot::build();
+check('snapshot has the whole library (#165)', in_array($unplanned['id'], array_column($snapshot['exercises'], 'id'), true), $failures);
+check('snapshot has last sets outside any plan (#165)', (float) $snapshot['last_sets'][$unplanned['id']][0]['weight_kg'] === 120.0, $failures);
+check('a set without a workout slot counts as last set (#165)', $setRepo->lastSetsForExercise($unplanned['id'])[0]['workout_exercise_id'] === null, $failures);
 check('snapshot has the last sets per exercise', (float) $snapshot['last_sets'][$created['id']][0]['weight_kg'] === 77.5, $failures);
 
 echo "Uploads (R-05)\n";

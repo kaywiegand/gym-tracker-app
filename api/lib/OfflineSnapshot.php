@@ -26,10 +26,20 @@ final class OfflineSnapshot
             }
         }
 
+        // The library and every exercise ever trained, not only the planned
+        // ones: an exercise can be added during a session without signal.
+        $exercises = (new ExerciseRepository())->list(null, null, null);
+        foreach ($exercises as $exercise) {
+            if ($exercise['has_sets'] === 1) {
+                $lastSets[$exercise['id']] ??= $setRepo->lastSetsForExercise($exercise['id']);
+            }
+        }
+
         return [
             'workouts' => $workouts,
             'workout_groups' => (new WorkoutGroupRepository())->list(),
             'workout_details' => $details,
+            'exercises' => $exercises,
             'settings' => (new SettingsRepository())->getAll(),
             'last_sets' => $lastSets,
         ];

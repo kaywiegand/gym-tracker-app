@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Search, BicepsFlexed, SlidersHorizontal } from 'lucide-react'
 import { api } from '@/lib/api'
 import { sortByDisplayName } from '@/lib/exerciseGrouping'
+import { searchExercises } from '@/lib/offlineCache'
 import type { ExerciseListItem, RecentWorkout } from '@/types'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -73,15 +74,13 @@ function useExerciseSelectorState(excludeIds: string[], { trackedOnly = false }:
     // must not wipe the results of a newer one.
     let current = true
     const timer = setTimeout(() => {
-      const params = new URLSearchParams()
-      if (query.trim()) params.set('q', query.trim())
-      if (region !== 'All') params.set('region', region.toLowerCase())
-      if (mechanic !== 'All') params.set('mechanic', mechanic.toLowerCase())
-      if (trackedOnly) params.set('tracked', '1')
-      const qs = params.toString()
       setLoading(true)
-      api
-        .get<ExerciseListItem[]>(`/exercises${qs ? `?${qs}` : ''}`)
+      searchExercises({
+        q: query.trim() || undefined,
+        region: region !== 'All' ? region.toLowerCase() : undefined,
+        mechanic: mechanic !== 'All' ? mechanic.toLowerCase() : undefined,
+        tracked: trackedOnly,
+      })
         .then((rows) => {
           if (!current) return
           setExercises(rows)
