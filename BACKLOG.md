@@ -283,3 +283,13 @@ Ablauf funktioniert, Sätze und Session-Ende kommen in der DB an. Funde:
 | 162 | **Bearbeiten löscht Workout-Notizen (R-10)** — Kay 2026-10-30: Updates ändern nur mitgeschickte Felder, Notizfeld ins Bearbeiten-Formular. — ✅ in v1.2 | — |
 | 163 | **Tests ohne CI (R-06)** — Kay 2026-10-30: Engine-Tests mit festen Daten, Winterzeit-Testfehler an der Ursache beheben, Deploy bricht bei rotem Test ab. Kein CI. — ✅ in v1.2 | — |
 | 164 | **Workout offline starten (R-01)** — Kay 2026-10-30: Workouts und Stammdaten in IndexedDB, Session mit Client-ID über den Push-Sync, kein Screen hängt ohne Netz auf „Loading". — ✅ in v1.2, auf dem iPhone noch zu prüfen | — |
+
+## Kays Meldungen 2026-10-31
+
+| # | Beschreibung | Prio |
+| :--- | :--- | :--- |
+| 165 | **Übung im laufenden Workout ergänzen** — Kay 2026-10-31: im laufenden Workout spontan eine Exercise hinzufügen können (z. B. eine Beinübung). Sie gilt nur für dieses Workout, die Vorlage bleibt unverändert. — ✅ `06c8f4b` | — |
+| 166 | **Merkliste für Übungen** — Kay 2026-10-31: in der Detailansicht einer Übung ein Icon-Button zum Merken, wie auf Instagram. Gedacht für Übungen, die demnächst in ein Workout sollen oder spontan dazukommen. In der Übungsauswahl neben Filter, Textsuche und Exercises in Workouts als weitere Vorauswahl. — ✅ `2da9d8d` | — |
+| 167 | **Legende für die Trendlinien** — Kay 2026-10-31: in den Progress-Charts der Dashboards fehlt eine Legende für die graue und die grüne Linie. — ✅ `808e931` | — |
+| 168 | **App-Icon fehlt auf iOS** — Kay 2026-10-31: beim Hinzufügen zum Home-Bildschirm wird auf iOS das App-Icon nicht angezeigt. Ursache: alter iOS-Cache, nach Löschen der Website-Daten funktioniert es (Kay 2026-10-31, ohne Deploy). Neue Icon-Datei und Service-Worker-Eintrag als Vorsorge. — ✅ `5d9221a` | — |
+| 169 | **Übungsauswahl: zu viele Übungen in der Liste** — Kay 2026-10-31: Compound/Isolation ist gut, die Muskelgruppen helfen nicht, die Listen sind zu lang (z. B. über 20 Triceps Extensions). Vorschlag A: nur eine Hauptübung listen, Varianten per Auswahl. Vorschlag B: zweite Filterebene je Muskelgruppe (Chest upper/middle/lower, Back lower/Trapez/Latissimus usw.). Kay 2026-10-31: beides, z. B. kommt er aktuell nicht gezielt zu Übungen für die hintere Schulter. — ✅ umgesetzt, wartet auf Kays Freigabe. Kay 2026-10-31 ergänzt: Brachialis unter Arms, Core mit Obliques; eine Übung taucht unter allen ihren Muskeln auf, primär und sekundär (Hammer Curl: Biceps + Brachialis, Leg Press: Quads + Glutes). Core nur Upper/Lower/Obliques, Neck unter Back. — ✅ `2da9d8d` | — |

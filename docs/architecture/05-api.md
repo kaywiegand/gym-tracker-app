@@ -31,6 +31,7 @@ Basis `/api`, JSON. Fehlerform `{"error": "..."}`. Routing: If-Kette in `api/ind
 | `GET /exercises/naming-vocabulary` | – | `{movements,variants}` | `exercises.php` |
 | `GET /exercises/:id` | – | `Exercise` mit `muscles`, `media` | `exercises.php` |
 | `PUT /exercises/:id` | Teilfelder, nur Gesendetes ändert sich, `null` leert | `Exercise` | `exercises.php` |
+| `PUT /exercises/:id/watchlist` | `{watched}` | `{watched}` | `exercises.php` |
 | `GET /exercises/:id/last-sets` | `exclude_session` | `SetEntry[]` | `exercises.php` |
 | `GET /exercises/:id/progression-context` | – | `ProgressionContext` oder `null` | `exercises.php` |
 | `GET /exercises/:id/history` | `limit, weeks` | `ExerciseHistoryEntry[]` | `exercises.php` |
@@ -60,7 +61,7 @@ Basis `/api`, JSON. Fehlerform `{"error": "..."}`. Routing: If-Kette in `api/ind
 | Name | Input | Output | Datei |
 | :--- | :--- | :--- | :--- |
 | `POST /sync/push` | `{sessions[],sets[],bodyweight[],body_measurements[]}` | `{ok}` | `sync.php` |
-| `GET /sync/snapshot` | – | `{workouts,workout_groups,workout_details,settings,last_sets}` für den Offline-Start | `sync.php`, `lib/OfflineSnapshot.php` |
+| `GET /sync/snapshot` | – | `{workouts,workout_groups,workout_details,exercises,settings,last_sets}` für den Offline-Start, `last_sets` auch für alle je trainierten Übungen | `sync.php`, `lib/OfflineSnapshot.php` |
 | `GET /bodyweight` | `limit` | `Bodyweight[]` | `bodyweight.php` |
 | `GET /body-measurements` | `site, limit` | `BodyMeasurement[]` | `bodymeasurements.php` |
 | `GET /bia/template` | – | CSV | `bia.php` |
@@ -196,7 +197,116 @@ sequenceDiagram
     A-->>T: Vergleichswert
 ```
 
-Nur der Start braucht zwingend Netz, das Abhaken nicht. Schlägt der Push fehl, bleiben die Zeilen ungesynct und der nächste Auslöser versucht es erneut. Auslöser sind App-Start, `online`, jede Satz-Aktion und Finish.
+Kein Schritt braucht zwingend Netz, solange ein Snapshot im `cache` liegt (s. Offline-Start). Schlägt der Push fehl, bleiben die Zeilen ungesynct und der nächste Auslöser versucht es erneut. Auslöser sind App-Start, `online`, jede Satz-Aktion und Finish.
+
+### Offline-Start
+
+```mermaid
+sequenceDiagram
+    actor K as Nutzer
+    participant W as WorkoutsPage
+    participant Y as syncService
+    participant C as offlineCache
+    participant L as IndexedDB
+    participant A as PHP API
+    participant T as TrackingPage
+
+    Note over W,A: Vorbereitung bei Empfang
+    W->>Y: syncNow
+    Y->>A: POST /sync/push
+    Y->>C: refreshOfflineCache
+    C->>A: GET /sync/snapshot
+    A-->>C: Workouts, Gruppen, Details, Uebungen, Settings, letzte Saetze
+    C->>L: replaceCache, kompletter Austausch
+
+    Note over K,T: Spaeter im Gym
+    K->>T: Workout starten
+    T->>C: loadTrackingData
+    alt online und Antwort unter 4 s
+        C->>A: GET /workouts/:id, /settings, last-sets
+        A-->>C: frische Daten
+    else offline oder Zeitlimit
+        C->>L: getCached workout:id, settings, last-sets
+        L-->>C: lokale Kopie
+    else 404 oder keine Kopie
+        C-->>T: null
+        T-->>K: Hinweis statt Laden
+    end
+    C-->>T: TrackingData
+```
+
+Die Session bleibt client-seitig, ihre Zeile entsteht erst beim ersten Satz. Grenze: Die letzten Sätze stammen vom letzten Snapshot, zwei Offline-Workouts hintereinander sehen einander nicht.
+
+### Login und abgelaufene Session
+
+```mermaid
+sequenceDiagram
+    actor K as Nutzer
+    participant U as Screen
+    participant S as useAuthStore
+    participant H as api.ts
+    participant A as PHP Auth
+    participant D as SQLite
+
+    U->>S: checkStatus
+    alt Antwort unter 4 s
+        S->>A: GET /auth/status
+        A-->>S: authenticated
+    else offline
+        S->>S: bekannter Login aus localStorage
+    end
+    K->>S: login mit Passwort
+    S->>A: POST /auth/login
+    A->>D: password_hash aus settings
+    A->>A: password_verify, neue Session-ID
+    A-->>S: HTTP-only-Cookie, 30 Tage gleitend
+    Note over U,A: Spaeter laeuft die Session ab
+    U->>H: beliebiger Request
+    H->>A: Request
+    A-->>H: 401
+    H-->>S: Event, recheck
+    S->>A: GET /auth/status
+    A-->>S: authenticated false
+    S-->>U: LoginPage als Overlay, Screen bleibt montiert
+```
+
+Das Overlay schützt ungespeicherte Eingaben: Der Screen darunter bleibt stehen. Ein Netzfehler beim `recheck` sagt nichts über die Session und ändert daher keinen Zustand. Eine Login-Sperre zeigt das Diagramm nach Stand von R-13 nicht.
+
+### BIA-Import
+
+```mermaid
+sequenceDiagram
+    actor K as Nutzer
+    participant E as Externe KI
+    participant U as SettingsPage
+    participant A as bia.php
+    participant P as BiaImport
+    participant R as BiaRepository
+    participant D as SQLite
+
+    K->>U: Vorlage laden
+    U->>A: GET /bia/template
+    A-->>K: CSV-Vorlage
+    K->>E: Foto des Scans und Vorlage
+    E-->>K: ausgefuellte CSV
+    K->>U: Datei waehlen
+    U->>A: POST /bia/import
+    A->>P: parse, Wide zu Long
+    P-->>A: Datumsspalten und Eintraege
+    A->>R: existingKeys
+    loop je Datum
+        alt external_id und measured_at bekannt
+            A->>A: skipped + 1
+        else neu
+            A->>R: createMeasurement
+            A->>R: insertValues
+            R->>D: bia_measurements, bia_values
+        end
+    end
+    A-->>U: imported, skipped
+```
+
+Der Schlüssel aus `external_id` und `measured_at` macht den Import idempotent. `external_id` allein reicht nicht, der Export verwendet sie mehrfach (`BiaRepository.php`). Der KI-Schritt läuft außerhalb der App.
 
 ### Auswertung und Dashboard
 

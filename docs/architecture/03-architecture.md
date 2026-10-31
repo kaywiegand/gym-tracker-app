@@ -79,6 +79,155 @@ flowchart TB
 
 Tracking und Körperdaten schreiben über IndexedDB. Workout-Liste und Tracking lesen mit Rückfall auf den Store `cache` (`lib/offlineCache.ts`), alle anderen Screens sprechen direkt mit der API und zeigen ohne Netz `LoadError`. Die Fachlogik ist geteilt: Volumen, ACWR und Recovery rechnen im Backend, Progression und Plateau im Client.
 
+## Deployment
+
+```mermaid
+flowchart TB
+    subgraph Device["Endgerät: iPhone oder Desktop-Browser"]
+        Pwa["React-PWA"]
+        Sw["Service Worker<br/>Precache App-Shell"]
+        Idb[("IndexedDB")]
+        Pwa --> Idb
+        Sw --> Pwa
+    end
+    subgraph Host["Hetzner Webhosting Level 1"]
+        subgraph Doc["Docroot"]
+            Static["index.html, assets, build.json"]
+            Php["api/ PHP 8"]
+            Sqlite[("db/fitness.db<br/>per .htaccess gesperrt")]
+            Sess["db/sessions/"]
+            Old["uploads/<br/>stillgelegt, gesperrt"]
+        end
+        Priv[("uploads_path<br/>außerhalb Docroot")]
+    end
+    subgraph Dev["Entwicklerrechner"]
+        Deploy["deploy/deploy.sh"]
+        Backup["deploy/backup.sh"]
+        Copies[("backups/")]
+    end
+    Raw["GitHub Raw<br/>FEDB-Bilder"]
+
+    Pwa -- "HTTPS, JSON, Session-Cookie" --> Php
+    Device -- "HTTPS, statische Dateien" --> Static
+    Pwa -- "HTTPS, img" --> Raw
+    Php --> Sqlite
+    Php --> Sess
+    Php --> Priv
+    Deploy -- "FTP, lftp mirror ohne --delete" --> Doc
+    Sqlite -- "FTP-Download" --> Backup
+    Backup --> Copies
+```
+
+Es gibt genau einen Server-Prozess-Typ: PHP pro Request, kein Worker, kein Cron im Repo. ⚠️ Annahme: Apache wertet die `.htaccess`-Sperren aus (`09-open-questions.md`). `uploads_path` liegt außerhalb der FTP-Reichweite und damit in keinem Backup.
+
+## Klassen Backend
+
+```mermaid
+classDiagram
+    direction TB
+    class endpoints {
+        <<functions>>
+        handleSyncPush()
+        handleSyncSnapshot()
+        handleBiaImport()
+        handleHrImport()
+    }
+    class Auth {
+        <<static>>
+        start()
+        require()
+        login(password)
+        changePassword(current, new)
+    }
+    class Http {
+        <<static>>
+        jsonBody()
+        respond(data, status)
+        error(message, status)
+    }
+    class Db {
+        <<static>>
+        connection() PDO
+        config()
+    }
+    class Uploads {
+        <<static>>
+        storeUploaded(tmpPath, relative)
+        send(relative, mime)
+        remove(relative)
+    }
+    class BaseRepository {
+        <<abstract>>
+        #fetchAll(sql, params)
+        #fetchOne(sql, params)
+        #execute(sql, params)
+        #upsertRow(table, columns, id)
+    }
+    class SessionRepository {
+        +upsert(row)
+        +allTimeWindows()
+    }
+    class SetRepository {
+        +upsert(row)
+        +lastSetsForExercise(id)
+        +rawSetsWithMuscles(days)
+        +e1rmByExerciseSession(days)
+    }
+    class WorkoutRepository {
+        +list()
+        +find(id)
+        +create(data)
+        +update(id, data)
+        +progressionContextForExercise(id)
+    }
+    class ExerciseRepository {
+        +list(q, region, mechanic)
+    }
+    class BackupRepository {
+        +exportAll()
+        +importAll(tables)
+    }
+    class OtherRepositories["Weitere 10 Repositories"] {
+        Settings, Bia, Hr, Media, Muscle
+        TrainingMode, WorkoutGroup
+        Bodyweight, BodyMeasurement
+        ExerciseWatchlist
+    }
+    class Domain["Domäne, static, ohne DB"] {
+        MuscleVolume
+        Recovery
+        VolumeLandmarks
+        ExerciseNaming
+        BiaImport
+        HrImport
+    }
+    class ExerciseFocus {
+        +of(row, secondaryMuscles) array
+        +primary(row) array
+    }
+    class OfflineSnapshot {
+        <<static>>
+        build()
+    }
+
+    endpoints ..> Auth
+    endpoints ..> Http
+    endpoints ..> Uploads
+    endpoints ..> Domain
+    endpoints ..> OfflineSnapshot
+    endpoints ..> BaseRepository
+    OfflineSnapshot ..> BaseRepository
+    BaseRepository ..> Db
+    BaseRepository <|-- SessionRepository
+    BaseRepository <|-- SetRepository
+    BaseRepository <|-- WorkoutRepository
+    BaseRepository <|-- ExerciseRepository
+    BaseRepository <|-- BackupRepository
+    BaseRepository <|-- OtherRepositories
+```
+
+Handler sind freie Funktionen, kein Controller-Objekt. Klassen hängen über `bootstrap.php` global zusammen, die Pfeile zeigen Nutzung, keinen Import. Der Sammelkasten fasst die Repositories ohne Besonderheit zusammen.
+
 ## Datenfluss
 
 | Schritt | Trainingsdaten | Beleg |

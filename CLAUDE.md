@@ -220,6 +220,7 @@ für Commits: erst zeigen, dann committen.
 
 - TypeScript strict; kleine, fokussierte Module; sprechende Namen. Keine unnötigen Dependencies (shared-hosting-tauglich halten).
 - Kleine Commits mit klarer Message. Einfache Tests für Engine-Logik (e1RM, Progression, Volumen) und die Sync-Upsert-Logik.
+- Jeder Commit aktualisiert die betroffene Doku mit: `docs/architecture/` (Features, Architektur, Datenmodell, API, Struktur, Refactoring-Status inkl. Mermaid-Diagramme) und `README.md`. Schema-Änderung = `04-data-model.md` samt ER-Diagrammen, neuer Endpoint = `05-api.md`.
 - UUIDs am Client erzeugen. Timestamps ISO-8601 UTC. Nichts hardcoden, was in `settings` gehört.
 - Immer die günstigste, klarste Lösung — nicht over-engineeren.
   

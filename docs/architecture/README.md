@@ -23,10 +23,10 @@
 | Datei | Inhalt |
 | :--- | :--- |
 | [01-overview.md](01-overview.md) | Zweck, Stack, Laufzeit, Build/Run |
-| [02-features.md](02-features.md) | Feature-Inventar, Trainingstag |
-| [03-architecture.md](03-architecture.md) | Schichten, Komponenten, Datenfluss |
-| [04-data-model.md](04-data-model.md) | Entitäten, Felder, Füllgrade |
-| [05-api.md](05-api.md) | Endpunkte, Funktionen, Kern-Flows |
+| [02-features.md](02-features.md) | Use Cases, Feature-Inventar, Trainingstag |
+| [03-architecture.md](03-architecture.md) | Schichten, Komponenten, Deployment, Klassen Backend, Datenfluss |
+| [04-data-model.md](04-data-model.md) | Domänen-Übersicht, ER-Diagramme, Schreibpfade, Backup-Abdeckung, Füllgrade, Client-Modell |
+| [05-api.md](05-api.md) | Endpunkte, Funktionen, Kern-Flows (Tracking, Offline-Start, Login, BIA-Import, Dashboard, Export) |
 | [06-code-structure.md](06-code-structure.md) | Baum, Abhängigkeiten, Kennzahlen, Zustände |
 | [07-refactoring.md](07-refactoring.md) | Befunde R-01 ff., Nutzen vs. Aufwand |
 | [08-v2-touchpoints.md](08-v2-touchpoints.md) | Andockpunkte für die vier v2-Bausteine |

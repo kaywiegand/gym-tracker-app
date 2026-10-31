@@ -193,10 +193,10 @@ stateDiagram-v2
     Unterwegs --> Gesynct : 200 und markSynced
     Unterwegs --> Ungesynct : Fehler oder offline
     Gesynct --> Ungesynct : lokale Aenderung
-    Unterwegs --> Gesynct : Aenderung waehrend Push geht verloren
+    Unterwegs --> Ungesynct : 200, aber updated_at geaendert
 ```
 
-Die letzte Kante ist Befund R-02: `markSynced` prüft nicht, ob sich die Zeile während des Requests geändert hat. Es gibt keinen Retry-Timer, die Queue läuft nur bei den vier Auslösern an.
+Die letzte Kante ist die Lösung von R-02: `markSynced` quittiert nur, wenn `updated_at` noch dem gesendeten Stand entspricht. Eine Änderung während des Requests bleibt in der Queue. Es gibt keinen Retry-Timer, die Queue läuft nur bei den vier Auslösern an.
 
 ## Tests
 

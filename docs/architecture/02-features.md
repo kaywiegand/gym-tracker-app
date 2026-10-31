@@ -4,6 +4,68 @@ Status: **stabil** = in Benutzung, Logik nachvollziehbar, keine bekannten Lücke
 
 Die Einstufung ist eine Code-Bewertung. Wie stabil sich ein Feature auf dem iPhone anfühlt, ist damit nicht gemessen (s. `09-open-questions.md`).
 
+## Use Cases
+
+```mermaid
+flowchart LR
+    gym(["Nutzer im Gym"])
+    home(["Nutzer am Desktop"])
+    ops(["Betreiber"])
+
+    subgraph App["Workout Tracker"]
+        subgraph T["Tracking"]
+            uc1(["Workout starten"])
+            uc2(["Satz abhaken"])
+            uc3(["Rest-Timer nutzen"])
+            uc4(["Übung spontan ergänzen"])
+            uc5(["Workout abschließen"])
+            uc6(["Vorschlag ansehen"])
+            uc7(["Lokal speichern und syncen"])
+        end
+        subgraph P["Bibliothek und Planung"]
+            uc8(["Übungen suchen, merken"])
+            uc9(["Übung bearbeiten, duplizieren"])
+            uc10(["Workout planen"])
+        end
+        subgraph A["Auswertung"]
+            uc11(["Dashboard auswerten"])
+            uc12(["Report drucken"])
+        end
+        subgraph B["Körperdaten und Daten"]
+            uc13(["Gewicht, Umfänge erfassen"])
+            uc14(["BIA, HR importieren"])
+            uc15(["Export, Backup, Restore"])
+            uc16(["Settings pflegen"])
+        end
+    end
+    subgraph Cli["Außerhalb der App"]
+        uc17(["Deploy, DB-Backup"])
+    end
+
+    gym --> uc1
+    gym --> uc2
+    gym --> uc3
+    gym --> uc4
+    gym --> uc5
+    gym --> uc13
+    home --> uc8
+    home --> uc9
+    home --> uc10
+    home --> uc11
+    home --> uc12
+    home --> uc14
+    home --> uc15
+    home --> uc16
+    ops --> uc17
+
+    uc1 -. "include" .-> uc6
+    uc2 -. "include" .-> uc7
+    uc5 -. "include" .-> uc7
+    uc13 -. "include" .-> uc7
+```
+
+Mermaid kennt keinen eigenen Use-Case-Typ, das Diagramm folgt der UML-Notation als Flowchart. Alle Akteure sind dieselbe Person in drei Rollen, die Trennung zeigt den Ort. Offline-first sind nur die Fälle mit `include` auf "Lokal speichern und syncen", Tracking startet zudem aus dem `cache`. Die übrigen Fälle setzen Netz voraus.
+
 ## Inventar
 
 ### Tracking
@@ -11,6 +73,9 @@ Die Einstufung ist eine Code-Bewertung. Wie stabil sich ein Feature auf dem iPho
 | Feature | Beschreibung | Screens | Dateien | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | Workout starten | Start aus der Liste, Vorbelegung aus letzten Sätzen | `/workouts`, `/track/:id` | `pages/WorkoutsPage.tsx:44-55`, `pages/TrackingPage.tsx:115-153` | stabil, offline aus `lib/offlineCache.ts` |
+| Übung im laufenden Workout | Nur für die Session, `workout_exercise_id = NULL`, Vorlage unverändert, Picker offline nutzbar (#165) | `/track/:id` | `store/useTrackingStore.ts`, `lib/offlineCache.ts` | neu |
+| Übungsauswahl | Gruppen statt Varianten, zweite Ebene je Muskelgruppe (#169). Suche und Saved bleiben flach | alle Picker | `lib/exerciseGrouping.ts`, `api/lib/ExerciseFocus.php` | neu |
+| Übungs-Merkliste | Bookmark im Detail-Sheet, Modus „Saved“ im Selector (#166) | `/exercises`, Picker | `components/ExerciseDetailSheet.tsx`, `components/ExerciseSelector.tsx` | neu |
 | Sätze loggen | Gewicht/Reps, Abhaken schreibt `sets`-Zeile, Rückgängig per Soft-Delete | `/track/:id` | `store/useTrackingStore.ts:208-264` | stabil |
 | Offline-Puffer | IndexedDB zuerst, dann Push | `/track/:id` | `lib/localDb.ts`, `lib/syncService.ts` | stabil |
 | Offene Session fortsetzen | Mehrere offene Sessions, Resume, Discard, Neu | `/track/:id` | `pages/TrackingPage.tsx:135-237`, `lib/localDb.ts:77-82` | stabil, aber nur je Gerät |

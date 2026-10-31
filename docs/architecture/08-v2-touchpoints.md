@@ -72,7 +72,7 @@ Risiko dabei: zwei Implementierungen der Progression. Entweder portieren und TS 
 
 | Lücke | Vorschlag |
 | :--- | :--- |
-| Merkliste | Neue Tabelle `exercise_watchlist` (`id`, `exercise_id`, `note`, `target_region` optional, Sync-Felder). Eigene Tabelle statt Spalte, weil Notiz und Status dazukommen |
+| Merkliste | Umgesetzt (#166): Tabelle `exercise_watchlist`, Bookmark im Detail-Sheet, Modus „Saved“ im `ExerciseSelector`, Schreiben nur online. Noch offen: `note`, `target_region` |
 | Status der Merkung | `status`: `saved`, `planned`, `tried`, `dropped` |
 | Herkunft | `source_note` ⚠️ Annahme, klären, ob Links oder Fotos dazugehören |
 | Aktiver Plan | Es gibt nur lose Workouts. Für "Wochenplan" fehlt eine Klammer wie `training_plan` plus Wochenfrequenz je Workout. Ohne sie lässt sich Plan-Volumen pro Woche nicht berechnen |

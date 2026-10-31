@@ -669,3 +669,22 @@
 - Kays uncommittete Änderung in `04-data-model.md` blieb außen vor, nur die IndexedDB-Zeile wurde committet.
 
 **Nächster Schritt:** Kay gibt frei, dann Deploy nach Checkliste, danach Offline-Start auf dem iPhone prüfen.
+
+## Session 2026-10-31 — Features nach v1.2 (#165–#169)
+
+**Was passiert ist:**
+- #165 `06c8f4b`: Übung im laufenden Workout ergänzen, nur für die Session. Bibliothek und letzte Sätze aller trainierten Übungen im Offline-Snapshot.
+- #166, #169 `2da9d8d`: Merkliste, Varianten-Gruppen, zweite Muskel-Ebene, Übungen unter allen ihren Muskeln. Ein Commit, weil beide dieselben Stellen im Selector und im Repository ändern.
+- #167 `808e931`: Legende für die Trendlinien.
+- #168 `5d9221a`: Neue Icon-Datei im Service Worker. Das Icon lief schon vorher wieder, nachdem Kay die Website-Daten gelöscht hatte: Ursache war der iOS-Cache.
+- Getestet im Browser gegen eine Kopie des Backups vom 26.10.; iPhone nicht.
+
+**Entscheidungen:**
+- Kay: `Obliques` bleibt als Wort, Core ist Upper/Lower/Obliques, kein Middle, kein Stability, weil das kein Muskel ist. Planks erscheinen nur unter Core.
+- Kay: eine Übung taucht unter allen ihren Muskeln auf. Sekundäre stehen getrennt unter „Also trains this“.
+- Kay: Neck unter Back. Gilt nur in der Auswahl, das Dashboard rechnet weiter nach `muscles.region`.
+- Brachialis ist Namensregel (Hammer, Reverse, Zottman), Shoulder- und Chest-Teile ebenso; die Quelldaten kennen sie nicht.
+- Stretches bleiben sichtbar: Kay hat dazu nicht entschieden, die Gruppen fassen sie zusammen.
+- Kein Tag `v1.3` gesetzt, Kay hat nur das Committen freigegeben.
+
+**Nächster Schritt:** Deploy mit `--with-migration` nach Kays Freigabe, dann iPhone-Test.
