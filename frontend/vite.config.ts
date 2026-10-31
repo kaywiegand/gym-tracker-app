@@ -11,6 +11,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Linked from index.html, not from the manifest, so the plugin does not
+      // find it by itself. Without this it is the one icon the app can't
+      // reach offline (BACKLOG #168).
+      includeAssets: ['apple-touch-icon-v2.png'],
       // Navigations to /api (CSV template, backup and training-log export are
       // plain <a href> downloads) must reach the server. By default the
       // service worker answers every navigation with the app shell, so those
